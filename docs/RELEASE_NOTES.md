@@ -11,8 +11,8 @@
 - **Persistent File Tracking**: Active file survives server restarts
 
 #### 🆕 Advanced Editing Tools
-- **`ahk_edit`**: Comprehensive text editing with replace, insert, delete, append, prepend operations
-- **`ahk_diff_edit`**: Apply unified diff patches (Git-style diffs) with validation and dry-run mode
+- **`AHK_File_Edit`**: Comprehensive text editing with replace, insert, delete, append, prepend operations
+- **`AHK_File_Edit_Diff`**: Apply unified diff patches (Git-style diffs) with validation and dry-run mode
 - **Regex Support**: Full regex pattern matching for search and replace operations
 - **Automatic Backups**: Creates `.bak` files before any modification
 - **Token-Efficient**: Minimal token usage compared to diff-based approaches
@@ -32,23 +32,23 @@
 
 ### New Tools Added
 
-1. **`ahk_file`** - Active file management (get, set, detect, clear)
-2. **`ahk_edit`** - Text editing operations with regex support
-3. **`ahk_diff_edit`** - Apply unified diff patches
-4. **`ahk_alpha`** - Alpha version creation and management
-5. **`ahk_settings`** - Tool configuration and feature toggles
-6. **`ahk_auto_file`** - Automatic file path detection from text
-7. **`ahk_process_request`** - Multi-line input processing
+1. **`AHK_File_Active`** - Active file management (get, set, detect, clear)
+2. **`AHK_File_Edit`** - Text editing operations with regex support
+3. **`AHK_File_Edit_Diff`** - Apply unified diff patches
+4. **`AHK_Alpha`** - Alpha version creation and management
+5. **`AHK_Settings`** - Tool configuration and feature toggles
+6. **`AHK_File_Detect`** - Automatic file path detection from text
+7. **`AHK_Process_Request`** - Multi-line input processing
 
 ### Enhanced Existing Tools
 
-#### `ahk_run`
+#### `AHK_Run`
 - **Active File Integration**: Uses active file when no path specified
 - **Enhanced Process Management**: Better PID tracking and cleanup
 - **Window Detection**: Verify GUI script window creation with timing
 - **Error Handling**: Improved error messages with suggestions
 
-#### `ahk_diagnostics` & `ahk_analyze`
+#### `AHK_Diagnostics` & `AHK_Analyze`
 - **Auto File Detection**: Automatically detect file paths in code input
 - **Active File Support**: Work with active file when no code provided
 
@@ -59,13 +59,13 @@
 
 ### Configuration & Settings
 
-#### Tool Settings (`ahk_settings`)
+#### Tool Settings (`AHK_Settings`)
 ```json
 // Disable all file editing tools
 {"action": "disable_editing"}
 
 // Enable specific tool
-{"action": "enable_tool", "tool": "ahk_edit"}
+{"action": "enable_tool", "tool": "AHK_File_Edit"}
 
 // Configure global settings
 {"action": "set", "settings": {"alwaysBackup": true, "maxFileSize": 5242880}}
@@ -87,7 +87,7 @@
 ```
 User: "C:\Scripts\test.ahk - fix the syntax errors"
 → File automatically detected and set as active
-→ ahk_diagnostics runs on the file
+→ AHK_Diagnostics runs on the file
 → Issues identified and fixed
 ```
 
@@ -125,7 +125,7 @@ User provides Git diff patch:
 - **Error-First Design**: Robust error handling with graceful fallbacks
 
 #### Performance
-- **Token Efficiency**: `ahk_edit` uses 6x fewer tokens than diff-based editing
+- **Token Efficiency**: `AHK_File_Edit` uses 6x fewer tokens than diff-based editing
 - **Smart Caching**: File content caching and validation
 - **Lazy Loading**: Documentation loaded on-demand
 - **Process Management**: Efficient AutoHotkey process tracking

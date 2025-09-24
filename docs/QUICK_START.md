@@ -16,22 +16,22 @@
 
 #### Quick Edit
 ```json
-{"tool": "ahk_edit", "arguments": {"action": "replace", "search": "old text", "content": "new text"}}
+{"tool": "AHK_File_Edit", "arguments": {"action": "replace", "search": "old text", "content": "new text"}}
 ```
 
 #### Apply Git Diff
 ```json
-{"tool": "ahk_diff_edit", "arguments": {"diff": "--- file.ahk\n+++ file.ahk\n@@ -1,3 +1,4 @@\n code"}}
+{"tool": "AHK_File_Edit_Diff", "arguments": {"diff": "--- file.ahk\n+++ file.ahk\n@@ -1,3 +1,4 @@\n code"}}
 ```
 
 #### Create Alpha Version
 ```json
-{"tool": "ahk_alpha", "arguments": {"action": "create"}}
+{"tool": "AHK_Alpha", "arguments": {"action": "create"}}
 ```
 
 #### Manage Settings
 ```json
-{"tool": "ahk_settings", "arguments": {"action": "disable_editing"}}
+{"tool": "AHK_Settings", "arguments": {"action": "disable_editing"}}
 ```
 
 ### 📋 Common Workflows
@@ -39,7 +39,7 @@
 #### 1. Quick Text Replace
 ```
 User: "Change all 'Hello' to 'Hi' in the active file"
-Tool: ahk_edit with action "replace", search "Hello", content "Hi", all true
+Tool: AHK_File_Edit with action "replace", search "Hello", content "Hi", all true
 ```
 
 #### 2. Multi-line Input
@@ -72,22 +72,22 @@ Edit fails → Edit fails → Edit fails
 
 ```json
 // Read-only mode
-{"tool": "ahk_settings", "arguments": {"action": "disable_editing"}}
+{"tool": "AHK_Settings", "arguments": {"action": "disable_editing"}}
 
 // Full editing mode  
-{"tool": "ahk_settings", "arguments": {"action": "enable_editing"}}
+{"tool": "AHK_Settings", "arguments": {"action": "enable_editing"}}
 
 // Check what's enabled
-{"tool": "ahk_settings", "arguments": {"action": "get"}}
+{"tool": "AHK_Settings", "arguments": {"action": "get"}}
 ```
 
 ### 🎯 Token Efficiency
 
-**Most Efficient**: `ahk_edit` (20-30 tokens per operation)
-**Less Efficient**: `ahk_diff_edit` (100-200 tokens per operation)
+**Most Efficient**: `AHK_File_Edit` (20-30 tokens per operation)
+**Less Efficient**: `AHK_File_Edit_Diff` (100-200 tokens per operation)
 
-**Use `ahk_edit` for**: Simple replacements, line insertions, quick changes
-**Use `ahk_diff_edit` for**: Complex multi-location changes, when you have existing diffs
+**Use `AHK_File_Edit` for**: Simple replacements, line insertions, quick changes
+**Use `AHK_File_Edit_Diff` for**: Complex multi-location changes, when you have existing diffs
 
 ### 📁 File Locations
 
@@ -103,8 +103,8 @@ Edit fails → Edit fails → Edit fails
 - Check path format (quotes for spaces)
 
 **Tool disabled?**
-- Run: `{"tool": "ahk_settings", "arguments": {"action": "get"}}`
-- Enable with: `{"tool": "ahk_settings", "arguments": {"action": "enable_editing"}}`
+- Run: `{"tool": "AHK_Settings", "arguments": {"action": "get"}}`
+- Enable with: `{"tool": "AHK_Settings", "arguments": {"action": "enable_editing"}}`
 
 **Edit failed?**
 - Check file permissions
@@ -114,7 +114,7 @@ Edit fails → Edit fails → Edit fails
 ### 🎯 Best Practices
 
 1. **Let auto-detection work** - Just mention file paths naturally
-2. **Use simple edits** - `ahk_edit` is more token-efficient
+2. **Use simple edits** - `AHK_File_Edit` is more token-efficient
 3. **Enable alpha versioning** - Great for experimental changes
 4. **Check settings first** - Know what tools are available
 5. **Backup before big changes** - Use dry-run mode for previews

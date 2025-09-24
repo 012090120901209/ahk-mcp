@@ -19,7 +19,7 @@ export const AhkVSCodeProblemsArgsSchema = z.object({
 });
 
 export const ahkVSCodeProblemsToolDefinition = {
-  name: 'ahk_vscode_problems',
+  name: 'AHK_VSCode_Problems',
   description: `Ahk vscode problems
 Reads a VS Code Problems list (from file or provided JSON) and summarizes AutoHotkey LSP diagnostics.`,
   inputSchema: {
@@ -121,7 +121,7 @@ export class AhkVSCodeProblemsTool {
       const text = this.formatSummary(filtered, limit);
       return { content: [{ type: 'text', text }] };
     } catch (error) {
-      logger.error('Error in ahk_vscode_problems tool:', error);
+      logger.error('Error in AHK_VSCode_Problems tool:', error);
       return {
         content: [{ type: 'text', text: `Error: ${error instanceof Error ? error.message : String(error)}` }],
 

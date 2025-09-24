@@ -30,7 +30,7 @@ export const AhkRunArgsSchema = z.object({
 });
 
 export const ahkRunToolDefinition = {
-  name: 'ahk_run',
+  name: 'AHK_Run',
   description: `Ahk run
 Run an AutoHotkey v2 script, or watch a file and auto-run it after edits.`,
   inputSchema: {
@@ -543,7 +543,7 @@ Get
         throw new Error(`Failed to start file watcher: ${watchErr instanceof Error ? watchErr.message : String(watchErr)}`);
       }
     } catch (error) {
-      logger.error('Error in ahk_run tool:', error);
+      logger.error('Error in AHK_Run tool:', error);
       
       // Provide more helpful error messages
       let errorMessage = 'Unknown error occurred';

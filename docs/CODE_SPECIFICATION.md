@@ -132,7 +132,7 @@ ahk-mcp/
 
 ### 3.1 MCP Tools
 
-#### ahk_diagnostics
+#### AHK_Diagnostics
 ```typescript
 interface AhkDiagnosticsArgs {
   code: string;                    // AutoHotkey v2 code to analyze
@@ -143,7 +143,7 @@ interface AhkDiagnosticsArgs {
 **Purpose**: Validates AutoHotkey v2 syntax and enforces coding standards
 **Returns**: Diagnostic messages grouped by severity with line/column info
 
-#### ahk_run
+#### AHK_Run
 ```typescript
 interface AhkRunArgs {
   mode: 'run' | 'watch';           // Execution mode
@@ -166,7 +166,7 @@ interface AhkRunArgs {
 **Purpose**: Execute AutoHotkey scripts with process management
 **Returns**: Execution status, PID, exit code, window detection results
 
-#### ahk_debug_agent
+#### AHK_Debug_Agent
 ```typescript
 interface AhkDebugAgentArgs {
   code?: string;                    // Code to debug
@@ -183,7 +183,7 @@ interface AhkDebugAgentArgs {
 **Purpose**: Advanced debugging assistance for AutoHotkey scripts
 **Returns**: Debug analysis, trace logs, fix suggestions
 
-#### ahk_doc_search
+#### AHK_Doc_Search
 ```typescript
 interface AhkDocSearchArgs {
   query: string;                    // Search query
@@ -195,7 +195,7 @@ interface AhkDocSearchArgs {
 **Purpose**: Search AutoHotkey v2 documentation
 **Returns**: Ranked search results with snippets
 
-#### ahk_analyze
+#### AHK_Analyze
 ```typescript
 interface AhkAnalyzeArgs {
   code: string;                     // Code to analyze
@@ -207,7 +207,7 @@ interface AhkAnalyzeArgs {
 **Purpose**: Deep code analysis with metrics and suggestions
 **Returns**: Analysis report with identified patterns and improvements
 
-#### ahk_context_injector
+#### AHK_Context_Injector
 ```typescript
 interface AhkContextInjectorArgs {
   prompt: string;                   // User prompt
@@ -218,7 +218,7 @@ interface AhkContextInjectorArgs {
 **Purpose**: Inject relevant AutoHotkey documentation into prompts
 **Returns**: Enhanced prompt with contextual documentation
 
-#### ahk_sampling_enhancer
+#### AHK_Sampling_Enhancer
 ```typescript
 interface AhkSamplingEnhancerArgs {
   request: string;                  // Original request
@@ -228,7 +228,7 @@ interface AhkSamplingEnhancerArgs {
 **Purpose**: Optimize prompts for MCP sampling
 **Returns**: Enhanced request with structured context
 
-#### ahk_vscode_problems
+#### AHK_VSCode_Problems
 ```typescript
 interface AhkVSCodeProblemsArgs {
   workspace?: string;               // Workspace path
@@ -238,7 +238,7 @@ interface AhkVSCodeProblemsArgs {
 **Purpose**: Read VS Code problems panel
 **Returns**: Current problems from VS Code
 
-#### ahk_recent_scripts
+#### AHK_File_Recent
 ```typescript
 interface AhkRecentArgs {
   limit?: number;                   // Number of scripts
@@ -248,7 +248,7 @@ interface AhkRecentArgs {
 **Purpose**: Track recently accessed AutoHotkey scripts
 **Returns**: List of recent scripts with metadata
 
-#### ahk_config
+#### AHK_Config
 ```typescript
 interface AhkConfigArgs {
   action: 'get' | 'set' | 'reset';
@@ -259,7 +259,7 @@ interface AhkConfigArgs {
 **Purpose**: Manage server configuration
 **Returns**: Configuration state
 
-#### ahk_active_file
+#### AHK_Active_File
 ```typescript
 interface AhkActiveFileArgs {
   action: 'get' | 'set';
@@ -269,12 +269,12 @@ interface AhkActiveFileArgs {
 **Purpose**: Track currently active AutoHotkey file
 **Returns**: Active file path
 
-#### ahk_summary
+#### AHK_Summary
 No arguments required
 **Purpose**: Provide summary of available AutoHotkey documentation
 **Returns**: Statistics and categories of loaded documentation
 
-#### ahk_prompts
+#### AHK_Prompts
 No arguments required
 **Purpose**: List available AutoHotkey expertise prompts
 **Returns**: Curated prompts for common tasks
@@ -586,7 +586,7 @@ const server = new AutoHotkeyMcpServer();
 const response = await server.handleRequest({
   jsonrpc: '2.0',
   method: 'tools/call',
-  params: { name: 'ahk_diagnostics', arguments: { code } }
+  params: { name: 'AHK_Diagnostics', arguments: { code } }
 });
 ```
 

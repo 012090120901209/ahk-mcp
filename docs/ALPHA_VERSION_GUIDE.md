@@ -26,12 +26,12 @@ Original: `MyScript.ahk`
 - Third alpha: `MyScript_a3.ahk`
 - And so on...
 
-## 🛠️ The `ahk_alpha` Tool
+## 🛠️ The `AHK_Alpha` Tool
 
 ### Create Alpha Version Manually
 ```json
 {
-  "tool": "ahk_alpha",
+  "tool": "AHK_Alpha",
   "arguments": {
     "action": "create"
   }
@@ -42,7 +42,7 @@ Creates `script_a1.ahk` and switches to it.
 ### Create with Reason
 ```json
 {
-  "tool": "ahk_alpha",
+  "tool": "AHK_Alpha",
   "arguments": {
     "action": "create",
     "reason": "Changing approach - original method not working"
@@ -53,7 +53,7 @@ Creates `script_a1.ahk` and switches to it.
 ### List All Alpha Versions
 ```json
 {
-  "tool": "ahk_alpha",
+  "tool": "AHK_Alpha",
   "arguments": {
     "action": "list"
   }
@@ -63,7 +63,7 @@ Creates `script_a1.ahk` and switches to it.
 ### Switch to Latest Alpha
 ```json
 {
-  "tool": "ahk_alpha",
+  "tool": "AHK_Alpha",
   "arguments": {
     "action": "latest"
   }
@@ -73,7 +73,7 @@ Creates `script_a1.ahk` and switches to it.
 ### Track Edit Failure
 ```json
 {
-  "tool": "ahk_alpha",
+  "tool": "AHK_Alpha",
   "arguments": {
     "action": "track_failure"
   }
@@ -84,7 +84,7 @@ Manually track a failure (auto-creates alpha after 3).
 ### Reset Version History
 ```json
 {
-  "tool": "ahk_alpha",
+  "tool": "AHK_Alpha",
   "arguments": {
     "action": "reset"
   }
@@ -105,7 +105,7 @@ Manually track a failure (auto-creates alpha after 3).
 ## 📊 Automatic Triggers
 
 ### Edit Tool Integration
-When `ahk_edit` or `ahk_diff_edit` fails:
+When `AHK_File_Edit` or `AHK_File_Edit_Diff` fails:
 1. Failure is tracked automatically
 2. After 3 failures → Alpha created
 3. Active file switches to alpha
@@ -144,7 +144,7 @@ After multiple failed attempts to fix a script:
 ```
 User: "Create an alpha version and try a different approach"
 
-Agent: Uses ahk_alpha to create test_a1.ahk
+Agent: Uses AHK_Alpha to create test_a1.ahk
        Implements new solution in alpha
        Original remains unchanged
 ```
@@ -202,25 +202,25 @@ Can be disabled with `"switchToAlpha": false`
 
 ### Create Alpha Now
 ```json
-{"tool": "ahk_alpha", "arguments": {"action": "create"}}
+{"tool": "AHK_Alpha", "arguments": {"action": "create"}}
 ```
 
 ### List Versions
 ```json
-{"tool": "ahk_alpha", "arguments": {"action": "list"}}
+{"tool": "AHK_Alpha", "arguments": {"action": "list"}}
 ```
 
 ### Reset Everything
 ```json
-{"tool": "ahk_alpha", "arguments": {"action": "reset"}}
+{"tool": "AHK_Alpha", "arguments": {"action": "reset"}}
 ```
 
 ## 🔄 Integration with Edit Tools
 
 The alpha system is fully integrated with:
-- `ahk_edit` - Tracks failures, auto-creates alphas
-- `ahk_diff_edit` - Same failure tracking
-- `ahk_file` - Works with alpha versions
+- `AHK_File_Edit` - Tracks failures, auto-creates alphas
+- `AHK_File_Edit_Diff` - Same failure tracking
+- `AHK_File_Active` - Works with alpha versions
 - Active file system - Auto-switches to alphas
 
 ## 💡 Tips

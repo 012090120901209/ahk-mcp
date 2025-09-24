@@ -13,7 +13,7 @@ Current implementation status and feature completion tracking.
 - Resource management system
 
 **🆕 Script Execution with Window Detection** - Unique feature
-- Enhanced ahk_run tool with GUI detection
+- Enhanced AHK_Run tool with GUI detection
 - PowerShell-based window monitoring
 - Process management with PID tracking
 - Configurable timeouts and cleanup
@@ -81,23 +81,23 @@ Current implementation status and feature completion tracking.
 ## 🔧 Available MCP Tools
 
 ### Core Development Tools
-1. `ahk_run` - Execute scripts with window detection
-2. `ahk_analyze` - Advanced code analysis
-4. `ahk_diagnostics` - Error detection and validation
+1. `AHK_Run` - Execute scripts with window detection
+2. `AHK_Analyze` - Advanced code analysis
+4. `AHK_Diagnostics` - Error detection and validation
 
 ### Documentation & Context
-5. `ahk_doc_search` - Search AutoHotkey documentation
-6. `ahk_context_injector` - Auto-inject relevant context
-7. `ahk_sampling_enhancer` - Enhance code samples
-8. `ahk_summary` - Quick reference summaries
+5. `AHK_Doc_Search` - Search AutoHotkey documentation
+6. `AHK_Context_Injector` - Auto-inject relevant context
+7. `AHK_Sampling_Enhancer` - Enhance code samples
+8. `AHK_Summary` - Quick reference summaries
 
 ### Development Workflow
-9. `ahk_prompts` - Access prompt templates
-10. `ahk_debug_agent` - Debug assistance
-11. `ahk_config` - Configuration management
-12. `ahk_active_file` - Active file tracking
-13. `ahk_recent_scripts` - Recent files tracking
-14. `ahk_vscode_problems` - VS Code integration
+9. `AHK_Prompts` - Access prompt templates
+10. `AHK_Debug_Agent` - Debug assistance
+11. `AHK_Config` - Configuration management
+12. `AHK_Active_File` - Active file tracking
+13. `AHK_File_Recent` - Recent files tracking
+14. `AHK_VSCode_Problems` - VS Code integration
 
 ### System Integration
 15. Various MCP resources for live data and templates

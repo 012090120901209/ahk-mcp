@@ -53,19 +53,19 @@ Include logging
 ### With Claude + MCP:
 
 1. **Direct Tool Call**: 
-   Use `ahk_process_request` tool with the multi-line input
+   Use `AHK_Process_Request` tool with the multi-line input
 
 2. **Auto-Detection**:
-   Use `ahk_auto_file` to detect and set from any text
+   Use `AHK_File_Detect` to detect and set from any text
 
 3. **Manual Process**:
-   - First: `ahk_auto_file` to set the file
+   - First: `AHK_File_Detect` to set the file
    - Then: Use any tool without specifying path
 
 ### Example MCP Request:
 ```json
 {
-  "tool": "ahk_process_request",
+  "tool": "AHK_Process_Request",
   "arguments": {
     "input": "C:\\Scripts\\test.ahk\n\nCheck for errors and run it",
     "autoExecute": true,

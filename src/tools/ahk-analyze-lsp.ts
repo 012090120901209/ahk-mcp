@@ -15,7 +15,7 @@ export const AhkLspArgsSchema = z.object({
 });
 
 export const ahkLspToolDefinition = {
-  name: 'ahk_lsp',
+  name: 'AHK_LSP',
   description: `AutoHotkey LSP-style Code Analysis & Auto-Fix
 
 Acts like a Language Server Protocol (LSP) for AutoHotkey v2:

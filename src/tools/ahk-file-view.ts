@@ -19,7 +19,7 @@ export const AhkFileViewArgsSchema = z.object({
 });
 
 export const ahkFileViewToolDefinition = {
-  name: 'ahk_file_view',
+  name: 'AHK_File_View',
   description: `📖 AutoHotkey File Viewer (File Chain)
 
 Premier file viewing tool in the ahk-file-* chain. Provides structured, intelligent viewing of AutoHotkey files with multiple display modes.

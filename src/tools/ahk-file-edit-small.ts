@@ -40,7 +40,7 @@ export const AhkSmallEditArgsSchema = z.object({
 });
 
 export const ahkSmallEditToolDefinition = {
-  name: 'ahk_file_edit_small',
+  name: 'AHK_File_Edit_Small',
   description: `AHK Small Edit
 Token-efficient file editing for simple replacements and line edits. Supports regex or literal replacements and line targeting with optional preview.`,
   inputSchema: {
@@ -144,7 +144,7 @@ export class AhkSmallEditTool {
 
   async execute(rawArgs: z.infer<typeof AhkSmallEditArgsSchema>): Promise<ToolResponse> {
     try {
-      const availability = checkToolAvailability('ahk_small_edit');
+      const availability = checkToolAvailability('AHK_File_Edit_Small');
       if (!availability.enabled) {
         return {
           content: [{ type: 'text', text: availability.message || 'Tool is disabled' }],
@@ -252,7 +252,7 @@ export class AhkSmallEditTool {
         content: [{ type: 'text', text: reports.join('\n\n') }],
       };
     } catch (error) {
-      logger.error('Error in ahk_small_edit tool:', error);
+      logger.error('Error in AHK_File_Edit_Small tool:', error);
       return {
         content: [{
           type: 'text',

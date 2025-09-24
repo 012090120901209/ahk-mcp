@@ -9,7 +9,7 @@ export const AhkConfigArgsSchema = z.object({
 });
 
 export const ahkConfigToolDefinition = {
-  name: 'ahk_config',
+  name: 'AHK_Config',
   description: `Ahk config
 Get/Set MCP configuration for A_ScriptDir and additional search directories.`,
   inputSchema: {
@@ -53,7 +53,7 @@ export class AhkConfigTool {
         ],
       };
     } catch (error) {
-      logger.error('Error in ahk_config tool:', error);
+      logger.error('Error in AHK_Config tool:', error);
       return {
         content: [{ type: 'text', text: `Error: ${error instanceof Error ? error.message : String(error)}` }]
       };

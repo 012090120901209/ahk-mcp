@@ -12,8 +12,8 @@ From `.kiro/specs/autohotkey-mcp-server/requirements.md`:
 
 #### Acceptance Criteria ✅
 1. ✅ `ahk_complete` returns ranked completion candidates for valid cursor positions
-2. ✅ `ahk_diagnostics` returns diagnostic objects with line, character, message, severity
-3. ✅ `ahk_analyze` with `includeDocumentation=true` embeds inline documentation
+2. ✅ `AHK_Diagnostics` returns diagnostic objects with line, character, message, severity
+3. ✅ `AHK_Analyze` with `includeDocumentation=true` embeds inline documentation
 4. ✅ Unknown methods flagged with severity `error`
 5. ✅ Empty string completion returns empty array
 6. ✅ Invalid JSON requests return HTTP 400 with JSON error
@@ -164,11 +164,11 @@ When AutoHotkey-related keywords are detected, automatically activate tools:
 - Any .ahk file references or AutoHotkey syntax
 
 **Required Activation Sequence:**
-1. **Context Injection First** - `ahk_context_injector` with user's prompt
-2. **Code Analysis** - `ahk_analyze` for provided code
+1. **Context Injection First** - `AHK_Context_Injector` with user's prompt
+2. **Code Analysis** - `AHK_Analyze` for provided code
 3. **Completion Suggestions** - `ahk_complete` for code completion
-4. **Error Checking** - `ahk_diagnostics` for syntax validation
-5. **Template Retrieval** - `ahk_prompts` for relevant templates
+4. **Error Checking** - `AHK_Diagnostics` for syntax validation
+5. **Template Retrieval** - `AHK_Prompts` for relevant templates
 
 ## 🏗️ Architecture Overview
 

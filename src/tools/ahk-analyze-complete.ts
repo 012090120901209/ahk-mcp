@@ -32,7 +32,7 @@ export const AhkAnalyzeUnifiedArgsSchema = z.object({
 });
 
 export const ahkAnalyzeUnifiedToolDefinition = {
-  name: 'ahk_analyze_unified',
+  name: 'AHK_Analyze_Unified',
   description: `Unified AutoHotkey Code Analysis & Improvement Tool
 
 Combines analysis, diagnostics, auto-fixing, and VS Code integration into one powerful tool.

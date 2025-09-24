@@ -4,21 +4,21 @@ You now have powerful file editing capabilities that work with the `activeFilePa
 
 ## 🔧 Available Tools
 
-### 1. `ahk_edit` - Simple Edit Operations
+### 1. `AHK_File_Edit` - Simple Edit Operations
 For basic file editing operations like replace, insert, delete, append, prepend.
 
-### 2. `ahk_diff_edit` - Unified Diff Patches
+### 2. `AHK_File_Edit_Diff` - Unified Diff Patches
 For applying unified diff patches (like Git diffs) to files.
 
-### 3. `ahk_small_edit` - Targeted, Low-Token Updates
+### 3. `AHK_File_Edit_Small` - Targeted, Low-Token Updates
 Optimised for quick tweaks without sharing whole files. Supports regex or literal replacements and line-level inserts/deletes across one or many files. Optional `preview` shows a diff instead of writing.
 
-## 📝 ahk_edit Tool
+## 📝 AHK_File_Edit Tool
 
 ### Replace Text
 ```json
 {
-  "tool": "ahk_edit",
+  "tool": "AHK_File_Edit",
   "arguments": {
     "action": "replace",
     "search": "old text",
@@ -31,7 +31,7 @@ Optimised for quick tweaks without sharing whole files. Supports regex or litera
 ### Insert at Line
 ```json
 {
-  "tool": "ahk_edit",
+  "tool": "AHK_File_Edit",
   "arguments": {
     "action": "insert",
     "line": 5,
@@ -43,7 +43,7 @@ Optimised for quick tweaks without sharing whole files. Supports regex or litera
 ### Delete Text or Lines
 ```json
 {
-  "tool": "ahk_edit",
+  "tool": "AHK_File_Edit",
   "arguments": {
     "action": "delete",
     "search": "text to remove"
@@ -53,7 +53,7 @@ Optimised for quick tweaks without sharing whole files. Supports regex or litera
 
 ```json
 {
-  "tool": "ahk_edit",
+  "tool": "AHK_File_Edit",
   "arguments": {
     "action": "delete",
     "startLine": 10,
@@ -65,7 +65,7 @@ Optimised for quick tweaks without sharing whole files. Supports regex or litera
 ### Append to End
 ```json
 {
-  "tool": "ahk_edit",
+  "tool": "AHK_File_Edit",
   "arguments": {
     "action": "append",
     "content": "\n; Added at end"
@@ -76,7 +76,7 @@ Optimised for quick tweaks without sharing whole files. Supports regex or litera
 ### Replace and Run Immediately
 ```json
 {
-  "tool": "ahk_edit",
+  "tool": "AHK_File_Edit",
   "arguments": {
     "action": "replace",
     "search": "MsgBox(\"Hello\")",
@@ -85,12 +85,12 @@ Optimised for quick tweaks without sharing whole files. Supports regex or litera
   }
 }
 ```
-> Tip: Toggle the default behaviour via `ahk_settings` (`enable_auto_run` / `disable_auto_run`).
+> Tip: Toggle the default behaviour via `AHK_Settings` (`enable_auto_run` / `disable_auto_run`).
 
 ### Prepend to Beginning
 ```json
 {
-  "tool": "ahk_edit",
+  "tool": "AHK_File_Edit",
   "arguments": {
     "action": "prepend",
     "content": "#Requires AutoHotkey v2.0\n"
@@ -98,12 +98,12 @@ Optimised for quick tweaks without sharing whole files. Supports regex or litera
 }
 ```
 
-## ⚡ ahk_small_edit Quick Examples
+## ⚡ AHK_File_Edit_Small Quick Examples
 
 ### Regex Replace with Preview
 ```json
 {
-  "tool": "ahk_small_edit",
+  "tool": "AHK_File_Edit_Small",
   "arguments": {
     "action": "replace_regex",
     "file": "docs/PROJECT_STATUS.md",
@@ -117,7 +117,7 @@ Optimised for quick tweaks without sharing whole files. Supports regex or litera
 ### Literal Replace Across Multiple Files
 ```json
 {
-  "tool": "ahk_small_edit",
+  "tool": "AHK_File_Edit_Small",
   "arguments": {
     "action": "replace_literal",
     "files": [
@@ -135,7 +135,7 @@ Optimised for quick tweaks without sharing whole files. Supports regex or litera
 ### Insert After Specific Line
 ```json
 {
-  "tool": "ahk_small_edit",
+  "tool": "AHK_File_Edit_Small",
   "arguments": {
     "action": "line_insert_after",
     "file": "src/server.ts",
@@ -145,15 +145,15 @@ Optimised for quick tweaks without sharing whole files. Supports regex or litera
   }
 }
 ```
-> Tip: Enable persistent auto-run with `ahk_settings` → `enable_auto_run`.
+> Tip: Enable persistent auto-run with `AHK_Settings` → `enable_auto_run`.
 
-## 🔀 ahk_diff_edit Tool
+## 🔀 AHK_File_Edit_Diff Tool
 
 Apply unified diff patches like Git diffs:
 
 ```json
 {
-  "tool": "ahk_diff_edit",
+  "tool": "AHK_File_Edit_Diff",
   "arguments": {
     "diff": "--- original.ahk\n+++ modified.ahk\n@@ -1,3 +1,4 @@\n ; My Script\n+#Requires AutoHotkey v2.0\n \n MsgBox(\"Hello World\")",
     "dryRun": false
@@ -183,7 +183,7 @@ User: Add error handling to the active file
 
 Tool Call:
 {
-  "tool": "ahk_edit",
+  "tool": "AHK_File_Edit",
   "arguments": {
     "action": "replace", 
     "search": "MsgBox(\"Hello\")",
@@ -195,14 +195,14 @@ Tool Call:
 ### Apply Diff and Run Right Away
 ```json
 {
-  "tool": "ahk_diff_edit",
+  "tool": "AHK_File_Edit_Diff",
   "arguments": {
     "diff": "--- script.ahk\n+++ script.ahk\n@@\n-MsgBox(\"Old\")\n+MsgBox(\"New\")",
     "runAfter": true
   }
 }
 ```
-> Tip: Toggle the default behaviour via `ahk_settings` if you want scripts to run automatically every time.
+> Tip: Toggle the default behaviour via `AHK_Settings` if you want scripts to run automatically every time.
 
 ### Example 2: Insert Function
 ```
@@ -210,7 +210,7 @@ User: Add a new function after line 10
 
 Tool Call:
 {
-  "tool": "ahk_edit",
+  "tool": "AHK_File_Edit",
   "arguments": {
     "action": "insert",
     "line": 11,
@@ -233,7 +233,7 @@ User: Apply this diff patch:
 
 Tool Call:
 {
-  "tool": "ahk_diff_edit",
+  "tool": "AHK_File_Edit_Diff",
   "arguments": {
     "diff": "--- script.ahk\n+++ script.ahk\n@@ -1,3 +1,4 @@\n ; My AutoHotkey Script\n+#SingleInstance Force\n \n F1::MsgBox(\"F1 pressed\")"
   }
@@ -255,10 +255,10 @@ Both tools automatically work with the `activeFilePath`:
 Both tools create backup files (`.bak`) before making changes:
 - `script.ahk` → `script.ahk.bak`
 
-### Dry Run Mode (ahk_diff_edit)
+### Dry Run Mode (AHK_File_Edit_Diff)
 ```json
 {
-  "tool": "ahk_diff_edit",
+  "tool": "AHK_File_Edit_Diff",
   "arguments": {
     "diff": "...",
     "dryRun": true
@@ -301,7 +301,7 @@ Shows what would change without applying it.
 ### Regex Replace
 ```json
 {
-  "tool": "ahk_edit",
+  "tool": "AHK_File_Edit",
   "arguments": {
     "action": "replace",
     "search": "MsgBox\\(\"[^\"]*\"\\)",
@@ -315,7 +315,7 @@ Shows what would change without applying it.
 ### Range Deletion
 ```json
 {
-  "tool": "ahk_edit", 
+  "tool": "AHK_File_Edit", 
   "arguments": {
     "action": "delete",
     "startLine": 5,
@@ -326,7 +326,7 @@ Shows what would change without applying it.
 
 ## 💡 Tips
 
-1. **Use dryRun first** with `ahk_diff_edit` to preview changes
+1. **Use dryRun first** with `AHK_File_Edit_Diff` to preview changes
 2. **Backups are automatic** - disable with `"backup": false`
 3. **Line numbers are 1-based** for all operations
 4. **Regex patterns** use JavaScript regex syntax

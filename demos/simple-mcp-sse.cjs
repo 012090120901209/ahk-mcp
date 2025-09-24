@@ -110,7 +110,7 @@ function handleMCPMessage(req, res) {
             }
           },
           {
-            name: 'ahk_analyze',
+            name: 'AHK_Analyze',
             description: 'Analyze AutoHotkey v2 code for syntax, patterns, and best practices',
             inputSchema: {
               type: 'object',
@@ -213,7 +213,7 @@ function handleMCPMessage(req, res) {
       }
     });
 
-  } else if (message.method === 'tools/call' && message.params.name === 'ahk_analyze') {
+  } else if (message.method === 'tools/call' && message.params.name === 'AHK_Analyze') {
     const code = message.params.arguments.code;
     const analysis = {
       lineCount: code.split('\n').length,
@@ -312,7 +312,7 @@ app.get('/', (req, res) => {
             </div>
             <div class="endpoint">
                 <h3>Tools Available</h3>
-                <p><code>search</code>, <code>fetch</code>, <code>ahk_analyze</code></p>
+                <p><code>search</code>, <code>fetch</code>, <code>AHK_Analyze</code></p>
                 <p>Search docs, fetch details, analyze code</p>
             </div>
             <div class="endpoint">

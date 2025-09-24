@@ -6,15 +6,15 @@
 
 | Current File Name | Current Tool Name | → | New File Name | New Tool Name | Purpose |
 |------------------|-------------------|---|---------------|---------------|---------|
-| `ahk-file.ts` | `ahk_file` | → | `ahk-file-active.ts` | `ahk_file_active` | Set/get active file context |
-| `ahk-auto-file.ts` | `ahk_auto_file` | → | `ahk-file-detect.ts` | `ahk_file_detect` | Auto-detect files from text |
-| `ahk-recent.ts` | `ahk_recent_scripts` | → | `ahk-file-recent.ts` | `ahk_file_recent` | Recent file history |
-| `ahk-active-file.ts` | `ahk_active_file` | → | (REMOVE - duplicate) | (merge into ahk_file_active) | Duplicate functionality |
-| (NEW) | - | → | `ahk-file-view.ts` | `ahk_file_view` | View files (already created) |
-| `ahk-edit.ts` | `ahk_edit` | → | `ahk-file-edit.ts` | `ahk_file_edit` | Edit active file |
-| `ahk-small-edit.ts` | `ahk_small_edit` | → | `ahk-file-edit-small.ts` | `ahk_file_edit_small` | Small targeted edits |
-| `ahk-diff-edit.ts` | `ahk_diff_edit` | → | `ahk-file-edit-diff.ts` | `ahk_file_edit_diff` | Diff-based editing |
-| `ahk-file-editor.ts` | `ahk_file_editor` | → | `ahk-file-edit-advanced.ts` | `ahk_file_edit_advanced` | Advanced editing features |
+| `ahk-file.ts` | `AHK_File_Active` | → | `ahk-file-active.ts` | `AHK_File_Active` | Set/get active file context |
+| `ahk-auto-file.ts` | `AHK_File_Detect` | → | `ahk-file-detect.ts` | `AHK_File_Detect` | Auto-detect files from text |
+| `ahk-recent.ts` | `AHK_File_Recent` | → | `ahk-file-recent.ts` | `AHK_File_Recent` | Recent file history |
+| `ahk-active-file.ts` | `AHK_Active_File` | → | (REMOVE - duplicate) | (merge into AHK_File_Active) | Duplicate functionality |
+| (NEW) | - | → | `ahk-file-view.ts` | `AHK_File_View` | View files (already created) |
+| `ahk-edit.ts` | `AHK_File_Edit` | → | `ahk-file-edit.ts` | `AHK_File_Edit` | Edit active file |
+| `ahk-small-edit.ts` | `AHK_File_Edit_Small` | → | `ahk-file-edit-small.ts` | `AHK_File_Edit_Small` | Small targeted edits |
+| `ahk-diff-edit.ts` | `AHK_File_Edit_Diff` | → | `ahk-file-edit-diff.ts` | `AHK_File_Edit_Diff` | Diff-based editing |
+| `ahk-file-editor.ts` | `AHK_File_Edit_Advanced` | → | `ahk-file-edit-advanced.ts` | `AHK_File_Edit_Advanced` | Advanced editing features |
 
 **Chain Benefits**: All file operations start with `ahk-file-` making them easy to discover and understand.
 
@@ -24,12 +24,12 @@
 
 | Current File Name | Current Tool Name | → | New File Name | New Tool Name | Purpose |
 |------------------|-------------------|---|---------------|---------------|---------|
-| `ahk-analyze.ts` | `ahk_analyze` | → | `ahk-analyze-code.ts` | `ahk_analyze_code` | Code analysis & documentation |
-| `ahk-diagnostics.ts` | `ahk_diagnostics` | → | `ahk-analyze-diagnostics.ts` | `ahk_analyze_diagnostics` | Error detection |
-| `ahk-lsp.ts` | `ahk_lsp` | → | `ahk-analyze-lsp.ts` | `ahk_analyze_lsp` | LSP-style analysis & fixes |
-| `ahk-summary.ts` | `ahk_summary` | → | `ahk-analyze-summary.ts` | `ahk_analyze_summary` | Project summaries |
-| `ahk-vscode-problems.ts` | `ahk_vscode_problems` | → | `ahk-analyze-vscode.ts` | `ahk_analyze_vscode` | VS Code integration |
-| `ahk-analyze-unified.ts` | `ahk_analyze_unified` | → | `ahk-analyze-complete.ts` | `ahk_analyze_complete` | Complete analysis pipeline |
+| `ahk-analyze.ts` | `AHK_Analyze` | → | `ahk-analyze-code.ts` | `AHK_Analyze` | Code analysis & documentation |
+| `ahk-diagnostics.ts` | `AHK_Diagnostics` | → | `ahk-analyze-diagnostics.ts` | `AHK_Diagnostics` | Error detection |
+| `ahk-lsp.ts` | `AHK_LSP` | → | `ahk-analyze-lsp.ts` | `AHK_LSP` | LSP-style analysis & fixes |
+| `ahk-summary.ts` | `AHK_Summary` | → | `ahk-analyze-summary.ts` | `AHK_Summary` | Project summaries |
+| `ahk-vscode-problems.ts` | `AHK_VSCode_Problems` | → | `ahk-analyze-vscode.ts` | `AHK_VSCode_Problems` | VS Code integration |
+| `ahk-analyze-unified.ts` | `AHK_Analyze_Unified` | → | `ahk-analyze-complete.ts` | `AHK_Analyze_Unified` | Complete analysis pipeline |
 
 **Chain Benefits**: All analysis tools grouped together, clear progression from basic to advanced.
 
@@ -39,9 +39,9 @@
 
 | Current File Name | Current Tool Name | → | New File Name | New Tool Name | Purpose |
 |------------------|-------------------|---|---------------|---------------|---------|
-| `ahk-run.ts` | `ahk_run` | → | `ahk-run-script.ts` | `ahk_run_script` | Execute AutoHotkey scripts |
-| `ahk-debug-agent.ts` | `ahk_debug_agent` | → | `ahk-run-debug.ts` | `ahk_run_debug` | Debug execution |
-| `ahk-process-request.ts` | `ahk_process_request` | → | `ahk-run-process.ts` | `ahk_run_process` | Process management |
+| `ahk-run.ts` | `AHK_Run` | → | `ahk-run-script.ts` | `AHK_Run` | Execute AutoHotkey scripts |
+| `ahk-debug-agent.ts` | `AHK_Debug_Agent` | → | `ahk-run-debug.ts` | `AHK_Debug_Agent` | Debug execution |
+| `ahk-process-request.ts` | `AHK_Process_Request` | → | `ahk-run-process.ts` | `AHK_Process_Request` | Process management |
 
 **Chain Benefits**: Clear execution workflow from running to debugging.
 
@@ -51,11 +51,11 @@
 
 | Current File Name | Current Tool Name | → | New File Name | New Tool Name | Purpose |
 |------------------|-------------------|---|---------------|---------------|---------|
-| `ahk-doc-search.ts` | `ahk_doc_search` | → | `ahk-docs-search.ts` | `ahk_docs_search` | Search documentation |
-| `ahk-prompts.ts` | `ahk_prompts` | → | `ahk-docs-prompts.ts` | `ahk_docs_prompts` | Prompt catalog |
-| `ahk-context-injector.ts` | `ahk_context_injector` | → | `ahk-docs-context.ts` | `ahk_docs_context` | Context injection |
-| `module-prompt-manager.ts` | `module_prompt_manager` | → | `ahk-docs-modules.ts` | `ahk_docs_modules` | Module management |
-| `ahk-sampling-enhancer.ts` | `ahk_sampling_enhancer` | → | `ahk-docs-samples.ts` | `ahk_docs_samples` | Code samples |
+| `ahk-doc-search.ts` | `AHK_Doc_Search` | → | `ahk-docs-search.ts` | `AHK_Doc_Search` | Search documentation |
+| `ahk-prompts.ts` | `AHK_Prompts` | → | `ahk-docs-prompts.ts` | `AHK_Prompts` | Prompt catalog |
+| `ahk-context-injector.ts` | `AHK_Context_Injector` | → | `ahk-docs-context.ts` | `AHK_Context_Injector` | Context injection |
+| `module-prompt-manager.ts` | `module_prompt_manager` | → | `ahk-docs-modules.ts` | `module_prompt_manager` | Module management |
+| `ahk-sampling-enhancer.ts` | `AHK_Sampling_Enhancer` | → | `ahk-docs-samples.ts` | `AHK_Sampling_Enhancer` | Code samples |
 
 **Chain Benefits**: All documentation and knowledge tools in one place.
 
@@ -65,9 +65,9 @@
 
 | Current File Name | Current Tool Name | → | New File Name | New Tool Name | Purpose |
 |------------------|-------------------|---|---------------|---------------|---------|
-| `ahk-config.ts` | `ahk_config` | → | `ahk-system-config.ts` | `ahk_system_config` | Configuration management |
-| `ahk-settings.ts` | `ahk_settings` | → | `ahk-system-settings.ts` | `ahk_system_settings` | MCP settings |
-| `ahk-alpha.ts` | `ahk_alpha` | → | `ahk-system-alpha.ts` | `ahk_system_alpha` | Alpha/experimental features |
+| `ahk-config.ts` | `AHK_Config` | → | `ahk-system-config.ts` | `AHK_Config` | Configuration management |
+| `ahk-settings.ts` | `AHK_Settings` | → | `ahk-system-settings.ts` | `AHK_Settings` | MCP settings |
+| `ahk-alpha.ts` | `AHK_Alpha` | → | `ahk-system-alpha.ts` | `AHK_Alpha` | Alpha/experimental features |
 
 **Chain Benefits**: System-level tools clearly separated from user-facing tools.
 
@@ -77,9 +77,9 @@
 
 ### **Step 1: Backward Compatibility**
 ```typescript
-// In server.ts, register both old and new names
-'ahk_file': ahkFileActiveTool,      // Old name (deprecated)
-'ahk_file_active': ahkFileActiveTool // New name
+// In server.ts, register both old and new names during transition
+'ahk_file_active': ahkFileActiveTool,      // Old name (deprecated)
+'AHK_File_Active': ahkFileActiveTool // New name
 ```
 
 ### **Step 2: Deprecation Warnings**
@@ -109,7 +109,7 @@ if (toolName.startsWith('ahk_') && !toolName.includes('_')) {
 
 3. **Tool name format**:
    - Hyphens in files: `ahk-file-edit.ts`
-   - Underscores in tools: `ahk_file_edit`
+   - Underscores in tools: `AHK_File_Edit`
    - Is this consistent enough?
 
 4. **Priority**:

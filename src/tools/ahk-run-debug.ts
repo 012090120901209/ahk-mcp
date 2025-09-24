@@ -358,7 +358,7 @@ export const AhkDebugAgentArgsSchema = z.object({
 });
 
 export const ahkDebugAgentToolDefinition = {
-  name: 'ahk_debug_agent',
+  name: 'AHK_Debug_Agent',
   description: `Ahk debug agent
 Starts a TCP listener for AutoHotkey /Debug and optionally proxies to a real debug adapter while capturing traffic.`,
   inputSchema: {
@@ -496,7 +496,7 @@ export class AhkDebugAgentTool {
 
       return { content: [{ type: 'text', text: '❌ Unsupported mode' }] };
     } catch (error) {
-      logger.error('Error in ahk_debug_agent tool:', error);
+      logger.error('Error in AHK_Debug_Agent tool:', error);
       return {
         content: [
           { type: 'text', text: `Error: ${error instanceof Error ? error.message : String(error)}` }

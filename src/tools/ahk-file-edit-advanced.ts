@@ -10,7 +10,7 @@ export const AhkFileEditorArgsSchema = z.object({
 });
 
 export const ahkFileEditorToolDefinition = {
-  name: 'ahk_file_edit_advanced',
+  name: 'AHK_File_Edit_Advanced',
   description: `Ahk file editor
 🎯 PRIMARY FILE EDITING TOOL - Use this IMMEDIATELY when user mentions a .ahk file path and wants to modify it. This tool automatically detects the file, sets it active, and helps determine the best editing approach. ALWAYS use this instead of generating code blocks when a file path is provided.`,
   inputSchema: {
@@ -92,9 +92,9 @@ export class AhkFileEditorTool {
 
       response += `**✅ File is now active and ready for editing!**\n\n`;
       response += `**Next: Use these tools to make the changes:**\n`;
-      response += `• \`ahk_edit\` - For direct text replacements, insertions, deletions (set 'runAfter': true to run immediately)\n`;
-      response += `• \`ahk_diff_edit\` - For complex multi-location changes\n`;
-      response += `• \`ahk_run\` - To test the changes after editing\n`;
+      response += `• \`AHK_File_Edit\` - For direct text replacements, insertions, deletions (set 'runAfter': true to run immediately)\n`;
+      response += `• \`AHK_File_Edit_Diff\` - For complex multi-location changes\n`;
+      response += `• \`AHK_Run\` - To test the changes after editing\n`;
 
       return {
         content: [{
@@ -104,7 +104,7 @@ export class AhkFileEditorTool {
       };
 
     } catch (error) {
-      logger.error('Error in ahk_file_editor:', error);
+      logger.error('Error in AHK_File_Edit_Advanced:', error);
       return {
         content: [{
           type: 'text',
@@ -123,35 +123,35 @@ export class AhkFileEditorTool {
 
     // Detect the type of editing needed
     if (lowerChanges.includes('replace') || lowerChanges.includes('change') || lowerChanges.includes('update')) {
-      guidance += `• **Text Replacement** - Use \`ahk_edit\` with action "replace"\n`;
+      guidance += `• **Text Replacement** - Use \`AHK_File_Edit\` with action "replace"\n`;
       guidance += `  Example: Replace specific text, variables, or function names\n`;
     }
 
     if (lowerChanges.includes('add') || lowerChanges.includes('insert') || lowerChanges.includes('new')) {
-      guidance += `• **Add Content** - Use \`ahk_edit\` with action "insert" or "append"\n`;
+      guidance += `• **Add Content** - Use \`AHK_File_Edit\` with action "insert" or "append"\n`;
       guidance += `  Example: Add new functions, variables, or hotkeys\n`;
     }
 
     if (lowerChanges.includes('remove') || lowerChanges.includes('delete') || lowerChanges.includes('fix')) {
-      guidance += `• **Remove/Fix Content** - Use \`ahk_edit\` with action "delete"\n`;
+      guidance += `• **Remove/Fix Content** - Use \`AHK_File_Edit\` with action "delete"\n`;
       guidance += `  Example: Remove broken code, fix syntax errors\n`;
     }
 
     if (lowerChanges.includes('syntax') || lowerChanges.includes('error') || lowerChanges.includes('debug')) {
-      guidance += `• **Syntax Fixes** - Run \`ahk_diagnostics\` first to identify issues\n`;
-      guidance += `  Then use \`ahk_edit\` to fix each problem\n`;
+      guidance += `• **Syntax Fixes** - Run \`AHK_Diagnostics\` first to identify issues\n`;
+      guidance += `  Then use \`AHK_File_Edit\` to fix each problem\n`;
     }
 
     if (lowerChanges.includes('refactor') || lowerChanges.includes('restructure') || lowerChanges.includes('organize')) {
-      guidance += `• **Major Changes** - Consider using \`ahk_diff_edit\` for complex restructuring\n`;
-      guidance += `  Or break into multiple smaller \`ahk_edit\` operations\n`;
+      guidance += `• **Major Changes** - Consider using \`AHK_File_Edit_Diff\` for complex restructuring\n`;
+      guidance += `  Or break into multiple smaller \`AHK_File_Edit\` operations\n`;
     }
 
     // Default guidance if nothing specific detected
     if (!guidance) {
-      guidance = `• **General Editing** - Use \`ahk_edit\` for most modifications\n`;
+      guidance = `• **General Editing** - Use \`AHK_File_Edit\` for most modifications\n`;
       guidance += `• **Text Replacement** - Most efficient for simple changes\n`;
-      guidance += `• **Complex Changes** - Use \`ahk_diff_edit\` for multi-location updates\n`;
+      guidance += `• **Complex Changes** - Use \`AHK_File_Edit_Diff\` for multi-location updates\n`;
     }
 
     return guidance;

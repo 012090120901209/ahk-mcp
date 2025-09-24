@@ -14,7 +14,7 @@ export const AhkDiagnosticsArgsSchema = z.object({
 });
 
 export const ahkDiagnosticsToolDefinition = {
-  name: 'ahk_diagnostics',
+  name: 'AHK_Diagnostics',
   description: `Ahk diagnostics
 Validates AutoHotkey v2 code syntax and enforces coding standards with detailed error reporting`,
   inputSchema: {
@@ -81,7 +81,7 @@ export class AhkDiagnosticsTool {
         ]
       };
     } catch (error) {
-      logger.error('Error in ahk_diagnostics tool:', error);
+      logger.error('Error in AHK_Diagnostics tool:', error);
       
       return {
         content: [

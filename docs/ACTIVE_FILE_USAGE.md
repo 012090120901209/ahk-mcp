@@ -32,7 +32,7 @@ Run this script and check if the window appears
 
 ## Available Tools
 
-### 1. `ahk_process_request`
+### 1. `AHK_Process_Request`
 **Primary tool for handling file paths with instructions**
 
 This tool automatically:
@@ -55,7 +55,7 @@ Response:
 [Results shown]
 ```
 
-### 2. `ahk_auto_file`
+### 2. `AHK_File_Detect`
 **Explicitly detect and set active files**
 
 Use when you want to:
@@ -63,7 +63,7 @@ Use when you want to:
 - See all detected paths in a message
 - Manually control active file setting
 
-### 3. `ahk_active_file`
+### 3. `AHK_Active_File`
 **Get or set the current active file**
 
 Actions:
@@ -88,7 +88,7 @@ The system intelligently detects what you want to do based on keywords:
 If your scripts are in a specific folder:
 
 ```javascript
-// Using ahk_auto_file tool
+// Using AHK_File_Detect tool
 {
   "text": "Set my script directory",
   "scriptDir": "C:\\MyScripts"
@@ -157,10 +157,10 @@ Output:
 
 Once an active file is set:
 
-- **`ahk_run`**: Runs without needing file path
-- **`ahk_diagnostics`**: Can analyze the active file's code
+- **`AHK_Run`**: Runs without needing file path
+- **`AHK_Diagnostics`**: Can analyze the active file's code
 - **Direct edits**: Work on the active file
-- **`ahk_debug_agent`**: Debug the active script
+- **`AHK_Debug_Agent`**: Debug the active script
 
 ## Tips
 
@@ -178,7 +178,7 @@ Once an active file is set:
 
 ### Wrong Action Detected
 - Be more explicit with keywords
-- Use `defaultAction` parameter in `ahk_process_request`
+- Use `defaultAction` parameter in `AHK_Process_Request`
 - Or call specific tools directly
 
 ### Path Not Detected

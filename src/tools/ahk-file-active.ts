@@ -11,7 +11,7 @@ export const AhkFileArgsSchema = z.object({
 });
 
 export const ahkFileToolDefinition = {
-  name: 'ahk_file_active',
+  name: 'AHK_File_Active',
   description: `Ahk file
 DETECT AND SET ACTIVE FILE FOR EDITING - Use this immediately when user mentions any .ahk file path. This enables all other editing tools to work on the specified file. Essential first step before any file modifications.`,
   inputSchema: {
@@ -39,7 +39,7 @@ export class AhkFileTool {
   async execute(args: z.infer<typeof AhkFileArgsSchema>): Promise<any> {
     try {
       // Check if tool is enabled
-      const availability = checkToolAvailability('ahk_file');
+      const availability = checkToolAvailability('AHK_File_Active');
       if (!availability.enabled) {
         return {
           content: [{ type: 'text', text: availability.message || 'Tool is disabled' }]
@@ -74,7 +74,7 @@ export class AhkFileTool {
             response += '❌ No active file set\n\n';
             response += 'Set one by:\n';
             response += '• Mentioning a .ahk file path in any message\n';
-            response += '• Using `ahk_file` with action "set"\n';
+            response += '• Using `AHK_File_Active` with action "set"\n';
             response += '• Running any tool with a file path\n';
           }
           
@@ -146,7 +146,7 @@ export class AhkFileTool {
       }
       
     } catch (error) {
-      logger.error('Error in ahk_file tool:', error);
+      logger.error('Error in AHK_File_Active tool:', error);
       return {
         content: [{
           type: 'text',

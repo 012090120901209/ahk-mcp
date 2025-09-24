@@ -10,7 +10,7 @@ export const AhkDocSearchArgsSchema = z.object({
 });
 
 export const ahkDocSearchToolDefinition = {
-  name: 'ahk_doc_search',
+  name: 'AHK_Doc_Search',
   description: `Ahk doc search
 Full-text search across AutoHotkey v2 docs using FlexSearch (functions, variables, classes, methods).`,
   inputSchema: {
@@ -152,7 +152,7 @@ export class AhkDocSearchTool {
         content: [{ type: 'text', text: `Results for "${query}" (${category}):\n\n${lines.join('\n')}` }]
       };
     } catch (error) {
-      logger.error('Error in ahk_doc_search tool:', error);
+      logger.error('Error in AHK_Doc_Search tool:', error);
       return {
         content: [{ type: 'text', text: `Error: ${error instanceof Error ? error.message : String(error)}` }],
 

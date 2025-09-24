@@ -23,7 +23,7 @@
    - Automatic increment tracking
    - Persistent across sessions
 
-### 🔧 The `ahk_alpha` Tool
+### 🔧 The `AHK_Alpha` Tool
 
 **Simple Commands:**
 - `{"action": "create"}` - Create alpha version
@@ -35,7 +35,7 @@
 
 **Built into Edit Tools:**
 ```javascript
-// In ahk_edit tool
+// In AHK_File_Edit tool
 try {
   // Edit operation
 } catch (error) {
@@ -121,8 +121,8 @@ Each alpha includes metadata:
 ## 🚀 Complete Integration
 
 The system is fully integrated with:
-- ✅ **ahk_edit** - Auto-tracks failures
-- ✅ **ahk_diff_edit** - Same tracking
+- ✅ **AHK_File_Edit** - Auto-tracks failures
+- ✅ **AHK_File_Edit_Diff** - Same tracking
 - ✅ **Active file system** - Auto-switches
 - ✅ **Settings system** - Can be enabled/disabled
 - ✅ **Error handling** - Graceful fallbacks

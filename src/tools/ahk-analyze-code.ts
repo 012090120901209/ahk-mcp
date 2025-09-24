@@ -11,7 +11,7 @@ export const AhkAnalyzeArgsSchema = z.object({
 });
 
 export const ahkAnalyzeToolDefinition = {
-  name: 'ahk_analyze',
+  name: 'AHK_Analyze',
   description: `Ahk analyze
 Analyzes AutoHotkey v2 scripts and provides contextual information about functions, variables, classes, and other elements used in the code.`,
   inputSchema: {
@@ -209,12 +209,12 @@ export class AhkAnalyzeTool {
 
       if (includeDocumentation) {
         report += '\n## 📚 Documentation Support\n';
-        report += 'Leverage the `ahk_doc_search` tool or ChatGPT `search`/`fetch` helpers to pull detailed reference material for the functions and directives found in this script.\n';
+        report += 'Leverage the `AHK_Doc_Search` tool or ChatGPT `search`/`fetch` helpers to pull detailed reference material for the functions and directives found in this script.\n';
       }
 
       if (includeUsageExamples) {
         report += '\n## 🧪 Usage Examples\n';
-        report += 'Invoke `ahk_sampling_enhancer` to generate runnable usage samples for the highlighted APIs and hotkeys.\n';
+        report += 'Invoke `AHK_Sampling_Enhancer` to generate runnable usage samples for the highlighted APIs and hotkeys.\n';
       }
 
       return {

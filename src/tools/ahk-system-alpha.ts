@@ -15,7 +15,7 @@ export const AhkAlphaArgsSchema = z.object({
 });
 
 export const ahkAlphaToolDefinition = {
-  name: 'ahk_alpha',
+  name: 'AHK_Alpha',
   description: `Ahk alpha
 Create and manage alpha versions of scripts for iterative development`,
   inputSchema: {
@@ -55,7 +55,7 @@ export class AhkAlphaTool {
   async execute(args: z.infer<typeof AhkAlphaArgsSchema>): Promise<any> {
     try {
       // Check if tool is enabled
-      const availability = checkToolAvailability('ahk_alpha');
+      const availability = checkToolAvailability('AHK_Alpha');
       if (!availability.enabled) {
         return {
           content: [{ type: 'text', text: availability.message || 'Tool is disabled' }]
@@ -67,7 +67,7 @@ export class AhkAlphaTool {
       // Get the target file
       const targetFile = filePath || activeFile.getActiveFile();
       if (!targetFile) {
-        throw new Error('No file specified and no active file set. Use ahk_file to set an active file first.');
+        throw new Error('No file specified and no active file set. Use AHK_File_Active to set an active file first.');
       }
       
       switch (action) {
@@ -264,7 +264,7 @@ export class AhkAlphaTool {
       }
       
     } catch (error) {
-      logger.error('Error in ahk_alpha tool:', error);
+      logger.error('Error in AHK_Alpha tool:', error);
       return {
         content: [{
           type: 'text',

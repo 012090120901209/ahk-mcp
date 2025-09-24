@@ -10,14 +10,14 @@ Created a comprehensive file editing system that works exactly like Claude's fil
 
 ### 🔧 Two Powerful Tools
 
-#### 1. `ahk_edit` - Swiss Army Knife Editor
+#### 1. `AHK_File_Edit` - Swiss Army Knife Editor
 - **Replace**: Text substitution with regex support
 - **Insert**: Add content at specific lines
 - **Delete**: Remove text or line ranges
 - **Append**: Add to end of file
 - **Prepend**: Add to beginning of file
 
-#### 2. `ahk_diff_edit` - Git-Style Diff Patches
+#### 2. `AHK_File_Edit_Diff` - Git-Style Diff Patches
 - **Unified Diff Parser**: Handles standard Git diff format
 - **Patch Application**: Applies diffs with validation
 - **Dry Run Mode**: Preview changes without applying
@@ -42,7 +42,7 @@ Created a comprehensive file editing system that works exactly like Claude's fil
 ```
 1. User: "C:\Scripts\test.ahk - change 'Hello' to 'Hi'"
 2. System: Sets activeFilePath = "C:\Scripts\test.ahk"
-3. Tool: ahk_edit with action "replace"
+3. Tool: AHK_File_Edit with action "replace"
 4. Result: File edited, backup created
 ```
 
@@ -50,7 +50,7 @@ Created a comprehensive file editing system that works exactly like Claude's fil
 ```
 1. User: Pastes file path and diff patch
 2. System: Detects path, sets as active
-3. Tool: ahk_diff_edit with unified diff
+3. Tool: AHK_File_Edit_Diff with unified diff
 4. Result: Patch applied with validation
 ```
 
@@ -58,7 +58,7 @@ Created a comprehensive file editing system that works exactly like Claude's fil
 ```
 1. File already active from previous operation
 2. User: "Insert error handling at line 5"
-3. Tool: ahk_edit with action "insert"
+3. Tool: AHK_File_Edit with action "insert"
 4. Result: New code added at specified line
 ```
 

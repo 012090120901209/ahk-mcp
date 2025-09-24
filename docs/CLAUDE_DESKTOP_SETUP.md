@@ -96,12 +96,12 @@ What AutoHotkey tools are available?
 
 **Test a simple tool:**
 ```
-Use ahk_config to show current settings
+Use AHK_Config to show current settings
 ```
 
 **Test file viewing:**
 ```
-Use ahk_file_view to show me the contents of C:\path\to\your\script.ahk
+Use AHK_File_View to show me the contents of C:\path\to\your\script.ahk
 ```
 
 ## Available Tools
@@ -109,28 +109,28 @@ Use ahk_file_view to show me the contents of C:\path\to\your\script.ahk
 Once configured, you'll have access to these AutoHotkey tools:
 
 ### 🔧 **File Management Tools**
-- `ahk_file_view` - View AutoHotkey files with syntax highlighting
-- `ahk_file_edit` - Edit files with search/replace operations
-- `ahk_file_edit_advanced` - Advanced file editing with diff patches
-- `ahk_file_edit_small` - Quick small edits
-- `ahk_file_active` - Manage active file context
-- `ahk_file_recent` - Track recently used files
+- `AHK_File_View` - View AutoHotkey files with syntax highlighting
+- `AHK_File_Edit` - Edit files with search/replace operations
+- `AHK_File_Edit_Advanced` - Advanced file editing with diff patches
+- `AHK_File_Edit_Small` - Quick small edits
+- `AHK_File_Active` - Manage active file context
+- `AHK_File_Recent` - Track recently used files
 
 ### 🏃 **Script Execution**
-- `ahk_run` - Execute AutoHotkey scripts with window detection
-- `ahk_debug_agent` - Debug assistance and error analysis
+- `AHK_Run` - Execute AutoHotkey scripts with window detection
+- `AHK_Debug_Agent` - Debug assistance and error analysis
 
 ### 📚 **Documentation & Analysis**
-- `ahk_doc_search` - Search AutoHotkey v2 documentation
-- `ahk_analyze` - Comprehensive code analysis
-- `ahk_diagnostics` - Syntax validation and error detection
-- `ahk_summary` - Quick reference summaries
+- `AHK_Doc_Search` - Search AutoHotkey v2 documentation
+- `AHK_Analyze` - Comprehensive code analysis
+- `AHK_Diagnostics` - Syntax validation and error detection
+- `AHK_Summary` - Quick reference summaries
 
 ### ⚙️ **Development Tools**
-- `ahk_config` - View and manage configuration
-- `ahk_settings` - Tool settings and preferences
-- `ahk_alpha` - Alpha versioning system for iterative development
-- `ahk_prompts` - Access prompt templates
+- `AHK_Config` - View and manage configuration
+- `AHK_Settings` - Tool settings and preferences
+- `AHK_Alpha` - Alpha versioning system for iterative development
+- `AHK_Prompts` - Access prompt templates
 
 ## Troubleshooting
 
@@ -160,12 +160,12 @@ This usually means the server is running but tools are failing:
    ```
 
 2. **Check tool names are correct:**
-   - Use `ahk_file_view` (not `AHK_File_View`)
+   - Use `AHK_File_View` (not `ahk_file_view`)
    - Names are case-sensitive
    - Use underscores, not hyphens
 
 3. **Test simple tools first:**
-   - Try `ahk_config` (no parameters needed)
+   - Try `AHK_Config` (no parameters needed)
    - Then try tools with parameters
 
 ### Path Issues
@@ -199,9 +199,9 @@ The server should start silently and wait for connections (this is normal behavi
 
 ## Next Steps
 
-1. **Test basic functionality** with simple tools like `ahk_config`
-2. **Try file operations** with `ahk_file_view` on existing `.ahk` files
-3. **Use documentation tools** like `ahk_doc_search` for development help
+1. **Test basic functionality** with simple tools like `AHK_Config`
+2. **Try file operations** with `AHK_File_View` on existing `.ahk` files
+3. **Use documentation tools** like `AHK_Doc_Search` for development help
 4. **Explore advanced features** like alpha versioning and file editing
 
 ## Support

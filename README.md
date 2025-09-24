@@ -14,7 +14,7 @@
 ---
 
 > [!IMPORTANT]
-> UPDATED 9/23/25: Enhanced script execution with window detection and state validation. The `ahk_run` tool now detects when AutoHotkey scripts launched by monitoring for new windows. Added debug logging for MCP tool calls and improve file path process. Fixed tool naming consistency across the entire codebase.
+> UPDATED 9/23/25: Enhanced script execution with window detection and state validation. The `AHK_Run` tool now detects when AutoHotkey scripts launched by monitoring for new windows. Added debug logging for MCP tool calls and improve file path process. Fixed tool naming consistency across the entire codebase.
 > This readme was not created using AI, so it's worth reading lol
 
 ## Overview
@@ -173,9 +173,15 @@ Add the server to your Claude Desktop configuration file (`claude_desktop_config
 
 ## MCP Tools
 
+### Tool Naming Convention
+
+- All tools now use the `AHK_<Word>_<Word>` format (e.g. `AHK_File_View`, `AHK_File_Edit_Diff`).
+- Previous lowercase names such as `ahk_file_view` are no longer registered by the server.
+- Mixing the old names in tool chains previously triggered "Unknown tool" errors because `server.ts` only dispatched `ahk_*` handlers. The dispatcher, tool recommendations, and configuration settings now agree on the new `AHK_*` identifiers so chained calls proceed correctly.
+
 ### Core Analysis Tools
 
-#### `ahk_run`
+#### `AHK_Run`
 Execute AutoHotkey scripts with window detection and timeout handling.
 
 ```typescript
@@ -190,7 +196,7 @@ Execute AutoHotkey scripts with window detection and timeout handling.
 }
 ```
 
-#### `ahk_diagnostics`
+#### `AHK_Diagnostics`
 Validates code syntax and enforces coding standards with detailed error reporting.
 
 ```typescript
@@ -201,7 +207,7 @@ Validates code syntax and enforces coding standards with detailed error reportin
 }
 ```
 
-#### `ahk_analyze`
+#### `AHK_Analyze`
 Comprehensive script analysis with contextual documentation and usage insights.
 
 ```typescript

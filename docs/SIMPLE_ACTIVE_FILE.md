@@ -21,10 +21,10 @@ activeFile.activeFilePath  // This is THE variable
 ### The Variable is Set When:
 
 - **Any tool receives input** containing a .ahk file path
-- User uses `ahk_file` tool to explicitly set it
-- User runs `ahk_run` with a file path
-- User provides code to `ahk_diagnostics` that contains a path
-- User mentions a path in `ahk_analyze` input
+- User uses `AHK_File_Active` tool to explicitly set it
+- User runs `AHK_Run` with a file path
+- User provides code to `AHK_Diagnostics` that contains a path
+- User mentions a path in `AHK_Analyze` input
 - **Basically: ANY TIME a .ahk path appears ANYWHERE**
 
 ## Usage Examples
@@ -61,7 +61,7 @@ Then the tool runs with that file
 
 ## The Tools
 
-### Primary Tool: `ahk_file`
+### Primary Tool: `AHK_File_Active`
 Simple management of the shared variable:
 - `action: "get"` - Show current active file
 - `action: "set"` - Set the active file
@@ -70,9 +70,9 @@ Simple management of the shared variable:
 
 ### All Other Tools
 **AUTOMATICALLY** detect and use the variable:
-- `ahk_run` - Uses active file if no path provided
-- `ahk_diagnostics` - Auto-detects paths in code
-- `ahk_analyze` - Auto-detects paths in code
+- `AHK_Run` - Uses active file if no path provided
+- `AHK_Diagnostics` - Auto-detects paths in code
+- `AHK_Analyze` - Auto-detects paths in code
 - Every other tool - Same behavior
 
 ## Technical Details

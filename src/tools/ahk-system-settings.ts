@@ -29,7 +29,7 @@ export const AhkSettingsArgsSchema = z.object({
 });
 
 export const ahkSettingsToolDefinition = {
-  name: 'ahk_settings',
+  name: 'AHK_Settings',
   description: `Ahk settings
 Manage tool settings and enable/disable features`,
   inputSchema: {
@@ -86,14 +86,24 @@ export class AhkSettingsTool {
           
           // File editing tools status
           response += '**📝 File Editing Tools:**\n';
-          const fileTools = ['ahk_edit', 'ahk_diff_edit', 'ahk_file', 'ahk_auto_file', 'ahk_active_file', 'ahk_process_request', 'ahk_small_edit'];
+          const fileTools = [
+            'AHK_File_Edit',
+            'AHK_File_Edit_Diff',
+            'AHK_File_Edit_Advanced',
+            'AHK_File_Edit_Small',
+            'AHK_File_View',
+            'AHK_File_Detect',
+            'AHK_File_Active',
+            'AHK_Active_File',
+            'AHK_Process_Request'
+          ];
           for (const t of fileTools) {
             const status = currentSettings.enabledTools[t] ? '✅' : '❌';
             response += `  ${status} ${t}\n`;
           }
           
           response += '\n**🔧 Core Tools:** (always enabled)\n';
-          const coreTools = ['ahk_diagnostics', 'ahk_analyze', 'ahk_run', 'ahk_summary'];
+          const coreTools = ['AHK_Diagnostics', 'AHK_Analyze', 'AHK_Run', 'AHK_Summary'];
           for (const t of coreTools) {
             response += `  ✅ ${t}\n`;
           }
@@ -134,7 +144,7 @@ export class AhkSettingsTool {
           }
           
           // Prevent disabling core tools
-          const coreTools = ['ahk_diagnostics', 'ahk_analyze', 'ahk_run', 'ahk_summary', 'ahk_settings'];
+          const coreTools = ['AHK_Diagnostics', 'AHK_Analyze', 'AHK_Run', 'AHK_Summary', 'AHK_Settings'];
           if (coreTools.includes(tool)) {
             return {
               content: [{
@@ -158,7 +168,7 @@ export class AhkSettingsTool {
           return {
             content: [{
               type: 'text',
-              text: '✅ File editing tools have been enabled:\n• ahk_edit\n• ahk_diff_edit\n• ahk_file\n• ahk_auto_file\n• ahk_active_file\n• ahk_process_request\n• ahk_small_edit'
+              text: '✅ File editing tools have been enabled:\n• AHK_File_Edit\n• AHK_File_Edit_Diff\n• AHK_File_Edit_Advanced\n• AHK_File_Edit_Small\n• AHK_File_View\n• AHK_File_Detect\n• AHK_File_Active\n• AHK_Active_File\n• AHK_Process_Request'
             }]
           };
         }
@@ -168,7 +178,7 @@ export class AhkSettingsTool {
           return {
             content: [{
               type: 'text',
-              text: '❌ File editing tools have been disabled:\n• ahk_edit\n• ahk_diff_edit\n• ahk_file\n• ahk_auto_file\n• ahk_active_file\n• ahk_process_request\n• ahk_small_edit\n\nCore analysis and diagnostic tools remain enabled.'
+              text: '❌ File editing tools have been disabled:\n• AHK_File_Edit\n• AHK_File_Edit_Diff\n• AHK_File_Edit_Advanced\n• AHK_File_Edit_Small\n• AHK_File_View\n• AHK_File_Detect\n• AHK_File_Active\n• AHK_Active_File\n• AHK_Process_Request\n\nCore analysis and diagnostic tools remain enabled.'
             }]
           };
         }
@@ -212,7 +222,7 @@ export class AhkSettingsTool {
         
         case 'disable_all': {
           // Disable only non-core tools
-          const coreTools = ['ahk_diagnostics', 'ahk_analyze', 'ahk_run', 'ahk_summary', 'ahk_settings'];
+          const coreTools = ['AHK_Diagnostics', 'AHK_Analyze', 'AHK_Run', 'AHK_Summary', 'AHK_Settings'];
           const allSettings = toolSettings.getSettings();
           
           for (const toolName in allSettings.enabledTools) {
@@ -227,7 +237,7 @@ export class AhkSettingsTool {
           return {
             content: [{
               type: 'text',
-              text: '❌ All non-core tools have been disabled.\n\nCore tools remain enabled:\n• ahk_diagnostics\n• ahk_analyze\n• ahk_run\n• ahk_summary\n• ahk_settings'
+              text: '❌ All non-core tools have been disabled.\n\nCore tools remain enabled:\n• AHK_Diagnostics\n• AHK_Analyze\n• AHK_Run\n• AHK_Summary\n• AHK_Settings'
             }]
           };
         }
@@ -264,7 +274,7 @@ export class AhkSettingsTool {
       }
       
     } catch (error) {
-      logger.error('Error in ahk_settings tool:', error);
+      logger.error('Error in AHK_Settings tool:', error);
       return {
         content: [{
           type: 'text',

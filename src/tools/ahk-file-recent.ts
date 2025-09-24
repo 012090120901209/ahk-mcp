@@ -13,7 +13,7 @@ export const AhkRecentArgsSchema = z.object({
 });
 
 export const ahkRecentToolDefinition = {
-  name: 'ahk_file_recent',
+  name: 'AHK_File_Recent',
   description: `Ahk recent scripts
 List the most recent AutoHotkey scripts from configured directories. Supports overriding A_ScriptDir.`,
   inputSchema: {
@@ -115,7 +115,7 @@ export class AhkRecentTool {
         ],
       };
     } catch (error) {
-      logger.error('Error in ahk_recent_scripts tool:', error);
+      logger.error('Error in AHK_File_Recent tool:', error);
       return {
         content: [{ type: 'text', text: `Error: ${error instanceof Error ? error.message : String(error)}` }]
       };

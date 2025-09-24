@@ -39,12 +39,12 @@ async function main() {
 
   // Set active file
   const setActId = nextId();
-  send({ jsonrpc: '2.0', id: setActId, method: 'tools/call', params: { name: 'ahk_active_file', arguments: { action: 'set', filePath: script } } });
+  send({ jsonrpc: '2.0', id: setActId, method: 'tools/call', params: { name: 'AHK_Active_File', arguments: { action: 'set', filePath: script } } });
   await onceMessage();
 
-  // Call ahk_run without filePath to use activeFile fallback, powershell runner
+  // Call AHK_Run without filePath to use activeFile fallback, powershell runner
   const runId = nextId();
-  send({ jsonrpc: '2.0', id: runId, method: 'tools/call', params: { name: 'ahk_run', arguments: { mode: 'run', ahkPath: ahkExe, runner: 'powershell', wait: true } } });
+  send({ jsonrpc: '2.0', id: runId, method: 'tools/call', params: { name: 'AHK_Run', arguments: { mode: 'run', ahkPath: ahkExe, runner: 'powershell', wait: true } } });
   const runResp = await onceMessage();
   console.error('runResp:', JSON.stringify(runResp));
 

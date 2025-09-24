@@ -68,40 +68,40 @@ node dist/index.js
 Once configured, Claude Code will have access to these AutoHotkey tools:
 
 ### 🔧 Core Tools
-- `ahk_run` - Run AutoHotkey scripts (with window detection!)
-- `ahk_analyze` - Analyze AutoHotkey code syntax
+- `AHK_Run` - Run AutoHotkey scripts (with window detection!)
+- `AHK_Analyze` - Analyze AutoHotkey code syntax
 - `ahk_complete` - Get code completion suggestions
-- `ahk_diagnostics` - Check for code issues
+- `AHK_Diagnostics` - Check for code issues
 
 ### 📝 Documentation Tools  
-- `ahk_doc_search` - Search AutoHotkey documentation
-- `ahk_summary` - Get quick reference summaries
-- `ahk_context_injector` - Auto-inject relevant docs
+- `AHK_Doc_Search` - Search AutoHotkey documentation
+- `AHK_Summary` - Get quick reference summaries
+- `AHK_Context_Injector` - Auto-inject relevant docs
 
 ### 🛠️ Development Tools
-- `ahk_debug_agent` - Debug assistance
-- `ahk_vscode_problems` - VS Code integration
-- `ahk_config` - Configuration management
-- `ahk_active_file` - Active file tracking
+- `AHK_Debug_Agent` - Debug assistance
+- `AHK_VSCode_Problems` - VS Code integration
+- `AHK_Config` - Configuration management
+- `AHK_Active_File` - Active file tracking
 
 ### 📋 Utility Tools
-- `ahk_recent_scripts` - Track recent scripts
-- `ahk_prompts` - Access prompt templates
-- `ahk_sampling_enhancer` - Enhance code samples
+- `AHK_File_Recent` - Track recent scripts
+- `AHK_Prompts` - Access prompt templates
+- `AHK_Sampling_Enhancer` - Enhance code samples
 
 ## Testing the Setup
 
 ### Basic Test
 ```bash
 # Start Claude Code and try:
-/ahk_summary
+/AHK_Summary
 ```
 
 ### Window Detection Test
 ```bash
 # In Claude Code, try running your test script:
 {
-  "tool": "ahk_run",
+  "tool": "AHK_Run",
   "args": {
     "mode": "run",
     "filePath": "C:\\Users\\uphol\\Documents\\Design\\Coding\\AHK\\!Running\\__Test-MCP.ahk",

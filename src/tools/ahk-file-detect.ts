@@ -16,7 +16,7 @@ export const AhkAutoFileArgsSchema = z.object({
 });
 
 export const ahkAutoFileToolDefinition = {
-  name: 'ahk_file_detect',
+  name: 'AHK_File_Detect',
   description: `Ahk auto file
 Automatically detect and set active AutoHotkey file from user text`,
   inputSchema: {
@@ -136,7 +136,7 @@ export class AhkAutoFileTool {
       };
       
     } catch (error) {
-      logger.error('Error in ahk_auto_file tool:', error);
+      logger.error('Error in AHK_File_Detect tool:', error);
       return {
         content: [{
           type: 'text',

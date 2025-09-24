@@ -6,7 +6,7 @@ import logger from '../logger.js';
 export const AhkSummaryArgsSchema = z.object({});
 
 export const ahkSummaryToolDefinition = {
-  name: 'ahk_summary',
+  name: 'AHK_Summary',
   description: `Ahk summary
 Returns a summary of built-in variables, classes, and coding standards for AutoHotkey v2.`,
   inputSchema: {

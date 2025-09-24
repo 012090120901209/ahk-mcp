@@ -14,7 +14,7 @@ export const AhkProcessRequestArgsSchema = z.object({
 });
 
 export const ahkProcessRequestToolDefinition = {
-  name: 'ahk_process_request',
+  name: 'AHK_Process_Request',
   description: `Ahk process request
 Process user requests that contain file paths and instructions for AutoHotkey scripts`,
   inputSchema: {
@@ -240,7 +240,7 @@ export class AhkProcessRequestTool {
             response += 'The file is now set as active. You can:\n';
             response += '• Use edit tools to modify the script\n';
             response += '• Run diagnostics to check for issues\n';
-            response += '• Execute the script with ahk_run\n';
+            response += '• Execute the script with AHK_Run\n';
             break;
             
           case 'view':
@@ -276,7 +276,7 @@ export class AhkProcessRequestTool {
       };
       
     } catch (error) {
-      logger.error('Error in ahk_process_request tool:', error);
+      logger.error('Error in AHK_Process_Request tool:', error);
       return {
         content: [{
           type: 'text',

@@ -18,7 +18,7 @@ export interface PromptTemplate {
 export const AhkPromptsArgsSchema = z.object({});
 
 export const ahkPromptsToolDefinition = {
-  name: "ahk_prompts",
+  name: "AHK_Prompts",
   description: `AHK Prompts
 Returns a set of built-in AHK v2 prompt templates for code generation and learning.`,
   inputSchema: {
@@ -31,7 +31,7 @@ Returns a set of built-in AHK v2 prompt templates for code generation and learni
 export const DEFAULT_PROMPTS: PromptTemplate[] = [
   {
     title: "Auto Context",
-    body: "Jumpstart conversations by immediately calling `ahk_context_injector`.\n- Paste the user request into `userPrompt`\n- Leave `contextType` as `auto` unless you know the specific category\n- Set `includeModuleInstructions` to `true` to pull module expertise\n\nAfter the tool returns contextual snippets, review them before generating code.",
+    body: "Jumpstart conversations by immediately calling `AHK_Context_Injector`.\n- Paste the user request into `userPrompt`\n- Leave `contextType` as `auto` unless you know the specific category\n- Set `includeModuleInstructions` to `true` to pull module expertise\n\nAfter the tool returns contextual snippets, review them before generating code.",
     source: "default",
     slug: getPromptSlug("Auto Context")
   },

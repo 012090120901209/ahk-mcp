@@ -10,14 +10,16 @@ import logger from '../logger.js';
 export interface ToolSettings {
   // Core tool settings
   enabledTools: {
-    ahk_edit: boolean;
-    ahk_diff_edit: boolean;
-    ahk_file: boolean;
-    ahk_auto_file: boolean;
-    ahk_active_file: boolean;
-    ahk_process_request: boolean;
-    ahk_alpha: boolean;
-    ahk_small_edit: boolean;
+    AHK_File_Edit: boolean;
+    AHK_File_Edit_Diff: boolean;
+    AHK_File_Edit_Advanced: boolean;
+    AHK_File_Edit_Small: boolean;
+    AHK_File_View: boolean;
+    AHK_File_Detect: boolean;
+    AHK_File_Active: boolean;
+    AHK_Active_File: boolean;
+    AHK_Process_Request: boolean;
+    AHK_Alpha: boolean;
     // Other tools can be added here
     [key: string]: boolean;
   };
@@ -76,28 +78,33 @@ class ToolSettingsManager {
     return {
       enabledTools: {
         // File editing tools - can be disabled
-        ahk_edit: true,
-        ahk_diff_edit: true,
-        ahk_file: true,
-        ahk_auto_file: true,
-        ahk_active_file: true,
-        ahk_process_request: true,
-        ahk_alpha: true,
-        ahk_small_edit: true,
-        
+        AHK_File_Edit: true,
+        AHK_File_Edit_Diff: true,
+        AHK_File_Edit_Advanced: true,
+        AHK_File_Edit_Small: true,
+        AHK_File_View: true,
+        AHK_File_Detect: true,
+        AHK_File_Active: true,
+        AHK_Active_File: true,
+        AHK_Process_Request: true,
+        AHK_Alpha: true,
+
         // Core tools - always enabled
-        ahk_diagnostics: true,
-        ahk_analyze: true,
-        ahk_run: true,
-        ahk_summary: true,
-        ahk_prompts: true,
-        ahk_debug_agent: true,
-        ahk_doc_search: true,
-        ahk_context_injector: true,
-        ahk_sampling_enhancer: true,
-        ahk_vscode_problems: true,
-        ahk_recent_scripts: true,
-        ahk_config: true
+        AHK_Diagnostics: true,
+        AHK_Analyze: true,
+        AHK_Analyze_Unified: true,
+        AHK_Run: true,
+        AHK_Summary: true,
+        AHK_Prompts: true,
+        AHK_Debug_Agent: true,
+        AHK_Doc_Search: true,
+        AHK_Context_Injector: true,
+        AHK_Sampling_Enhancer: true,
+        AHK_VSCode_Problems: true,
+        AHK_File_Recent: true,
+        AHK_Config: true,
+        AHK_LSP: true,
+        AHK_Settings: true
       },
       
       // Global settings
@@ -215,7 +222,17 @@ class ToolSettingsManager {
    * Enable/disable file editing tools as a group
    */
   setFileEditingTools(enabled: boolean): void {
-    const fileTools = ['ahk_edit', 'ahk_diff_edit', 'ahk_file', 'ahk_auto_file', 'ahk_active_file', 'ahk_process_request', 'ahk_alpha', 'ahk_small_edit'];
+    const fileTools = [
+      'AHK_File_Edit',
+      'AHK_File_Edit_Diff',
+      'AHK_File_Edit_Advanced',
+      'AHK_File_Edit_Small',
+      'AHK_File_View',
+      'AHK_File_Detect',
+      'AHK_File_Active',
+      'AHK_Process_Request',
+      'AHK_Alpha'
+    ];
     for (const tool of fileTools) {
       this.settings.enabledTools[tool] = enabled;
     }
@@ -240,11 +257,14 @@ class ToolSettingsManager {
    */
   getDisabledMessage(toolName: string): string {
     if (!this.isToolEnabled(toolName)) {
-      return `⚠️ Tool '${toolName}' is currently disabled.\n\nTo enable it, use the 'ahk_settings' tool:\n\`\`\`json\n{\n  "tool": "ahk_settings",\n  "arguments": {\n    "action": "enable_tool",\n    "tool": "${toolName}"\n  }\n}\n\`\`\``;
+      return `⚠️ Tool '${toolName}' is currently disabled.\n\nTo enable it, use the 'AHK_Settings' tool:\n\`\`\`json\n{\n  "tool": "AHK_Settings",\n  "arguments": {\n    "action": "enable_tool",\n    "tool": "${toolName}"\n  }\n}\n\`\`\``;
     }
     
-    if (!this.settings.allowFileEditing && ['ahk_edit', 'ahk_diff_edit', 'ahk_small_edit'].includes(toolName)) {
-      return `⚠️ File editing is currently disabled.\n\nTo enable it, use the 'ahk_settings' tool:\n\`\`\`json\n{\n  "tool": "ahk_settings",\n  "arguments": {\n    "action": "enable_editing"\n  }\n}\n\`\`\``;
+    if (
+      !this.settings.allowFileEditing &&
+      ['AHK_File_Edit', 'AHK_File_Edit_Diff', 'AHK_File_Edit_Small', 'AHK_File_Edit_Advanced'].includes(toolName)
+    ) {
+      return `⚠️ File editing is currently disabled.\n\nTo enable it, use the 'AHK_Settings' tool:\n\`\`\`json\n{\n  "tool": "AHK_Settings",\n  "arguments": {\n    "action": "enable_editing"\n  }\n}\n\`\`\``;
     }
     
     return '';

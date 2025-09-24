@@ -42,9 +42,9 @@ class AutoHotkeyHttpServer {
           tools: [
             // This would need to be implemented properly in your server
             // For now, return a basic structure
-            { name: 'ahk_diagnostics', description: 'AutoHotkey diagnostics tool' },
-            { name: 'ahk_analyze', description: 'AutoHotkey analysis tool' },
-            { name: 'ahk_prompts', description: 'AutoHotkey prompts tool' }
+            { name: 'AHK_Diagnostics', description: 'AutoHotkey diagnostics tool' },
+            { name: 'AHK_Analyze', description: 'AutoHotkey analysis tool' },
+            { name: 'AHK_Prompts', description: 'AutoHotkey prompts tool' }
           ]
         };
         res.json(tools);

@@ -84,23 +84,23 @@ If you need to manually configure, add this to your `mcp.json`:
 Once installed, Claude will have access to these AutoHotkey tools:
 
 ### Core Development Tools
-- `ahk_run` - Execute AutoHotkey scripts with window detection
-- `ahk_analyze` - Advanced code analysis
-- `ahk_diagnostics` - Error detection and validation
+- `AHK_Run` - Execute AutoHotkey scripts with window detection
+- `AHK_Analyze` - Advanced code analysis
+- `AHK_Diagnostics` - Error detection and validation
 
 ### Documentation & Context
-- `ahk_doc_search` - Search AutoHotkey documentation
-- `ahk_context_injector` - Auto-inject relevant context
-- `ahk_sampling_enhancer` - Enhance code samples
-- `ahk_summary` - Quick reference summaries
+- `AHK_Doc_Search` - Search AutoHotkey documentation
+- `AHK_Context_Injector` - Auto-inject relevant context
+- `AHK_Sampling_Enhancer` - Enhance code samples
+- `AHK_Summary` - Quick reference summaries
 
 ### Development Workflow
-- `ahk_prompts` - Access prompt templates
-- `ahk_debug_agent` - Debug assistance
-- `ahk_config` - Configuration management
-- `ahk_active_file` - Active file tracking
-- `ahk_recent_scripts` - Recent files tracking
-- `ahk_vscode_problems` - VS Code integration
+- `AHK_Prompts` - Access prompt templates
+- `AHK_Debug_Agent` - Debug assistance
+- `AHK_Config` - Configuration management
+- `AHK_Active_File` - Active file tracking
+- `AHK_File_Recent` - Recent files tracking
+- `AHK_VSCode_Problems` - VS Code integration
 
 ## Troubleshooting
 

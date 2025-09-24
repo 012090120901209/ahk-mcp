@@ -60,7 +60,7 @@ console.log('• Works with wait: false for non-blocking execution');
 console.log('• Visual feedback: "✅ Window detected: [Title]" or "⏳ No window detected"');
 
 console.log('\n🎯 Usage Example:');
-console.log('ahk_run({');
+console.log('AHK_Run({');
 console.log('  mode: "run",');
 console.log('  filePath: "MyGUIScript.ahk",');
 console.log('  wait: false,');

@@ -220,99 +220,99 @@ export class AutoHotkeyMcpServer {
         let result: any;
 
         switch (name) {
-          case 'ahk_file_edit_advanced':
+          case 'AHK_File_Edit_Advanced':
             result = await this.ahkFileEditorToolInstance.execute(args as any);
             break;
 
-          case 'ahk_diagnostics':
+          case 'AHK_Diagnostics':
             result = await this.ahkDiagnosticsToolInstance.execute(args as any);
             break;
 
-          case 'ahk_summary':
+          case 'AHK_Summary':
             result = await this.ahkSummaryToolInstance.execute();
             break;
 
-          case 'ahk_prompts':
+          case 'AHK_Prompts':
             result = await this.ahkPromptsToolInstance.execute();
             break;
 
-          case 'ahk_analyze':
+          case 'AHK_Analyze':
             result = await this.ahkAnalyzeToolInstance.execute(args as any);
             break;
 
-          case 'ahk_context_injector':
+          case 'AHK_Context_Injector':
             result = await this.ahkContextInjectorToolInstance.execute(args as any);
             break;
 
-          case 'ahk_sampling_enhancer':
+          case 'AHK_Sampling_Enhancer':
             result = await this.ahkSamplingEnhancerToolInstance.execute(args as any);
             break;
 
-          case 'ahk_debug_agent':
+          case 'AHK_Debug_Agent':
             result = await this.ahkDebugAgentToolInstance.execute(args as any);
             break;
 
-          case 'ahk_doc_search':
+          case 'AHK_Doc_Search':
             result = await this.ahkDocSearchToolInstance.execute(args as any);
             break;
 
-          case 'ahk_run':
+          case 'AHK_Run':
             result = await this.ahkRunToolInstance.execute(args as any);
             break;
 
-          case 'ahk_vscode_problems':
+          case 'AHK_VSCode_Problems':
             result = await this.ahkVSCodeProblemsToolInstance.execute(args as any);
             break;
 
-          case 'ahk_file_recent':
+          case 'AHK_File_Recent':
             result = await this.ahkRecentToolInstance.execute(args as any);
             break;
 
-          case 'ahk_config':
+          case 'AHK_Config':
             result = await this.ahkConfigToolInstance.execute(args as any);
             break;
 
-          case 'ahk_active_file':
+          case 'AHK_Active_File':
             result = await this.ahkActiveFileToolInstance.execute(args as any);
             break;
 
-          case 'ahk_lsp':
+          case 'AHK_LSP':
             result = await this.ahkLspToolInstance.execute(args as any);
             break;
 
-          case 'ahk_file_view':
+          case 'AHK_File_View':
             result = await this.ahkFileViewToolInstance.execute(args as any);
             break;
 
-          case 'ahk_file_detect':
+          case 'AHK_File_Detect':
             result = await this.ahkAutoFileToolInstance.execute(args as any);
             break;
 
-          case 'ahk_process_request':
+          case 'AHK_Process_Request':
             result = await this.ahkProcessRequestToolInstance.execute(args as any);
             break;
 
-          case 'ahk_file_active':
+          case 'AHK_File_Active':
             result = await this.ahkFileToolInstance.execute(args as any);
             break;
 
-          case 'ahk_file_edit':
+          case 'AHK_File_Edit':
             result = await this.ahkEditToolInstance.execute(args as any);
             break;
 
-          case 'ahk_file_edit_diff':
+          case 'AHK_File_Edit_Diff':
             result = await this.ahkDiffEditToolInstance.execute(args as any);
             break;
 
-          case 'ahk_settings':
+          case 'AHK_Settings':
             result = await this.ahkSettingsToolInstance.execute(args as any);
             break;
 
-          case 'ahk_file_edit_small':
+          case 'AHK_File_Edit_Small':
             result = await this.ahkSmallEditToolInstance.execute(args as any);
             break;
 
-          case 'ahk_alpha':
+          case 'AHK_Alpha':
             result = await this.ahkAlphaToolInstance.execute(args as any);
             break;
 
@@ -591,7 +591,7 @@ export class AutoHotkeyMcpServer {
             {
               uri,
               mimeType: 'text/markdown',
-              text: '## 🎯 AutoHotkey Context Available\n\nUse the `ahk_context_injector` tool to analyze your prompts and get relevant AutoHotkey documentation automatically injected.'
+              text: '## 🎯 AutoHotkey Context Available\n\nUse the `AHK_Context_Injector` tool to analyze your prompts and get relevant AutoHotkey documentation automatically injected.'
             }
           ]
         };

@@ -156,13 +156,13 @@ The `detectFilePaths()` function recognizes:
 ### **Manual File Management**
 ```typescript
 // Set active file explicitly
-ahk_file({ action: 'set', path: 'C:/Scripts/myapp.ahk' })
+AHK_File_Active({ action: 'set', path: 'C:/Scripts/myapp.ahk' })
 
 // Get current active file
-ahk_file({ action: 'get' })
+AHK_File_Active({ action: 'get' })
 
 // Detect files from text
-ahk_auto_file({ text: 'Edit the calculator.ahk file', autoSet: true })
+AHK_File_Detect({ text: 'Edit the calculator.ahk file', autoSet: true })
 ```
 
 ## 💡 **Best Practices**

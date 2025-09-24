@@ -13,7 +13,7 @@ export const AhkContextInjectorArgsSchema = z.object({
 });
 
 export const ahkContextInjectorToolDefinition = {
-  name: 'ahk_context_injector',
+  name: 'AHK_Context_Injector',
   description: `Ahk context injector
 Analyzes user prompts and LLM thinking to automatically inject relevant AutoHotkey v2 documentation context.`,
   inputSchema: {
@@ -87,11 +87,11 @@ export class AhkContextInjectorTool {
     this.keywordMap.set('toggle', ['if', 'else', 'Boolean']);
 
     // File editing triggers
-    this.keywordMap.set('edit', ['ahk_file_editor', 'ahk_edit', 'ahk_file']);
-    this.keywordMap.set('modify', ['ahk_file_editor', 'ahk_edit', 'ahk_file']);
-    this.keywordMap.set('change', ['ahk_file_editor', 'ahk_edit', 'ahk_file']);
-    this.keywordMap.set('update', ['ahk_file_editor', 'ahk_edit', 'ahk_file']);
-    this.keywordMap.set('fix', ['ahk_file_editor', 'ahk_edit', 'ahk_diagnostics']);
+    this.keywordMap.set('edit', ['AHK_File_Edit_Advanced', 'AHK_File_Edit', 'AHK_File_Active']);
+    this.keywordMap.set('modify', ['AHK_File_Edit_Advanced', 'AHK_File_Edit', 'AHK_File_Active']);
+    this.keywordMap.set('change', ['AHK_File_Edit_Advanced', 'AHK_File_Edit', 'AHK_File_Active']);
+    this.keywordMap.set('update', ['AHK_File_Edit_Advanced', 'AHK_File_Edit', 'AHK_File_Active']);
+    this.keywordMap.set('fix', ['AHK_File_Edit_Advanced', 'AHK_File_Edit', 'AHK_Diagnostics']);
   }
 
   private initializeModuleKeywordMap(): void {
@@ -288,8 +288,8 @@ export class AhkContextInjectorTool {
 
         if (hasFilePath) {
           generalContext += '**🚨 FILE PATH DETECTED - USE FILE EDITING TOOLS!**\n\n' +
-            '**Primary Action:** Use `ahk_file_editor` tool to set the file as active and get editing guidance\n' +
-            '**Follow-up:** Use `ahk_edit` for direct file modifications\n' +
+            '**Primary Action:** Use `AHK_File_Edit_Advanced` tool to set the file as active and get editing guidance\n' +
+            '**Follow-up:** Use `AHK_File_Edit` for direct file modifications\n' +
             '**Important:** Always edit the actual file instead of generating code blocks\n\n';
         }
 
@@ -307,10 +307,10 @@ export class AhkContextInjectorTool {
 
         if (hasFilePath) {
           generalContext += '\n\n**🔧 Available File Editing Tools:**\n' +
-            '- `ahk_file_editor` - Primary tool for file operations\n' +
-            '- `ahk_edit` - Direct text editing (replace, insert, delete)\n' +
-            '- `ahk_file` - Manage active file settings\n' +
-            '- `ahk_run` - Test the edited script';
+            '- `AHK_File_Edit_Advanced` - Primary tool for file operations\n' +
+            '- `AHK_File_Edit` - Direct text editing (replace, insert, delete)\n' +
+            '- `AHK_File_Active` - Manage active file settings\n' +
+            '- `AHK_Run` - Test the edited script';
         }
 
         return {
@@ -335,9 +335,9 @@ export class AhkContextInjectorTool {
         finalText += '## 🎯 FILE EDITING DETECTED\n\n';
         finalText += '**🚨 IMPORTANT: Use file editing tools instead of generating code blocks!**\n\n';
         finalText += '**Recommended Workflow:**\n';
-        finalText += '1. Use `ahk_file_editor` to set the target file and get editing guidance\n';
-        finalText += '2. Use `ahk_edit` for specific text modifications\n';
-        finalText += '3. Use `ahk_run` to test the changes\n\n';
+        finalText += '1. Use `AHK_File_Edit_Advanced` to set the target file and get editing guidance\n';
+        finalText += '2. Use `AHK_File_Edit` for specific text modifications\n';
+        finalText += '3. Use `AHK_Run` to test the changes\n\n';
         finalText += '---\n\n';
       }
 

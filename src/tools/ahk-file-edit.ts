@@ -22,7 +22,7 @@ export const AhkEditArgsSchema = z.object({
 });
 
 export const ahkEditToolDefinition = {
-  name: 'ahk_file_edit',
+  name: 'AHK_File_Edit',
   description: `AHK Edit
 DIRECTLY EDIT AND MODIFY AUTOHOTKEY FILES ON DISK - Use this tool when the user provides a file path and wants to make changes to the actual file. Always prefer this over generating code blocks when a file path is mentioned. Supports replace, insert, delete, append, prepend operations.`,
   inputSchema: {
@@ -178,7 +178,7 @@ export class AhkEditTool {
     
     try {
       // Check if tool is enabled
-      const availability = checkToolAvailability('ahk_edit');
+      const availability = checkToolAvailability('AHK_File_Edit');
       if (!availability.enabled) {
         return {
           content: [{ type: 'text', text: availability.message || 'Tool is disabled' }]
@@ -192,7 +192,7 @@ export class AhkEditTool {
       // Get the target file
       const targetFile = filePath || activeFile.getActiveFile();
       if (!targetFile) {
-        throw new Error('No file specified and no active file set. Use ahk_file to set an active file first.');
+        throw new Error('No file specified and no active file set. Use AHK_File_Active to set an active file first.');
       }
 
       // Ensure it's an .ahk file
@@ -343,7 +343,7 @@ export class AhkEditTool {
       };
       
     } catch (error) {
-      logger.error('Error in ahk_edit tool:', error);
+      logger.error('Error in AHK_File_Edit tool:', error);
       
       // Check if we should create an alpha version due to failures
       const targetFile = validatedArgs?.filePath || activeFile.getActiveFile();

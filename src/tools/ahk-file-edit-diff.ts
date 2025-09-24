@@ -14,7 +14,7 @@ export const AhkDiffEditArgsSchema = z.object({
 });
 
 export const ahkDiffEditToolDefinition = {
-  name: 'ahk_file_edit_diff',
+  name: 'AHK_File_Edit_Diff',
   description: `Ahk diff edit
 Apply unified diff patches to edit AutoHotkey files (similar to Claude filesystem MCP)`,
   inputSchema: {
@@ -232,7 +232,7 @@ export class AhkDiffEditTool {
   async execute(args: z.infer<typeof AhkDiffEditArgsSchema>): Promise<any> {
     try {
       // Check if tool is enabled
-      const availability = checkToolAvailability('ahk_diff_edit');
+      const availability = checkToolAvailability('AHK_File_Edit_Diff');
       if (!availability.enabled) {
         return {
           content: [{ type: 'text', text: availability.message || 'Tool is disabled' }]
@@ -245,7 +245,7 @@ export class AhkDiffEditTool {
       // Get the target file
       const targetFile = filePath || activeFile.getActiveFile();
       if (!targetFile) {
-        throw new Error('No file specified and no active file set. Use ahk_file to set an active file first.');
+        throw new Error('No file specified and no active file set. Use AHK_File_Active to set an active file first.');
       }
 
       // Ensure it's an .ahk file
@@ -348,7 +348,7 @@ export class AhkDiffEditTool {
       };
       
     } catch (error) {
-      logger.error('Error in ahk_diff_edit tool:', error);
+      logger.error('Error in AHK_File_Edit_Diff tool:', error);
       return {
         content: [{
           type: 'text',
