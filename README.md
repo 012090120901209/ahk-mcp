@@ -14,26 +14,30 @@
 ---
 
 > [!IMPORTANT]
-> UPDATED 9/23/25: Enhanced script execution with window detection and state validation. The `AHK_Run` tool now detects when AutoHotkey scripts launched by monitoring for new windows. Added debug logging for MCP tool calls and improve file path process. Fixed tool naming consistency across the entire codebase.
-> This readme was not created using AI, so it's worth reading lol
+> UPDATED 10/1/25: **GitHub Spec Kit integration complete!** Project now follows specification-driven development with constitutional framework, architectural decision records, and comprehensive planning templates. Enhanced reliability improvements and type safety across all tools.
 
 ## Overview
 
-**AutoHotkey v2 MCP Server** is designed to improve LLMs ability to produce AutoHotkey v2 code. The main features are quality of life features such as prompts to recenter the LLM on AHK v2 coding rules as well as providing meta-prompts that create a strong structure for the LLM to follow. Some of the features such as context management are experimental and need a lot of work. However, it does currently pass in context for the thinking process based on what the user is asking for.
+**AutoHotkey v2 MCP Server** provides comprehensive development tools for AutoHotkey v2 through the Model Context Protocol. Features intelligent code analysis, file management, script execution, and context-aware assistance for LLMs working with AutoHotkey code.
+
+This project follows **Specification-Driven Development** using GitHub's Spec Kit framework. See `.specify/` directory for architectural decisions, specifications, and development templates.
 
 ## Recent Updates
 
-**Version 2.1.1** includes expanded file management capabilities:
-- Script run and monitor tool
-- Advanced file editing tools with diff-based patches
-- Alpha versioning system for iterative development
-- Enhanced active file detection and management
-- Improved ESLint configuration and code quality fixes
+**Version 2.0.0** - Production Ready:
+- 25+ MCP tools with enhanced descriptions
+- Tool usage analytics and performance tracking
+- Smart context injection based on usage patterns
+- Resource subscription system
+- Active file context in tool listings
+- MCP prompts and resources for coding standards
+- Consolidated and improved documentation
 
 ## Table of Contents
 
 - [Overview](#overview)
 - [Recent Updates](#recent-updates)
+- [Specification-Driven Development](#specification-driven-development)
 - [Example](#example)
 - [Features](#features)
   - [LSP-like Capabilities](#lsp-like-capabilities)
@@ -45,7 +49,8 @@
 - [MCP Tools](#mcp-tools)
   - [Core Analysis Tools](#core-analysis-tools)
 - [Built-in AutoHotkey Prompts](#built-in-autohotkey-prompts)
-- [Documentation Data](#documentation-data)
+- [Documentation](#documentation)
+- [Contributing](#contributing)
 - [License](#license)
 
 ## Example
@@ -71,6 +76,44 @@ The users clipboard can be accessed by the A_Clipboard built-in variable. If the
 ```
 5. The LLM then returns code with much better accuracy.
 
+## Specification-Driven Development
+
+This project follows **GitHub's Spec Kit** methodology for specification-driven development:
+
+### 📋 Constitutional Framework
+
+The project is governed by `.specify/memory/constitution.md` - 14 non-negotiable principles:
+- Article I: Type Safety (TypeScript strict mode + Zod)
+- Article II: MCP Protocol Compliance
+- Article III: AutoHotkey v2 Purity
+- Article IV: Test-First Development (RED-GREEN-Refactor)
+- Article V-XIV: Performance, Security, Modularity, UX, and more
+
+### 📐 Architectural Decisions
+
+All major technical decisions documented in `.specify/specs/architecture-decisions.md`:
+- ADR-001: Why TypeScript over JavaScript
+- ADR-003: Why FlexSearch for documentation search
+- ADR-006: Why PowerShell for window detection
+- ADR-011: Why `AHK_*` tool naming convention
+- ...and 11 more ADRs explaining the "why" behind the architecture
+
+### 📚 Specifications & Plans
+
+- **Master Spec**: `.specify/specs/ahk-mcp-master-spec.md` - What the system IS and WHY
+- **Technical Plan**: `.specify/specs/ahk-mcp-technical-plan.md` - HOW it's implemented
+- **Templates**: `.specify/templates/` - Spec, plan, and task templates for new features
+
+### 🔄 Development Workflow
+
+New features follow a structured process:
+
+1. **Specify** (`/specify`) - Define WHAT and WHY (not technical)
+2. **Plan** (`/plan`) - Technical architecture and decisions
+3. **Tasks** (`/tasks`) - Implementation roadmap with test-first approach
+4. **Implement** - Code following the spec and plan
+
+See `.specify/templates/` for starting points.
 
 ## Features
 
@@ -149,19 +192,28 @@ Add the server to your Claude Desktop configuration file (`claude_desktop_config
 ```json
 {
   "mcpServers": {
-    "ahk": {
+    "ahk-server": {
+      "autoApprove": [
+        "analyze_code",
+        "find_variables",
+        "get_function_info",
+        "get_class_info"
+      ],
+      "disabled": false,
+      "timeout": 60,
       "command": "C:\\Program Files\\nodejs\\node.exe",
       "args": [
-        "C:\\Users\\YourUsername\\path\\to\\ahk-mcp\\dist\\index.js"
+        "C:\\Users\\uphol\\Documents\\Design\\Coding\\ahk-mcp\\dist\\index.js"
       ],
+      "transportType": "stdio",
       "env": {
         "NODE_ENV": "production",
-        "AHK_MCP_LOG_LEVEL": "debug",
-        "AHK_MCP_DATA_MODE": "full"
+        "AHK_MCP_LOG_LEVEL": "debug"
       }
     }
   }
 }
+
 ```
 
 **Important Notes:**
@@ -232,7 +284,25 @@ The server includes 7 ready-to-use AutoHotkey v2 prompts accessible through Clau
 
 Access these prompts through Claude's interface by typing `/` and selecting from the available AutoHotkey prompts.
 
-## Documentation Data
+## Documentation
+
+### Project Documentation
+
+- **Quick Start**: `docs/QUICK_START.md` - Get up and running quickly
+- **Claude Desktop Setup**: `docs/CLAUDE_DESKTOP_SETUP.md`
+- **Claude Code Setup**: `docs/CLAUDE_CODE_SETUP.md`
+- **Settings Guide**: `docs/SETTINGS_GUIDE.md` - Configuration options
+- **Coding Agent Guide**: `docs/CODING_AGENT_GUIDE.md` - AI agent integration patterns
+- **Release Notes**: `docs/RELEASE_NOTES.md` - Version history
+
+### Specification Documents
+
+- **Constitution**: `.specify/memory/constitution.md` - Project governance
+- **Master Spec**: `.specify/specs/ahk-mcp-master-spec.md` - System specification
+- **Technical Plan**: `.specify/specs/ahk-mcp-technical-plan.md` - Implementation details
+- **ADR Log**: `.specify/specs/architecture-decisions.md` - Decision records
+
+### AutoHotkey v2 Data
 
 The server includes comprehensive AutoHotkey v2 documentation:
 
@@ -241,6 +311,29 @@ The server includes comprehensive AutoHotkey v2 documentation:
 - **Variables**: Built-in variables like A_WorkingDir, A_ScriptName
 - **Methods**: Class methods with detailed parameter information
 - **Directives**: #Include, #Requires, and other preprocessor directives
+
+## Contributing
+
+### Development Workflow
+
+This project follows **specification-driven development**:
+
+1. **Read the Constitution**: `.specify/memory/constitution.md` - Non-negotiable principles
+2. **Review ADRs**: `.specify/specs/architecture-decisions.md` - Understand past decisions
+3. **Create a Spec**: Use `.specify/templates/spec-template.md` to define WHAT and WHY
+4. **Create a Plan**: Use `.specify/templates/plan-template.md` to define HOW
+5. **Break Down Tasks**: Use `.specify/templates/tasks-template.md` for implementation
+6. **Follow Test-First**: Write tests BEFORE implementation (Article IV)
+
+### Key Principles
+
+- **Type Safety**: TypeScript strict mode + Zod validation
+- **MCP Compliance**: Standard response format with `isError` flag
+- **AHK v2 Only**: No AutoHotkey v1 support
+- **Test-First**: RED-GREEN-Refactor cycle
+- **Tool Naming**: `AHK_Category_Action` convention
+
+See `CONTRIBUTING.md` for detailed guidelines (coming soon).
 
 ## License
 

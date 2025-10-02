@@ -20,7 +20,11 @@
     "debug:scan": "node scripts/scan-debug.js",
     "debug:start": "node scripts/start-debug.js",
     "claude:restart": "pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/restart-claude-hook.ps1 -Once",
-    "claude:watch": "pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/restart-claude-hook.ps1 -Watch"
+    "claude:watch": "pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/restart-claude-hook.ps1 -Watch",
+    "spec:new": "node -e \"console.log('Create new spec from .specify/templates/spec-template.md')\"",
+    "spec:plan": "node -e \"console.log('Create implementation plan from .specify/templates/plan-template.md')\"",
+    "spec:tasks": "node -e \"console.log('Create task breakdown from .specify/templates/tasks-template.md')\"",
+    "spec:review": "node -e \"console.log('Review .specify/memory/constitution.md for compliance')\""
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^0.5.0",
