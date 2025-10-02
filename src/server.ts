@@ -36,10 +36,17 @@ import { AhkEditTool, ahkEditToolDefinition } from './tools/ahk-file-edit.js';
 import { AhkDiffEditTool, ahkDiffEditToolDefinition } from './tools/ahk-file-edit-diff.js';
 import { AhkSettingsTool, ahkSettingsToolDefinition } from './tools/ahk-system-settings.js';
 import { AhkAlphaTool, ahkAlphaToolDefinition } from './tools/ahk-system-alpha.js';
-import { AhkFileEditorTool, ahkFileEditorToolDefinition } from './tools/ahk-file-edit-advanced.js';
+import { AhkFileEditorTool, ahkFileEditorToolDefinition, AhkFileEditorArgs } from './tools/ahk-file-edit-advanced.js';
 import { AhkSmallEditTool, ahkSmallEditToolDefinition } from './tools/ahk-file-edit-small.js';
-import { autoDetect } from './core/active-file.js';
+import { autoDetect, activeFile } from './core/active-file.js';
 import { toolSettings } from './core/tool-settings.js';
+import { toolAnalytics } from './core/tool-analytics.js';
+import { orchestrationContext } from './core/orchestration-context.js';
+import { resourceSubscriptions } from './core/resource-subscriptions.js';
+import { AhkAnalyticsTool, ahkAnalyticsToolDefinition } from './tools/ahk-system-analytics.js';
+import { AhkTestInteractiveTool, testInteractiveToolDefinition } from './tools/ahk-test-interactive.js';
+import { memoryContextDefinition, handleMemoryContext, MemoryContextArgs } from './tools/ahk-memory-context.js';
+import { AhkSmartOrchestratorTool, ahkSmartOrchestratorToolDefinition } from './tools/ahk-smart-orchestrator.js';
 
 export class AutoHotkeyMcpServer {
   private server: Server;
@@ -67,6 +74,9 @@ export class AutoHotkeyMcpServer {
   private ahkAlphaToolInstance: AhkAlphaTool;
   private ahkFileEditorToolInstance: AhkFileEditorTool;
   private ahkSmallEditToolInstance: AhkSmallEditTool;
+  private ahkAnalyticsToolInstance: AhkAnalyticsTool;
+  private ahkTestInteractiveToolInstance: AhkTestInteractiveTool;
+  private ahkSmartOrchestratorToolInstance: AhkSmartOrchestratorTool;
 
   constructor() {
     this.server = new Server(
@@ -109,6 +119,9 @@ export class AutoHotkeyMcpServer {
     this.ahkAlphaToolInstance = new AhkAlphaTool();
     this.ahkFileEditorToolInstance = new AhkFileEditorTool();
     this.ahkSmallEditToolInstance = new AhkSmallEditTool();
+    this.ahkAnalyticsToolInstance = new AhkAnalyticsTool();
+    this.ahkTestInteractiveToolInstance = new AhkTestInteractiveTool();
+    this.ahkSmartOrchestratorToolInstance = new AhkSmartOrchestratorTool();
 
     this.setupToolHandlers();
     this.setupPromptHandlers();
@@ -127,7 +140,12 @@ export class AutoHotkeyMcpServer {
       const useSSE = process.argv.includes('--sse') || process.env.PORT;
       logDebugEvent('tools.list', { status: 'start', message: useSSE ? 'Including SSE-specific tools' : 'Standard tool listing' });
 
+      // Get active file context
+      const activeFilePath = activeFile.getActiveFile();
+      const activeFileContext = activeFilePath ? `\n\n📎 **Active File:** ${activeFilePath}` : '';
+
       const standardTools = [
+        ahkSmartOrchestratorToolDefinition, // SMART ORCHESTRATOR - Reduces tool calls
         ahkFileEditorToolDefinition, // PRIMARY FILE EDITING TOOL - Listed first for priority
         ahkEditToolDefinition,
         ahkFileToolDefinition,
@@ -152,7 +170,19 @@ export class AutoHotkeyMcpServer {
         ahkSettingsToolDefinition,
         ahkSmallEditToolDefinition,
         ahkAlphaToolDefinition,
-      ];
+        ahkAnalyticsToolDefinition,
+        testInteractiveToolDefinition,
+        memoryContextDefinition,
+      ].map(tool => {
+        // Add active file context to file-related tools
+        if (activeFilePath && tool.name.startsWith('AHK_File')) {
+          return {
+            ...tool,
+            description: tool.description + activeFileContext
+          };
+        }
+        return tool;
+      });
 
       // Add ChatGPT-compatible tools when in SSE mode
       const chatGPTTools = useSSE ? [
@@ -220,8 +250,12 @@ export class AutoHotkeyMcpServer {
         let result: any;
 
         switch (name) {
+          case 'AHK_Smart_Orchestrator':
+            result = await this.ahkSmartOrchestratorToolInstance.execute(args as any);
+            break;
+
           case 'AHK_File_Edit_Advanced':
-            result = await this.ahkFileEditorToolInstance.execute(args as any);
+            result = await this.ahkFileEditorToolInstance.execute(args as AhkFileEditorArgs);
             break;
 
           case 'AHK_Diagnostics':
@@ -316,6 +350,18 @@ export class AutoHotkeyMcpServer {
             result = await this.ahkAlphaToolInstance.execute(args as any);
             break;
 
+          case 'AHK_Analytics':
+            result = await this.ahkAnalyticsToolInstance.execute(args as any);
+            break;
+
+          case 'AHK_Test_Interactive':
+            result = await this.ahkTestInteractiveToolInstance.execute(args as any);
+            break;
+
+          case 'AHK_Memory_Context':
+            result = await handleMemoryContext(args as MemoryContextArgs);
+            break;
+
           // ChatGPT-compatible tools (SSE mode only)
           case 'search':
             result = await this.ahkDocSearchToolInstance.execute({
@@ -380,12 +426,22 @@ export class AutoHotkeyMcpServer {
             throw new Error(`Unknown tool: ${name}`);
         }
 
+        const duration = Date.now() - startTime;
+
+        // Record analytics
+        toolAnalytics.recordCall(name, true, duration);
+
         logDebugEvent('tools.call', { status: 'success', message: name, details: {
-          duration: Date.now() - startTime,
+          duration,
           hasResult: Boolean(result && result.content && result.content.length > 0)
         } });
         return result;
       } catch (error) {
+        const duration = Date.now() - startTime;
+
+        // Record analytics for failure
+        toolAnalytics.recordCall(name, false, duration, error as Error);
+
         logger.error(`Error executing tool ${name}:`, error);
         logDebugError('tools.call', error, { details: { tool: name } });
         throw error;
@@ -415,6 +471,13 @@ export class AutoHotkeyMcpServer {
         };
       });
 
+      // Add coding context prompt
+      promptList.push({
+        name: 'ahk-coding-context',
+        description: 'AutoHotkey v2 elite coding standards with cognitive tier system (Thinking/Ultrathink)',
+        arguments: []
+      });
+
       logDebugEvent('prompts.list', { status: 'success', message: `Returned ${promptList.length} prompts` });
 
       return {
@@ -423,16 +486,57 @@ export class AutoHotkeyMcpServer {
 
     });
 
-    // Get prompt handler  
+    // Get prompt handler
     this.server.setRequestHandler(GetPromptRequestSchema, async (request) => {
       const { name } = request.params;
-      
+
       logger.info(`Getting prompt: ${name}`);
       logDebugEvent('prompts.get', { status: 'start', message: name });
 
+      // Handle coding context prompt
+      if (name === 'ahk-coding-context') {
+        const fs = await import('fs/promises');
+        const path = await import('path');
+
+        try {
+          const currentDir = process.cwd();
+          let projectRoot = currentDir;
+
+          while (projectRoot !== path.dirname(projectRoot)) {
+            try {
+              await fs.access(path.join(projectRoot, 'package.json'));
+              break;
+            } catch {
+              projectRoot = path.dirname(projectRoot);
+            }
+          }
+
+          const instructionsPath = path.join(projectRoot, 'docs', 'Modules', 'Module_Instructions.md');
+          const content = await fs.readFile(instructionsPath, 'utf-8');
+
+          logDebugEvent('prompts.get', { status: 'success', message: name });
+
+          return {
+            description: 'AutoHotkey v2 Elite Coding Standards',
+            messages: [
+              {
+                role: 'user',
+                content: {
+                  type: 'text',
+                  text: content
+                }
+              }
+            ]
+          };
+        } catch (error) {
+          logger.error('Failed to load Module_Instructions.md:', error);
+          throw new Error('Coding context not available');
+        }
+      }
+
       const prompts = await getPromptCatalog();
       const prompt = prompts.find((p) => this.createPromptName(p.slug ?? p.title) === name);
-      
+
       if (!prompt) {
         logDebugEvent('prompts.get', { status: 'error', message: `Prompt not found: ${name}` });
         throw new Error(`Prompt not found: ${name}`);
@@ -496,6 +600,12 @@ export class AutoHotkeyMcpServer {
 
       const resources = [
         {
+          uri: 'ahk://instructions/coding-standards',
+          name: 'AHK v2 Elite Coding Standards',
+          description: 'Comprehensive AutoHotkey v2 coding instructions with cognitive tier system (Thinking/Ultrathink), module routing, and best practices',
+          mimeType: 'text/markdown'
+        },
+        {
           uri: 'ahk://context/auto',
           name: 'AutoHotkey Auto-Context',
           description: 'Automatically provides relevant AutoHotkey documentation based on detected keywords',
@@ -509,7 +619,7 @@ export class AutoHotkeyMcpServer {
         },
         {
           uri: 'ahk://docs/variables',
-          name: 'AutoHotkey Variables Reference', 
+          name: 'AutoHotkey Variables Reference',
           description: 'Complete reference of AutoHotkey v2 built-in variables',
           mimeType: 'application/json'
         },
@@ -581,6 +691,54 @@ export class AutoHotkeyMcpServer {
 
       logger.info(`Reading resource: ${normalizedUri}`);
       logDebugEvent('resources.read', { status: 'start', message: normalizedUri, details: mergeDetails() });
+
+      // Track resource subscription
+      resourceSubscriptions.subscribe(normalizedUri);
+
+      if (normalizedUri === 'ahk://instructions/coding-standards') {
+        const fs = await import('fs/promises');
+        const path = await import('path');
+
+        try {
+          const currentDir = process.cwd();
+          let projectRoot = currentDir;
+
+          while (projectRoot !== path.dirname(projectRoot)) {
+            try {
+              await fs.access(path.join(projectRoot, 'package.json'));
+              break;
+            } catch {
+              projectRoot = path.dirname(projectRoot);
+            }
+          }
+
+          const instructionsPath = path.join(projectRoot, 'docs', 'Modules', 'Module_Instructions.md');
+          const content = await fs.readFile(instructionsPath, 'utf-8');
+
+          logDebugEvent('resources.read', { status: 'success', message: normalizedUri, details: mergeDetails({ kind: 'coding-standards' }) });
+
+          return {
+            contents: [
+              {
+                uri,
+                mimeType: 'text/markdown',
+                text: content
+              }
+            ]
+          };
+        } catch (error) {
+          logger.error('Failed to load Module_Instructions.md:', error);
+          return {
+            contents: [
+              {
+                uri,
+                mimeType: 'text/markdown',
+                text: '# AutoHotkey v2 Coding Standards\n\nCoding standards not available. Use AHK_Context_Injector tool for module-based guidance.'
+              }
+            ]
+          };
+        }
+      }
 
       if (normalizedUri === 'ahk://context/auto') {
         // This would normally be triggered by analyzing user input
