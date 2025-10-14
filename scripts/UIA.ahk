@@ -1,0 +1,6621 @@
+global IUIAutomationMaxVersion := 7, IUIAutomationActivateScreenReader := 1
+
+if !A_IsCompiled && A_LineFile = A_ScriptFullPath
+    UIA.Viewer()
+
+class UIA {
+
+    static __New() {
+        global IUIAutomationMaxVersion
+        this.IUIAutomationVersion := IUIAutomationMaxVersion + 1, this.ptr := 0
+
+        this.prototype.__UIA := this
+            , this.Cleanup.prototype.__UIA := this
+        static __IID := {
+            IUIAutomation: "{30cbe57d-d9d0-452a-ab13-7ac5ac4825ee}",
+            IUIAutomation2: "{34723aff-0c9d-49d0-9896-7ab52df8cd8a}",
+            IUIAutomation3: "{73d768da-9b51-4b89-936e-c209290973e7}",
+            IUIAutomation4: "{1189c02a-05f8-4319-8e21-e817e3db2860}",
+            IUIAutomation5: "{25f700c8-d816-4057-a9dc-3cbdee77e256}",
+            IUIAutomation6: "{aae072da-29e3-413d-87a7-192dbf81ed10}",
+            IUIAutomation7: "{29de312e-83c6-4309-8808-e8dfcb46c3c2}"
+        }, __Cleanup := this.Cleanup()
+
+        while (--this.IUIAutomationVersion > 1) {
+            if !__IID.HasOwnProp("IUIAutomation" this.IUIAutomationVersion)
+                continue
+            try {
+                this.ptr := ComObjValue(this.__ := ComObject("{e22ad333-b25f-460c-83d0-0581107395c9}", __IID.IUIAutomation%(this.IUIAutomationVersion)%))
+                break
+            }
+        }
+        if !this.HasOwnProp("ptr") || (this.HasOwnProp("ptr") && !this.ptr)
+            this.ptr := ComObjValue(this.__ := ComObject("{ff48dba4-60ef-4201-aa87-54103eef594e}", "{30cbe57d-d9d0-452a-ab13-7ac5ac4825ee}"))
+        this.TrueCondition := this.CreateTrueCondition(), this.TreeWalkerTrue := this.CreateTreeWalker(this.TrueCondition)
+
+        this.Property[30000], this.Property.T := 30003, this.Property.ControlType := 30003, this.Property.N := 30005, this.Property.CN := 30012, this.Property.A := 30011
+    }
+    class Cleanup {
+        __New() {
+            global IUIAutomationActivateScreenReader
+            this.ScreenReaderStartingState := this.__UIA.GetScreenReader()
+            if IUIAutomationActivateScreenReader && !this.ScreenReaderStartingState
+                this.__UIA.SetScreenReader(1)
+        }
+        __Delete() {
+            global IUIAutomationActivateScreenReader
+            try this.__UIA.RemoveAllEventHandlers()
+            if IUIAutomationActivateScreenReader
+                DllCall("user32.dll\SystemParametersInfo", "uint", 0x0047, "uint", this.ScreenReaderStartingState, "int", 0, "uint", 2)
+        }
+    }
+
+    class Enumeration {
+        __Item[param] {
+            get {
+                local k, v
+                if !this.HasOwnProp("__CachedValues") {
+                    this.__CachedValues := Map()
+                    for k, v in this.OwnProps()
+                        this.__CachedValues[v] := k
+                }
+                if this.__CachedValues.Has(param)
+                    return this.__CachedValues[param]
+                throw UnsetItemError("Property item `"" param "`" not found!", -2)
+            }
+        }
+        HasValue(val) {
+            if !this.HasOwnProp("__CachedValues")
+                try this[0]
+            if this.__CachedValues.Has(val)
+                return this.__CachedValues[val]
+            return 0
+        }
+    }
+
+    static MatchMode := { StartsWith: 1, Substring: 2, Exact: 3, RegEx: "RegEx", base: this.Enumeration.Prototype }
+
+    static CaseSense := { Off: 0, On: 1, Default: 1, base: this.Enumeration.Prototype }
+
+    static Type := { Button: 50000, Calendar: 50001, CheckBox: 50002, ComboBox: 50003, Edit: 50004, Link: 50005, Hyperlink: 50005, Image: 50006, ListItem: 50007, List: 50008, Menu: 50009, MenuBar: 50010, MenuItem: 50011, ProgressBar: 50012, RadioButton: 50013, ScrollBar: 50014, Slider: 50015, Spinner: 50016, StatusBar: 50017, Tab: 50018, TabItem: 50019, Text: 50020, ToolBar: 50021, ToolTip: 50022, Tree: 50023, TreeItem: 50024, Custom: 50025, Group: 50026, Thumb: 50027, DataGrid: 50028, DataItem: 50029, Document: 50030, SplitButton: 50031, Window: 50032, Pane: 50033, Header: 50034, HeaderItem: 50035, Table: 50036, TitleBar: 50037, Separator: 50038, SemanticZoom: 50039, AppBar: 50040, base: this.Enumeration.Prototype }
+    static ControlType := this.Type
+
+    static Pattern := { Invoke: 10000, Selection: 10001, Value: 10002, RangeValue: 10003, Scroll: 10004, ExpandCollapse: 10005, Grid: 10006, GridItem: 10007, MultipleView: 10008, Window: 10009, SelectionItem: 10010, Dock: 10011, Table: 10012, TableItem: 10013, Text: 10014, Toggle: 10015, Transform: 10016, ScrollItem: 10017, LegacyIAccessible: 10018, ItemContainer: 10019, VirtualizedItem: 10020, SynchronizedInput: 10021, ObjectModel: 10022, Annotation: 10023, Text2: 10024, Styles: 10025, Spreadsheet: 10026, SpreadsheetItem: 10027, Transform2: 10028, TextChild: 10029, Drag: 10030, DropTarget: 10031, TextEdit: 10032, CustomNavigation: 10033, Selection2: 10034, base: this.Enumeration.Prototype }
+
+    static Event := { ToolTipOpened: 20000, ToolTipClosed: 20001, StructureChanged: 20002, MenuOpened: 20003, AutomationPropertyChanged: 20004, AutomationFocusChanged: 20005, AsyncContentLoaded: 20006, MenuClosed: 20007, LayoutInvalidated: 20008, Invoke_Invoked: 20009, SelectionItem_ElementAddedToSelection: 20010, SelectionItem_ElementRemovedFromSelection: 20011, SelectionItem_ElementSelected: 20012, Selection_Invalidated: 20013, Text_TextSelectionChanged: 20014, Text_TextChanged: 20015, Window_WindowOpened: 20016, Window_WindowClosed: 20017, MenuModeStart: 20018, MenuModeEnd: 20019, InputReachedTarget: 20020, InputReachedOtherElement: 20021, InputDiscarded: 20022, SystemAlert: 20023, LiveRegionChanged: 20024, HostedFragmentRootsInvalidated: 20025, Drag_DragStart: 20026, Drag_DragCancel: 20027, Drag_DragComplete: 20028, DropTarget_DragEnter: 20029, DropTarget_DragLeave: 20030, DropTarget_Dropped: 20031, TextEdit_TextChanged: 20032, TextEdit_ConversionTargetChanged: 20033, Changes: 20034, Notification: 20035, ActiveTextPositionChanged: 20036, base: this.Enumeration.Prototype }
+
+    static Property := { RuntimeId: 30000, Id: 30000, BoundingRectangle: 30001, Location: 30001, ProcessId: 30002, ControlType: 30003, Type: 30003, LocalizedControlType: 30004, LocalizedType: 30004, Name: 30005, AcceleratorKey: 30006, AccessKey: 30007, HasKeyboardFocus: 30008, IsKeyboardFocusable: 30009, IsEnabled: 30010, AutomationId: 30011, ClassName: 30012, HelpText: 30013, ClickablePoint: 30014, Culture: 30015, IsControlElement: 30016, IsContentElement: 30017, LabeledBy: 30018, IsPassword: 30019, NativeWindowHandle: 30020, ItemType: 30021, IsOffscreen: 30022, Orientation: 30023, FrameworkId: 30024, IsRequiredForForm: 30025, ItemStatus: 30026, IsDockPatternAvailable: 30027, IsExpandCollapsePatternAvailable: 30028, IsGridItemPatternAvailable: 30029, IsGridPatternAvailable: 30030, IsInvokePatternAvailable: 30031, IsMultipleViewPatternAvailable: 30032, IsRangeValuePatternAvailable: 30033, IsScrollPatternAvailable: 30034, IsScrollItemPatternAvailable: 30035, IsSelectionItemPatternAvailable: 30036, IsSelectionPatternAvailable: 30037, IsTablePatternAvailable: 30038, IsTableItemPatternAvailable: 30039, IsTextPatternAvailable: 30040, IsTogglePatternAvailable: 30041, IsTransformPatternAvailable: 30042, IsValuePatternAvailable: 30043, IsWindowPatternAvailable: 30044, ValueValue: 30045, Value: 30045, ValueIsReadOnly: 30046, RangeValueValue: 30047, RangeValueIsReadOnly: 30048, RangeValueMinimum: 30049, RangeValueMaximum: 30050, RangeValueLargeChange: 30051, RangeValueSmallChange: 30052, ScrollHorizontalScrollPercent: 30053, ScrollHorizontalViewSize: 30054, ScrollVerticalScrollPercent: 30055, ScrollVerticalViewSize: 30056, ScrollHorizontallyScrollable: 30057, ScrollVerticallyScrollable: 30058, SelectionSelection: 30059, SelectionCanSelectMultiple: 30060, SelectionIsSelectionRequired: 30061, GridRowCount: 30062, GridColumnCount: 30063, GridItemRow: 30064, GridItemColumn: 30065, GridItemRowSpan: 30066, GridItemColumnSpan: 30067, GridItemContainingGrid: 30068, DockDockPosition: 30069, ExpandCollapseExpandCollapseState: 30070, MultipleViewCurrentView: 30071, MultipleViewSupportedViews: 30072, WindowCanMaximize: 30073, WindowCanMinimize: 30074, WindowWindowVisualState: 30075, WindowWindowInteractionState: 30076, WindowIsModal: 30077, WindowIsTopmost: 30078, SelectionItemIsSelected: 30079, SelectionItemSelectionContainer: 30080, TableRowHeaders: 30081, TableColumnHeaders: 30082, TableRowOrColumnMajor: 30083, TableItemRowHeaderItems: 30084, TableItemColumnHeaderItems: 30085, ToggleToggleState: 30086, TransformCanMove: 30087, TransformCanResize: 30088, TransformCanRotate: 30089, IsLegacyIAccessiblePatternAvailable: 30090, LegacyIAccessibleChildId: 30091, LegacyIAccessibleName: 30092, LegacyIAccessibleValue: 30093, LegacyIAccessibleDescription: 30094, LegacyIAccessibleRole: 30095, LegacyIAccessibleState: 30096, LegacyIAccessibleHelp: 30097, LegacyIAccessibleKeyboardShortcut: 30098, LegacyIAccessibleSelection: 30099, LegacyIAccessibleDefaultAction: 30100, AriaRole: 30101, AriaProperties: 30102, IsDataValidForForm: 30103, ControllerFor: 30104, DescribedBy: 30105, FlowsTo: 30106, ProviderDescription: 30107, IsItemContainerPatternAvailable: 30108, IsVirtualizedItemPatternAvailable: 30109, IsSynchronizedInputPatternAvailable: 30110, OptimizeForVisualContent: 30111, IsObjectModelPatternAvailable: 30112, AnnotationAnnotationTypeId: 30113, AnnotationAnnotationTypeName: 30114, AnnotationAuthor: 30115, AnnotationDateTime: 30116, AnnotationTarget: 30117, IsAnnotationPatternAvailable: 30118, IsTextPattern2Available: 30119, StylesStyleId: 30120, StylesStyleName: 30121, StylesFillColor: 30122, StylesFillPatternStyle: 30123, StylesShape: 30124, StylesFillPatternColor: 30125, StylesExtendedProperties: 30126, IsStylesPatternAvailable: 30127, IsSpreadsheetPatternAvailable: 30128, SpreadsheetItemFormula: 30129, SpreadsheetItemAnnotationObjects: 30130, SpreadsheetItemAnnotationTypes: 30131, IsSpreadsheetItemPatternAvailable: 30132, Transform2CanZoom: 30133, IsTransformPattern2Available: 30134, LiveSetting: 30135, IsTextChildPatternAvailable: 30136, IsDragPatternAvailable: 30137, DragIsGrabbed: 30138, DragDropEffect: 30139, DragDropEffects: 30140, IsDropTargetPatternAvailable: 30141, DropTargetDropTargetEffect: 30142, DropTargetDropTargetEffects: 30143, DragGrabbedItems: 30144, Transform2ZoomLevel: 30145, Transform2ZoomMinimum: 30146, Transform2ZoomMaximum: 30147, FlowsFrom: 30148, IsTextEditPatternAvailable: 30149, IsPeripheral: 30150, IsCustomNavigationPatternAvailable: 30151, PositionInSet: 30152, SizeOfSet: 30153, Level: 30154, AnnotationTypes: 30155, AnnotationObjects: 30156, LandmarkType: 30157, LocalizedLandmarkType: 30158, FullDescription: 30159, FillColor: 30160, OutlineColor: 30161, FillType: 30162, VisualEffects: 30163, OutlineThickness: 30164, CenterPoint: 30165, Rotation: 30166, Size: 30167, IsSelectionPattern2Available: 30168, Selection2FirstSelectedItem: 30169, Selection2LastSelectedItem: 30170, Selection2CurrentSelectedItem: 30171, Selection2ItemCount: 30173, IsDialog: 30174, base: this.Enumeration.Prototype }
+
+    static PropertyVariantType := Map(30000, 0x2003, 30001, 0x2005, 30002, 3, 30003, 3, 30004, 8, 30005, 8, 30006, 8, 30007, 8, 30008, 0xB, 30009, 0xB, 30010, 0xB, 30011, 8, 30012, 8, 30013, 8, 30014, 0x2005, 30015, 3, 30016, 0xB, 30017, 0xB, 30018, 0xD, 30019, 0xB, 30020, 3, 30021, 8, 30022, 0xB, 30023, 3, 30024, 8, 30025, 0xB, 30026, 8, 30027, 0xB, 30028, 0xB, 30029, 0xB, 30030, 0xB, 30031, 0xB, 30032, 0xB, 30033, 0xB, 30034, 0xB, 30035, 0xB, 30036, 0xB, 30037, 0xB, 30038, 0xB, 30039, 0xB, 30040, 0xB, 30041, 0xB, 30042, 0xB, 30043, 0xB, 30044, 0xB, 30045, 8, 30046, 0xB, 30047, 5, 30048, 0xB, 30049, 5, 30050, 5, 30051, 5, 30052, 5, 30053, 5, 30054, 5, 30055, 5, 30056, 5, 30057, 0xB, 30058, 0xB, 30059, 0x200D, 30060, 0xB, 30061, 0xB, 30062, 3, 30063, 3, 30064, 3, 30065, 3, 30066, 3, 30067, 3, 30068, 0xD, 30069, 3, 30070, 3, 30071, 3, 30072, 0x2003, 30073, 0xB, 30074, 0xB, 30075, 3, 30076, 3, 30077, 0xB, 30078, 0xB, 30079, 0xB, 30080, 0xD, 30081, 0x200D, 30082, 0x200D, 30083, 0x2003, 30084, 0x200D, 30085, 0x200D, 30086, 3, 30087, 0xB, 30088, 0xB, 30089, 0xB, 30090, 0xB, 30091, 3, 30092, 8, 30093, 8, 30094, 8, 30095, 3, 30096, 3, 30097, 8, 30098, 8, 30099, 0x200D, 30100, 8, 30101, 8, 30102, 8, 30103, 0xB, 30104, 0xD, 30105, 0xD, 30106, 0xD, 30107, 8, 30108, 0xB, 30109, 0xB, 30110, 0xB, 30111, 0xB, 30112, 0xB, 30113, 3, 30114, 8, 30115, 8, 30116, 8, 30117, 0xD, 30118, 0xB, 30119, 0xB, 30120, 3, 30121, 8, 30122, 3, 30123, 8, 30124, 8, 30125, 3, 30126, 8, 30127, 0xB, 30128, 0xB, 30129, 8, 30130, 0x200D, 30131, 0x2003, 30132, 0xB, 30133, 0xB, 30134, 0xB, 30135, 3, 30136, 0xB, 30137, 0xB, 30138, 0xB, 30139, 8, 30140, 0x2008, 30141, 0xB, 30142, 8, 30143, 0x2008, 30144, 0x200D, 30145, 5, 30146, 5, 30147, 5, 30148, 0x200D, 30149, 0xB, 30150, 0xB, 30151, 0xB, 30152, 3, 30153, 3, 30154, 3, 30155, 0x2003, 30156, 0x2003, 30157, 3, 30158, 8, 30159, 8, 30160, 3, 30161, 0x2003, 30162, 3, 30163, 3, 30164, 0x2005, 30165, 0x2005, 30166, 5, 30167, 0x2005, 30168, 0xB)
+    static PropertyVariantTypeBSTR := Map(30004, 8, 30005, 8, 30006, 8, 30007, 8, 30011, 8, 30012, 8, 30013, 8, 30021, 8, 30024, 8, 30026, 8, 30045, 8, 30092, 8, 30093, 8, 30094, 8, 30097, 8, 30098, 8, 30100, 8, 30101, 8, 30102, 8, 30107, 8, 30114, 8, 30115, 8, 30116, 8, 30121, 8, 30123, 8, 30124, 8, 30126, 8, 30129, 8, 30139, 8, 30142, 8, 30158, 8, 30159, 8)
+
+    static TextAttribute := { AnimationStyle: 40000, BackgroundColor: 40001, BulletStyle: 40002, CapStyle: 40003, Culture: 40004, FontName: 40005, FontSize: 40006, FontWeight: 40007, ForegroundColor: 40008, HorizontalTextAlignment: 40009, IndentationFirstLine: 40010, IndentationLeading: 40011, IndentationTrailing: 40012, IsHidden: 40013, IsItalic: 40014, IsReadOnly: 40015, IsSubscript: 40016, IsSuperscript: 40017, MarginBottom: 40018, MarginLeading: 40019, MarginTop: 40020, MarginTrailing: 40021, OutlineStyles: 40022, OverlineColor: 40023, OverlineStyle: 40024, StrikethroughColor: 40025, StrikethroughStyle: 40026, Tabs: 40027, TextFlowDirections: 40028, UnderlineColor: 40029, UnderlineStyle: 40030, AnnotationTypes: 40031, AnnotationObjects: 40032, StyleName: 40033, StyleId: 40034, Link: 40035, IsActive: 40036, SelectionActiveEnd: 40037, CaretPosition: 40038, CaretBidiMode: 40039, LineSpacing: 40040, BeforeParagraphSpacing: 40041, AfterParagraphSpacing: 40042, SayAsInterpretAs: 40043, base: this.Enumeration.Prototype }
+
+    static AttributeVariantType := { 40000: 3, 40001: 3, 40002: 3, 40003: 3, 40004: 3, 40005: 8, 40006: 5, 40007: 3, 40008: 3, 40009: 3, 40010: 5, 40011: 5, 40012: 5, 40013: 0xB, 40014: 0xB, 40015: 0xB, 40016: 0xB, 40017: 0xB, 40018: 5, 40019: 5, 40020: 5, 40021: 5, 40022: 3, 40023: 3, 40024: 3, 40025: 3, 40026: 3, 40027: 0x2005, 40028: 3, 40029: 3, 40030: 3, 40031: 0x2003, 40032: 0x200D, 40033: 8, 40034: 3, 40035: 0xD, 40036: 0xB, 40037: 3, 40038: 3, 40039: 3, 40040: 8, 40041: 5, 40042: 5, 40043: 8 }
+
+    static AnnotationType := { Unknown: 60000, SpellingError: 60001, GrammarError: 60002, Comment: 60003, FormulaError: 60004, TrackChanges: 60005, Header: 60006, Footer: 60007, Highlighted: 60008, Endnote: 60009, Footnote: 60010, InsertionChange: 60011, DeletionChange: 60012, MoveChange: 60013, FormatChange: 60014, UnsyncedChange: 60015, EditingLockedChange: 60016, ExternalChange: 60017, ConflictingChange: 60018, Author: 60019, AdvancedProofingIssue: 60020, DataValidationError: 60021, CircularReferenceError: 60022, Mathematics: 60023, base: this.Enumeration.Prototype }
+
+    static Style := { Custom: 70000, Heading1: 70001, Heading2: 70002, Heading3: 70003, Heading4: 70004, Heading5: 70005, Heading6: 70006, Heading7: 70007, Heading8: 70008, Heading9: 70009, Title: 70010, Subtitle: 70011, Normal: 70012, Emphasis: 70013, Quote: 70014, BulletedList: 70015, NumberedList: 70016, base: this.Enumeration.Prototype }
+
+    static LandmarkType := { Custom: 80000, Form: 80001, Main: 80002, Navigation: 80003, Search: 80004, base: this.Enumeration.Prototype }
+
+    static HeadingLevel := { None: 80050, 1: 80051, 2: 80052, 3: 80053, 4: 80054, 5: 80055, 6: 80056, 7: 80057, 8: 80058, 9: 80059, base: this.Enumeration.Prototype }
+    static Change := { Summary: 90000, base: this.Enumeration.Prototype }
+
+    static Metadata := { SayAsInterpretAs: 100000, base: this.Enumeration.Prototype }
+
+    static AsyncContentLoadedState := { Beginning: 0, Progress: 1, Completed: 2, base: this.Enumeration.Prototype }
+
+    static AutomationIdentifierType := { Property: 0, Pattern: 1, Event: 2, Type: 3, ControlType: 3, TextAttribute: 4, LandmarkType: 5, Annotation: 6, Changes: 7, Style: 7, base: this.Enumeration.Prototype }
+
+    static ConditionType := { True: 0, False: 1, Property: 2, And: 3, Or: 4, Not: 5, base: this.Enumeration.Prototype }
+
+    static EventArgsType := { Simple: 0, PropertyChanged: 1, StructureChanged: 2, AsyncContentLoaded: 3, WindowClosed: 4, TextEditTextChanged: 5, Changes: 6, Notification: 7, ActiveTextPositionChanged: 8, StructuredMarkup: 9, base: this.Enumeration.Prototype }
+
+    static AutomationElementMode := { None: 0, Full: 1, base: this.Enumeration.Prototype }
+
+    static CoalesceEventsOptions := { Disabled: 0, Enabled: 1, base: this.Enumeration.Prototype }
+
+    static ConnectionRecoveryBehaviorOptions := { Disabled: 0, Enabled: 1, base: this.Enumeration.Prototype }
+
+    static PropertyConditionFlags := { None: 0, IgnoreCase: 1, MatchSubstring: 2, IgnoreCaseMatchSubstring: 3, base: this.Enumeration.Prototype }
+
+    static TreeScope := { None: 0, Element: 1, Children: 2, Family: 3, Descendants: 4, ElementDescendants: 5, Subtree: 7, Parent: 8, Ancestors: 16, base: this.Enumeration.Prototype }
+
+    static TreeTraversalOptions := { Default: 0, PostOrder: 1, LastToFirstOrder: 2, LastToFirstPostOrder: 3, base: this.Enumeration.Prototype }
+
+    static TreeTraversalDirection := { Up: 0, Down: 1, Left: 2, Right: 3, Next: 3, Previous: 2, FirstChild: 1, LastChild: 4, Parent: 0, Normalize: 5 }
+
+    static ActiveEnd := { None: 0, Start: 1, End: 2, base: this.Enumeration.Prototype }
+
+    static AnimationStyle := { None: 0, LasVegasLights: 1, BlinkingBackground: 2, SparkleText: 3, MarchingBlackAnts: 4, MarchingRedAnts: 5, Shimmer: 6, Other: -1, base: this.Enumeration.Prototype }
+
+    static BulletStyle := { None: 0, HollowRoundBullet: 1, FilledRoundBullet: 2, HollowSquareBullet: 3, FilledSquareBullet: 4, DashBullet: 5, Other: -1, base: this.Enumeration.Prototype }
+
+    static CapStyle := { None: 0, SmallCap: 1, AllCap: 2, AllPetiteCaps: 3, PetiteCaps: 4, Unicase: 5, Titling: 6, Other: -1, base: this.Enumeration.Prototype }
+
+    static CaretBidiMode := { LTR: 0, RTL: 1, base: this.Enumeration.Prototype }
+
+    static CaretPosition := { Unknown: 0, EndOfLine: 1, BeginningOfLine: 2, base: this.Enumeration.Prototype }
+
+    static DockPosition := { Top: 0, Left: 1, Bottom: 2, Right: 3, Fill: 4, None: 5, base: this.Enumeration.Prototype }
+
+    static ExpandCollapseState := { Collapsed: 0, Expanded: 1, PartiallyExpanded: 2, LeafNode: 3, base: this.Enumeration.Prototype }
+
+    static FillType := { None: 0, Color: 1, Gradient: 2, Picture: 3, Pattern: 4, base: this.Enumeration.Prototype }
+
+    static FlowDirection := { Default: 0, RightToLeft: 1, BottomToTop: 2, Vertical: 4, base: this.Enumeration.Prototype }
+
+    static LiveSetting := { Off: 0, Polite: 1, Assertive: 2, base: this.Enumeration.Prototype }
+
+    static NavigateDirection := { Parent: 0, NextSibling: 1, PreviousSibling: 2, FirstChild: 3, LastChild: 4, base: this.Enumeration.Prototype }
+
+    static NotificationKind := { ItemAdded: 0, ItemRemoved: 1, ActionCompleted: 2, ActionAborted: 3, Other: 4, base: this.Enumeration.Prototype }
+
+    static NotificationProcessing := { ImportantAll: 0, ImportantMostRecent: 1, All: 2, MostRecent: 3, CurrentThenMostRecent: 4, base: this.Enumeration.Prototype }
+
+    static OrientationType := { None: 0, Horizontal: 1, Vertical: 2, base: this.Enumeration.Prototype }
+
+    static OutlineStyles := { None: 0, Outline: 1, Shadow: 2, Engraved: 4, Embossed: 8, base: this.Enumeration.Prototype }
+
+    static ProviderOptions := { ClientSideProvider: 1, ServerSideProvider: 2, NonClientAreaProvider: 4, OverrideProvider: 8, ProviderOwnsSetFocus: 10, UseComThreading: 20, RefuseNonClientSupport: 40, HasNativeIAccessible: 80, UseClientCoordinates: 100, base: this.Enumeration.Prototype }
+
+    static RowOrColumnMajor := { RowMajor: 0, ColumnMajor: 1, Indeterminate: 2, base: this.Enumeration.Prototype }
+
+    static SayAsInterpretAs := { None: 0, Spell: 1, Cardinal: 2, Ordinal: 3, Number: 4, Date: 5, Time: 6, Telephone: 7, Currency: 8, Net: 9, Url: 10, Address: 11, Name: 13, Media: 14, Date_MonthDayYear: 15, Date_DayMonthYear: 16, Date_YearMonthDay: 17, Date_YearMonth: 18, Date_MonthYear: 19, Date_DayMonth: 20, Date_MonthDay: 21, Date_Year: 22, Time_HoursMinutesSeconds12: 23, Time_HoursMinutes12: 24, Time_HoursMinutesSeconds24: 25, Time_HoursMinutes24: 26, base: this.Enumeration.Prototype }
+
+    static ScrollAmount := { NoScroll: -1, LargeDecrement: 0, SmallDecrement: 1, NoAmount: 2, LargeIncrement: 3, SmallIncrement: 4, base: this.Enumeration.Prototype }
+
+    static StructureChangeType := { ChildAdded: 0, ChildRemoved: 1, ChildrenInvalidated: 2, ChildrenBulkAdded: 3, ChildrenBulkRemoved: 4, ChildrenReordered: 5, base: this.Enumeration.Prototype }
+
+    static SupportedTextSelection := { None: 0, Single: 1, Multiple: 2, base: this.Enumeration.Prototype }
+
+    static SynchronizedInputType := { KeyUp: 1, KeyDown: 2, LeftMouseUp: 4, LeftMouseDown: 8, RightMouseUp: 10, RightMouseDown: 20, base: this.Enumeration.Prototype }
+
+    static TextDecorationLineStyle := { None: 0, Single: 1, WordsOnly: 2, Double: 3, Dot: 4, Dash: 5, DashDot: 6, DashDotDot: 7, Wavy: 8, ThickSingle: 9, DoubleWavy: 11, ThickWavy: 12, LongDash: 13, ThickDash: 14, ThickDashDot: 15, ThickDashDotDot: 16, ThickDot: 17, ThickLongDash: 18, Other: -1, base: this.Enumeration.Prototype }
+
+    static TextEditChangeType := { None: 0, AutoCorrect: 1, Composition: 2, CompositionFinalized: 3, AutoComplete: 4, base: this.Enumeration.Prototype }
+
+    static TextPatternRangeEndpoint := { Start: 0, End: 1, base: this.Enumeration.Prototype }
+
+    static TextUnit := { Character: 0, Format: 1, Word: 2, Line: 3, Paragraph: 4, Page: 5, Document: 6, base: this.Enumeration.Prototype }
+
+    static ToggleState := { Off: 0, On: 1, Indeterminate: 2, base: this.Enumeration.Prototype }
+
+    static ZoomUnit := { NoAmount: 0, LargeDecrement: 1, SmallDecrement: 2, LargeIncrement: 3, SmallIncrement: 4, base: this.Enumeration.Prototype }
+
+    static WindowVisualState := { Normal: 0, Maximized: 1, Minimized: 2, base: this.Enumeration.Prototype }
+
+    static WindowInteractionState := { Running: 0, Closing: 1, ReadyForUserInteraction: 2, BlockedByModalWindow: 3, NotResponding: 4, base: this.Enumeration.Prototype }
+
+    ; MSAA/Acc enums
+    class LegacyIAccessible extends UIA.Enumeration {
+        static SelectionFlag := { None: 0x0, TakeFocus: 0x1, TakeSelection: 0x2, ExtendSelection: 0x4, AddSelection: 0x8, RemoveSelection: 0x10, Valid: 0x1f }
+        static Role := { TitleBar: 0x1, MenuBar: 0x2, ScrollBar: 0x3, Grip: 0x4, Sound: 0x5, Cursor: 0x6, Caret: 0x7, Alert: 0x8, Window: 0x9, Client: 0xa, MenuPopup: 0xb, MenuItem: 0xc, ToolTip: 0xd, Application: 0xe, Document: 0xf, Pane: 0x10, Chart: 0x11, Dialog: 0x12, Border: 0x13, Grouping: 0x14, Separator: 0x15, Toolbar: 0x16, StatusBar: 0x17, Table: 0x18, ColumnHeader: 0x19, RowHeader: 0x1a, Column: 0x1b, Row: 0x1c, Cell: 0x1d, Link: 0x1e, HelpBalloon: 0x1f, Character: 0x20, List: 0x21, ListItem: 0x22, Outline: 0x23, OutlineItem: 0x24, PageTab: 0x25, PropertyPage: 0x26, Indicator: 0x27, Graphic: 0x28, StaticText: 0x29, Text: 0x2a, PushButton: 0x2b, CheckButton: 0x2c, RadioButton: 0x2d, ComboBox: 0x2e, Droplist: 0x2f, Progressbar: 0x30, Dial: 0x31, HotkeyField: 0x32, Slider: 0x33, SpinButton: 0x34, Diagram: 0x35, Animation: 0x36, Equation: 0x37, ButtonDropdown: 0x38, ButtonMenu: 0x39, ButtonDropdownGrid: 0x3a, Whitespace: 0x3b, PageTabList: 0x3c, Clock: 0x3d, SplitButton: 0x3e, IPAddress: 0x3f, OutlineButton: 0x40 }
+        static State := { Normal: 0, Unavailable: 0x1, Selected: 0x2, Focused: 0x4, Pressed: 0x8, Checked: 0x10, Mixed: 0x20, Indeterminate: 0x20, ReadOnly: 0x40, HotTracked: 0x80, Default: 0x100, Expanded: 0x200, Collapsed: 0x400, Busy: 0x800, Floating: 0x1000, Marqueed: 0x2000, Animated: 0x4000, Invisible: 0x8000, Offscreen: 0x10000, Sizeable: 0x20000, Moveable: 0x40000, SelfVoicing: 0x80000, Focusable: 0x100000, Selectable: 0x200000, Linked: 0x400000, Traversed: 0x800000, MultiSelectable: 0x1000000, ExtSelectable: 0x2000000, Alert_Low: 0x4000000, Alert_Medium: 0x8000000, Alert_High: 0x10000000, Protected: 0x20000000, Valid: 0x7fffffff }
+    }
+
+    ; Check whether a certain version of UIAutomation is available
+    static IsIUIAutomation2Available := VerCompare(A_OSVersion, ">=6.2.9200")
+    static IsIUIAutomation3Available := VerCompare(A_OSVersion, ">=6.3.9600")
+    static IsIUIAutomation4Available := VerCompare(A_OSVersion, ">=10.0.14393")
+    static IsIUIAutomation5Available := VerCompare(A_OSVersion, ">=10.0.14393")
+    static IsIUIAutomation6Available := VerCompare(A_OSVersion, ">=10.0.17763")
+
+    ; Check whether a certain version of UIAutomation Element is available
+    static IsIUIAutomationElement2Available := VerCompare(A_OSVersion, ">=6.2.9200")
+    static IsIUIAutomationElement3Available := VerCompare(A_OSVersion, ">=6.3.9600")
+    static IsIUIAutomationElement4Available := VerCompare(A_OSVersion, ">=10")
+    static IsIUIAutomationElement5Available := VerCompare(A_OSVersion, ">=10.0.15063")
+    static IsIUIAutomationElement6Available := VerCompare(A_OSVersion, ">=10.0.15063")
+    static IsIUIAutomationElement7Available := VerCompare(A_OSVersion, ">=10.0.15063")
+    static IsIUIAutomationElement8Available := VerCompare(A_OSVersion, ">=10.0.17134")
+    static IsIUIAutomationElement9Available := VerCompare(A_OSVersion, ">=10.0.17763")
+
+    static TreeWalkerTrue := ""
+
+    static TrueCondition := ""
+
+    ; This object can be used for comparison with the results from UIA.IUIAutomationElement,,GetPropertyValue or IUIAutomationTextRange,,GetAttributeValue.
+    static ReservedNotSupportedValue {
+        get {
+            local notSupportedValue
+            return (ComCall(54, this, "ptr*", &notSupportedValue := 0), ComValue(0xd, notSupportedValue))
+        }
+    }
+
+    ; The object retrieved by IUIAutomation,,ReservedMixedAttributeValue can be used for comparison with the results from IUIAutomationTextRange,,GetAttributeValue to determine if a text range contains more than one value for a particular text attribute.
+    static ReservedMixedAttributeValue {
+        get {
+            local mixedAttributeValue
+            return (ComCall(55, this, "ptr*", &mixedAttributeValue := 0), ComValue(0xd, mixedAttributeValue))
+        }
+    }
+    static ControlViewWalker {
+        get {
+            static walker := (ComCall(14, this, "ptr*", &walker := 0), walker ? this.IUIAutomationTreeWalker(walker) : "")
+            return walker
+        }
+    }
+
+    static ContentViewWalker {
+        get {
+            static walker := (ComCall(15, this, "ptr*", &walker := 0), walker ? this.IUIAutomationTreeWalker(walker) : "")
+            return walker
+        }
+    }
+
+    static RawViewWalker {
+        get {
+            static walker := (ComCall(16, this, "ptr*", &walker := 0), walker ? this.IUIAutomationTreeWalker(walker) : "")
+            return walker
+        }
+    }
+
+    static RawViewCondition {
+        get {
+            static condition := (ComCall(17, this, "ptr*", &condition := 0), condition ? this.IUIAutomationCondition(condition) : "")
+            return condition
+        }
+    }
+
+    static ControlViewCondition {
+        get {
+            static condition := (ComCall(18, this, "ptr*", &condition := 0), condition ? this.IUIAutomationCondition(condition) : "")
+            return condition
+        }
+    }
+
+    static ContentViewCondition {
+        get {
+            static condition := (ComCall(19, this, "ptr*", &condition := 0), condition ? this.IUIAutomationCondition(condition) : "")
+            return condition
+        }
+    }
+
+
+    ; Specifies whether calls to UI Automation control pattern methods automatically set focus to the target element. Default is True.
+    static AutoSetFocus {
+        get {
+            local out
+            return (ComCall(58, this, "int*", &out := 0), out)
+        }
+        set => ComCall(59, this, "int", Value)
+    }
+    ; Specifies the length of time that UI Automation will wait for a provider to respond to a client request for an automation element. Default is 20000ms (20 seconds), minimum seems to be 50ms.
+    static ConnectionTimeout {
+        get {
+            local out
+            return (ComCall(60, this, "int*", &out := 0), out)
+        }
+        set => ComCall(61, this, "int", Value) ; Minimum seems to be 50 (ms?)
+    }
+    ; Specifies the length of time that UI Automation will wait for a provider to respond to a client request for information about an automation element. Default is 2000ms (2 seconds), minimum seems to be 50ms.
+    static TransactionTimeout {
+        get {
+            local out
+            return (ComCall(62, this, "int*", &out := 0), out)
+        }
+        set => ComCall(63, this, "int", Value)
+    }
+
+
+    ; Indicates whether an accessible technology client adjusts provider request timeouts when the provider is non-responsive.
+    ConnectionRecoveryBehavior {
+        get {
+            local out
+            return (ComCall(73, this, "int*", &out), out)
+        }
+        set => ComCall(74, this, "int", value)
+    }
+    ; Gets or sets whether an accessible technology client receives all events, or a subset where duplicate events are detected and filtered.
+    CoalesceEvents {
+        get {
+            local out
+            return (ComCall(75, this, "int*", &out := 0), out)
+        }
+        set => ComCall(76, this, "int", value)
+    }
+
+
+
+    static EncodePath(path) {
+
+        local out, i, module
+        static Base64IntToChar := Map(0, '0', 1, '1', 2, '2', 3, '3', 4, '4', 5, '5', 6, '6', 7, '7', 8, '8', 9, '9', 10, 'A', 11, 'B', 12, 'C', 13, 'D', 14, 'E', 15, 'F', 16, 'G', 17, 'H', 18, 'I', 19, 'J', 20, 'K', 21, 'L', 22, 'M', 23, 'N', 24, 'O', 25, 'Q', 26, 'R', 27, 'S', 28, 'T', 29, 'U', 30, 'V', 31, 'W', 32, 'X', 33, 'Y', 34, 'Z', 35, 'a', 36, 'b', 37, 'c', 38, 'd', 39, 'e', 40, 'f', 41, 'g', 42, 'h', 43, 'i', 44, 'j', 45, 'k', 46, 'l', 47, 'm', 48, 'n', 49, 'o', 50, 'q', 51, 'r', 52, 's', 53, 't', 54, 'u', 55, 'v', 56, 'w', 57, 'x', 58, 'y', 59, 'z', 60, '/', 61, '?', 62, '<', 63, '>', 64, '=')
+        if !(path is Array)
+            path := [path]
+        out := ""
+        for cond in path {
+            t := cond.HasOwnProp("T") ? cond.t : cond.HasOwnProp("Type") ? cond.Type : cond.HasOwnProp("ControlType") ? cond.ControlType : -1
+            if t = -1
+                throw ValueError("Encodable path requires a Type", -1)
+            if !(IsInteger(t) && t < 50)
+                t := this.TypeValidation.Type(t) - 50000
+            out .= Base64IntToChar[t]
+            i := cond.HasOwnProp("i") ? cond.i : cond.HasOwnProp("index") ? cond.index : 1
+            if i != 0 && i != 1 {
+                ; 50 = index 2
+                ; 60 = index -1
+                ; 61 = index -2
+                ; 62 = index -3
+                ; 63 = index -4
+                ; 64 = index -5
+                if i > 1 {
+                    i -= 2, factor := 10
+                    Loop {
+                        if A_index = 1 {
+                            out .= Base64IntToChar[50 + (module := Mod(i, factor))]
+                        } else {
+                            out .= Base64IntToChar[50 + (module := Mod(i, factor * 15)) // factor]
+                            factor := factor * 15
+                        }
+                        i -= module
+                    } Until i = 0
+                } else {
+                    i := -i - 1
+                    out .= Base64IntToChar[60 + (module := Mod(i, 5))]
+                    i -= module, factor := 5
+                    Loop {
+                        if A_index > 1 {
+                            out .= Base64IntToChar[50 + (module := Mod(i, factor * 15)) // factor]
+                            i -= module, factor := factor * 15
+                        }
+                    } Until i = 0
+                }
+            }
+        }
+        return out
+    }
+
+
+    static DecodePath(path) {
+        static Base64CharToInt := Map('0', 0, '1', 1, '2', 2, '3', 3, '4', 4, '5', 5, '6', 6, '7', 7, '8', 8, '9', 9, 'A', 10, 'B', 11, 'C', 12, 'D', 13, 'E', 14, 'F', 15, 'G', 16, 'H', 17, 'I', 18, 'J', 19, 'K', 20, 'L', 21, 'M', 22, 'N', 23, 'O', 24, 'Q', 25, 'R', 26, 'S', 27, 'T', 28, 'U', 29, 'V', 30, 'W', 31, 'X', 32, 'Y', 33, 'Z', 34, 'a', 35, 'b', 36, 'c', 37, 'd', 38, 'e', 39, 'f', 40, 'g', 41, 'h', 42, 'i', 43, 'j', 44, 'k', 45, 'l', 46, 'm', 47, 'n', 48, 'o', 49, 'q', 50, 'r', 51, 's', 52, 't', 53, 'u', 54, 'v', 55, 'w', 56, 'x', 57, 'y', 58, 'z', 59, '/', 60, '?', 61, '<', 62, '>', 63, '=', 64)
+        local out := [], calculatingIndex := 0, cond := ""
+        loop parse path {
+            num := Base64CharToInt[A_LoopField]
+            if calculatingIndex != 0 && num < 50
+                calculatingIndex := 0
+            if num > 49 && calculatingIndex = 0 {
+                cond.DefineProp("i", { value: num < 60 ? num - 48 : 59 - num }) ; 50 => index 2 (index 1 would not exist) ; 60 => index -1
+                calculatingIndex := num < 60 ? 1 : -1
+                continue
+            }
+            if calculatingIndex {
+                if calculatingIndex > 0 {
+                    cond.i += (num - 50) * 10 * 15 ** (calculatingIndex - 1)
+                    calculatingIndex++
+                } else {
+                    cond.i -= (num - 50) * 5 * 15 ** (-calculatingIndex - 1)
+                    calculatingIndex--
+                }
+            } else {
+                if cond
+                    out.Push(cond)
+                cond := { Type: 50000 + num }
+            }
+        }
+        if cond
+            out.Push(cond)
+        return out
+    }
+
+    static RuntimeIdToString(runtimeId) {
+        local str := "", v
+        for v in runtimeId
+            str .= "." Format("{:X}", v)
+        return LTrim(str, ".")
+    }
+
+    static RuntimeIdFromString(str) {
+        local t := StrSplit(str, "."), v, arr := ComObjArray(3, t.Length)
+        for v in t
+            arr[A_Index - 1] := Integer("0x" v)
+        return arr
+    }
+
+
+    static Filter(elementArray, function) {
+        local i, el, ret := []
+        if !InStr(Type(elementArray), "Array")
+            throw TypeError("elementArray must be an Array or IUIAutomationElementArray", -1)
+        for i, el in elementArray
+            if function(el)
+                el.DefineProp("Index", { value: i }), ret.Push(el)
+        return ret
+    }
+
+
+    static DPIAwareness {
+        set => DllCall("SetThreadDpiAwarenessContext", "ptr", value, "ptr")
+        get {
+            local context := DllCall("GetThreadDpiAwarenessContext")
+            Loop 5 {
+                if DllCall("AreDpiAwarenessContextsEqual", "ptr", context, "ptr", -A_Index)
+                    return -A_index
+            }
+            return context
+        }
+    }
+
+    ; Sets the maximum possible DPI awareness level depending on Windows version
+    static SetMaximumDPIAwareness() => this.DPIAwareness := this.IsIUIAutomationElement6Available ? -4 : -3
+
+    static ProcessIsElevated(vPID) {
+        local hProc, hToken, vIsElevated, vRet
+        ;PROCESS_QUERY_LIMITED_INFORMATION := 0x1000
+        if !(hProc := DllCall("OpenProcess", "UInt", 0x1000, "Int", 0, "UInt", vPID, "Ptr"))
+            return -1
+        ;TOKEN_QUERY := 0x8
+        if !(DllCall("advapi32\OpenProcessToken", "Ptr", hProc, "UInt", 0x8, "Ptr*", &hToken := 0)) {
+            DllCall("CloseHandle", "Ptr", hProc)
+            return -1
+        }
+        ;TokenElevation := 20
+        vRet := (DllCall("advapi32\GetTokenInformation", "Ptr", hToken, "Int", 20, "UInt*", &vIsElevated := 0, "UInt", 4, "UInt*", &vSize := 0))
+        DllCall("CloseHandle", "Ptr", hToken)
+        DllCall("CloseHandle", "Ptr", hProc)
+        return vRet ? vIsElevated : -1
+    }
+
+
+    static FindElementFromArray(elementArray, condition, index := 1, startingElement := 0, cacheRequest := 0, cached := False) {
+        local scope := 0, order := 0, callback := 0
+        condition := this.IUIAutomationElement.__ExtractConditionNamedParameters(condition, &scope, &order, &startingElement, , &index, &callback)
+        index := this.TypeValidation.Integer(index, "Index"), startingElement := this.TypeValidation.Element(startingElement)
+        callback := callback || UIA.IUIAutomationElement.Prototype.ValidateCondition.Bind(, condition, cached)
+        if index = 0
+            throw ValueError("Condition index cannot be 0", -1)
+        if startingElement
+            startingElement := startingElement.RuntimeId
+        if index > 0 {
+            for element in elementArray {
+                if (startingElement ? (startingElement = element.RuntimeId ? !(startingElement := "") : 0) : 1) && callback(element) && --index = 0
+                    return cacheRequest ? element.BuildUpdatedCache(cacheRequest) : element
+            }
+        } else {
+            index := -index, len := elementArray.Length + 1
+            Loop len - 1 {
+                element := elementArray[len - A_index]
+                if (startingElement ? (startingElement = element.RuntimeId ? !(startingElement := "") : 0) : 1) && callback(element) && --index = 0
+                    return cacheRequest ? element.BuildUpdatedCache(cacheRequest) : element
+            }
+        }
+        throw TargetError("An element matching the condition was not found", -1)
+    }
+    static FindCachedElementFromArray(elementArray, condition, index := 1, startingElement := 0) => this.FindElementFromArray(elementArray, condition, index, startingElement, , 1)
+
+
+    static ClearAllHighlights() => this.IUIAutomationElement.Prototype.Highlight("clearall")
+
+
+    static CreateCondition(condition, value?, flags?) {
+        local propertyId, match
+        if IsSet(value) {
+            propertyId := this.TypeValidation.Property(condition)
+            if propertyId = 30003 && !IsNumber(value) {
+                if this.Type.HasOwnProp(value)
+                    value := this.Type.%value%
+                else if value is String && RegExMatch(value, "\d{5}", &match := "") && Integer(match[]) >= 50000
+                    value := Integer(match[])
+                else
+                    throw ValueError("Type '" value '" in a non-existant type!', -1)
+            }
+            if IsSet(flags) && (this.TypeValidation.PropertyConditionFlags(flags)) && this.PropertyVariantTypeBSTR.Has(propertyId)
+                return this.CreatePropertyConditionEx(propertyId, this.TypeValidation.String(value, "Value"), flags)
+            return this.CreatePropertyCondition(propertyId, value)
+        }
+        return this.__ConditionBuilder(condition)
+    }
+
+    static __CreateRawCondition(condition) {
+        local i, nonUIAEncountered
+        for i in ["index", "i", "scope", "order", "startingElement"]
+            if condition.HasOwnProp(i)
+                throw ValueError("This method doesn't support indexes nor named arguments", -2, '"' i '" can be used with FindElement(s) instead')
+        condition := this.__ConditionBuilder(condition, &nonUIAEncountered := 0)
+        if nonUIAEncountered & 2
+            throw ValueError("This method doesn't support conditions with Cached properties", -2, "Instead use FindElement(s) or FindCachedElement(s)")
+        else if nonUIAEncountered & 1
+            throw ValueError("This method doesn't support conditions with MatchMode RegEx nor StartsWith", -2, "Only MatchModes Exact and SubString are allowed. Use FindElement(s) instead, which supports all MatchModes.")
+        return condition
+    }
+
+    static __ConditionBuilder(obj, &nonUIAEncountered?, isParentNotCondition := 0) {
+        local sanitizeMM, operator, cs, mm, flags, count, k, v, t, i, j, val, match, arr
+        sanitizeMM := False
+        if Type(obj) = "Object" {
+            obj := obj.Clone() ; Speed-testing showed that not cloning (getting props with HasOwnProp and then ignoring them in the loop) is as fast as cloning.
+            obj.DeleteProp("index"), obj.DeleteProp("i")
+            operator := obj.DeleteProp("operator") || obj.DeleteProp("op") || "and"
+            cs := obj.HasOwnProp("casesense") ? obj.casesense : obj.HasOwnProp("cs") ? obj.cs : 1
+            obj.DeleteProp("casesense"), obj.DeleteProp("cs")
+            mm := obj.DeleteProp("matchmode") || obj.DeleteProp("mm") || 3
+            if !IsInteger(mm)
+                mm := this.MatchMode.%mm%
+            if !IsInteger(cs)
+                cs := this.CaseSense.%cs%
+            if IsSet(nonUIAEncountered) {
+                if (mm = "RegEx" || mm = 1)
+                    nonUIAEncountered |= 1, sanitizeMM := True
+            } else if !((mm = 3) || (mm = 2)) { ; If creating a "pure" UIA condition, allow only Exact and Substring matchmodes
+                throw TypeError("MatchMode can only be Exact or Substring (3 or 2) when creating UIA conditions.", -1, "MatchMode 1 and RegEx are allowed with FindElement, FindElements, and ElementFromPath methods.")
+            }
+            flags := ((mm = 3 ? 0 : 2) | (!cs)) || obj.DeleteProp("flags") || 0
+            count := ObjOwnPropCount(obj), obj := obj.OwnProps()
+        } else if obj is Array {
+            operator := "or", flags := 0, count := obj.Length
+        } else
+            throw TypeError("Invalid parameter type", -3, Type(obj))
+
+        if count = 0
+            return this.TrueCondition
+        arr := ComObjArray(0xd, count), i := 0
+        for k, v in obj {
+            if k ~= "i)^Cached" && IsSet(nonUIAEncountered)
+                nonUIAEncountered |= 2
+            try k := IsNumber(k) ? Integer(k) : this.Property.%k%
+            if IsInteger(k) && k >= 30000 {
+                switch Type(v), 0 {
+                    case "Array":
+                        if (this.PropertyVariantType[k] & 0x2000)
+                            v := this.AHKArrayToSafeArray(v, this.PropertyVariantType[k] & ~0x2000)
+                        else if !(sanitizeMM && this.PropertyVariantTypeBSTR.Has(k)) || mm = 1 {
+                            ; Creating an "or" condition with same matchmode and casesense
+                            if !v.Length
+                                throw ValueError("Invalid condition: `"or`" condition cannot be empty", -2)
+                            orArr := ComObjArray(0xd, v.Length)
+                            for j, val in v
+                                orArr[j - 1] := (mm = 1 ? this.CreateCondition(k, val, !cs | 2) : this.CreateCondition(k, val, flags))[]
+                            t := this.CreateOrConditionFromArray(orArr)
+                            arr[i++] := t[]
+                            continue
+                        }
+                    case "String":
+                        if k = 30000
+                            v := this.RuntimeIdFromString(v)
+                        else if k = 30003 {
+                            if this.Type.HasOwnProp(v)
+                                v := this.Type.%v%
+                            else if RegExMatch(v, "\d{5}", &match := "") && match[] >= 50000
+                                v := Integer(match[])
+                            else
+                                throw ValueError("Type '" v '" in a non-existant type!', -1)
+                        }
+                    case "Integer":
+                        if k = 30003 && v < 50000
+                            v += 50000
+                }
+                if sanitizeMM && this.PropertyVariantTypeBSTR.Has(k) {
+                    t := mm = 1 ? this.CreateCondition(k, v, !cs | 2) : (isParentNotCondition ? this.CreatePropertyCondition(k, "") : this.CreateNotCondition(this.CreatePropertyCondition(k, "")))
+                    arr[i++] := t[]
+                } else if (k >= 30000) {
+                    t := this.CreateCondition(k, v, flags)
+                    arr[i++] := t[]
+                }
+            } else if IsObject(v) && !(SubStr(Type(v), 1, 6) = "ComObj") && !v.HasOwnProp("ptr") {
+                t := this.__ConditionBuilder(v, &nonUIAEncountered, isParentNotCondition ^ (k = "not" || operator = "not"))
+                if k = "not" || operator = "not"
+                    t := this.CreateNotCondition(t)
+                arr[i++] := t[]
+                continue
+            } else
+                throw ValueError("Invalid condition encountered: " k, -2)
+        }
+        if count = 1
+            return operator = "not" ? this.CreateNotCondition(t) : t
+        switch operator, false {
+            case "and":
+                return this.CreateAndConditionFromArray(arr)
+            case "or":
+                return this.CreateOrConditionFromArray(arr)
+            case "not":
+                return this.CreateNotCondition(this.CreateAndConditionFromArray(arr))
+            default:
+                return this.CreateFalseCondition()
+        }
+    }
+
+
+    static ElementFromChromium(winTitle := "", activateChromiumAccessibility := 500, cacheRequest?) {
+        if activateChromiumAccessibility
+            return this.ActivateChromiumAccessibility(winTitle, 1, activateChromiumAccessibility, cacheRequest?)
+        try cHwnd := ControlGetHwnd("Chrome_RenderWidgetHostHWND1", winTitle)
+        if !IsSet(cHwnd) || !cHwnd
+            throw TargetError("Chrome_RenderWidgetHostHWND1 content control was not found", -1)
+        return this.ElementFromHandle(cHwnd, cacheRequest?, False)
+    }
+
+    static WindowIsChromium(winTitle := "") {
+        try cHwnd := ControlGetHwnd("Chrome_RenderWidgetHostHWND1", winTitle)
+        return cHwnd ?? 0
+    }
+
+    static ActivateChromiumAccessibility(winTitle := "", forceActivation := False, timeOutVarRef := 500, cacheRequest?) {
+        static activatedHwnds := Map(), WM_GETOBJECT := 0x003D
+        local _, cEl, cHwnd, elVarRef := &cEl, timeOut := timeOutVarRef, hWnd := IsInteger(winTitle) ? winTitle : WinExist(winTitle)
+        if activatedHwnds.Has(hwnd) && !ForceActivation
+            return 1
+        activatedHwnds[hWnd] := 1, cHwnd := 0
+        try cHwnd := ControlGetHwnd("Chrome_RenderWidgetHostHWND1", winTitle)
+        if !IsSet(cHwnd) || !cHwnd
+            throw TargetError("No Chromium control (Chrome_RenderWidgetHostHWND1) found", -1)
+        SendMessage(WM_GETOBJECT := 0x003D, 0, 1, , cHwnd)
+        if IsObject(timeOutVarRef) && timeOutVarRef is VarRef
+            elVarRef := timeOutVarRef, timeOut := %timeOutVarRef%
+        if (%elVarRef% := this.ElementFromHandle(cHwnd, cacheRequest?, False)) {
+            cEl := cEl ?? %elVarRef%
+            waitTime := A_TickCount + timeOut
+            while (A_TickCount < waitTime) {
+                try {
+                    if cEl.Children.Length
+                        break
+                }
+                Sleep 1
+            }
+        }
+        return %elVarRef%
+    }
+
+    static CompareElements(el1, el2) {
+        local areSame
+        return (ComCall(3, this, "ptr", el1, "ptr", el2, "int*", &areSame := 0), areSame)
+    }
+
+    static CompareElementsEx(e1, e2) {
+        local prop, p1, p2, br1, br2
+        try {
+            if UIA.CompareElements(e1, e2)
+                return 1
+        }
+        for prop in ["Type", "Name", "ClassName", "AutomationId"] {
+            try p1 := e1.Cached%prop%
+            catch
+                p1 := e1.%prop%
+            try p2 := e2.Cached%prop%
+            catch
+                p2 := e2.%prop%
+            if p1 != p2
+                return 0
+        }
+        try br1 := e1.CachedBoundingRectangle
+        catch
+            br1 := e1.BoundingRectangle
+        try br2 := e2.CachedBoundingRectangle
+        catch
+            br2 := e2.BoundingRectangle
+        return br1.l = br2.l && br1.t = br2.t && br1.r = br2.r && br1.b = br2.b
+    }
+
+    static CompareRuntimeIds(runtimeId1, runtimeId2) {
+        local areSame
+        return (ComCall(4, this, "ptr", runtimeId1, "ptr", runtimeId2, "int*", &areSame := 0), areSame)
+    }
+
+
+    static GetRootElement(cacheRequest?) {
+        if IsSet(cacheRequest)
+            return this.GetRootElementBuildCache(cacheRequest)
+        if (ComCall(5, this, "ptr*", &root := 0), root)
+            return this.IUIAutomationElement(root)
+        throw UnsetError("No element returned by " A_ThisFunc, -1)
+    }
+
+
+    static ElementFromHandle(hwnd := "", cacheRequest?, activateChromiumAccessibility := 500) {
+        if !IsInteger(hwnd)
+            hwnd := WinExist(hwnd)
+        if !hwnd
+            throw TargetError("No matching window found", -1)
+        try {
+            if (activateChromiumAccessibility)
+                this.ActivateChromiumAccessibility(hwnd, , activateChromiumAccessibility, cacheRequest?)
+        }
+        if IsSet(cacheRequest)
+            return this.ElementFromHandleBuildCache(cacheRequest, hwnd)
+
+        if (ComCall(6, this, "ptr", hwnd, "ptr*", &element := 0), element)
+            return this.IUIAutomationElement(element)
+        throw UnsetError("No element returned by " A_ThisFunc, -1)
+    }
+    static ElementFromWindow(WinTitle := "", cacheRequest?, activateChromiumAccessibility := 500) => this.ElementFromHandle(WinTitle, cacheRequest?, activateChromiumAccessibility)
+
+    static ElementFromPoint(x?, y?, cacheRequest?, activateChromiumAccessibility := 500) {
+        local pt64, hwnd
+        if !(IsSet(x) && IsSet(y))
+            DllCall("user32.dll\GetCursorPos", "int64P", &pt64 := 0)
+        else
+            pt64 := y << 32 | (x & 0xFFFFFFFF)
+        try {
+            if (activateChromiumAccessibility && (hwnd := DllCall("GetAncestor", "Ptr", DllCall("user32.dll\WindowFromPoint", "int64", pt64, "ptr"), "UInt", 2, "ptr"))) ; hwnd from point by SKAN
+                this.ActivateChromiumAccessibility(hwnd, , activateChromiumAccessibility, cacheRequest?)
+        }
+        if IsSet(cacheRequest)
+            return this.ElementFromPointBuildCache(cacheRequest, pt64)
+        if (ComCall(7, this, "int64", pt64, "ptr*", &element := 0), element)
+            return this.IUIAutomationElement(element)
+        throw UnsetError("No element returned by " A_ThisFunc, -1)
+    }
+
+    static SmallestElementFromPoint(x?, y?, element?, cacheRequest?, deepSearch := false) {
+        static sCacheRequest := this.CreateCacheRequest(["BoundingRectangle"], , 5)
+        local pt64
+
+        if !(IsSet(x) && IsSet(y))
+            DllCall("user32.dll\GetCursorPos", "int64P", &pt64 := 0), x := 0xFFFFFFFF & pt64, y := pt64 >> 32
+        if deepSearch {
+            if !IsSet(cacheRequest)
+                cacheRequest := sCacheRequest
+            else
+                cacheRequest.AddProperty(UIA.Property.BoundingRectangle)
+
+            if !IsSet(element)
+                element := UIA.ElementFromPoint(x, y, sCacheRequest)
+            return this.CachedSmallestElementInElementContainingPoint(x, y, element)
+        }
+
+        if !IsSet(element)
+            element := UIA.ElementFromPoint(x, y)
+        element := this.SmallestElementInElementContainingPoint(x, y, element)
+        return IsSet(cacheRequest) ? element.BuildUpdatedCache(cacheRequest) : element
+    }
+
+    static SmallestElementInElementContainingPoint(x, y, element) {
+        static cr := UIA.CreateCacheRequest(["BoundingRectangle"])
+        local el, smallest := element, smallestSize := 100000000, rect, evaluated := [element.BuildUpdatedCache(cr)]
+        while evaluated.Length {
+            el := evaluated.Pop(), rect := el.CachedBoundingRectangle
+            if rect.l <= x && rect.r >= x && rect.t <= y && rect.b >= y {
+                evaluated.Push(el.FindAllBuildCache(cr, , 2)*), size := (rect.r - rect.l) * (rect.b - rect.t)
+                if size < smallestSize
+                    smallest := el, smallestSize := size
+            }
+        }
+        return smallest
+    }
+
+    ; Requires the elements subtree to be cached with the BoundingRectangle property
+    static CachedSmallestElementInElementContainingPoint(x, y, element) {
+        local el, smallest := element, smallestSize := 100000000, rect
+        for el in element.GetCachedChildren(5) {
+            rect := el.CachedBoundingRectangle
+            if rect.l <= x && rect.r >= x && rect.t <= y && rect.b >= y {
+                size := (rect.r - rect.l) * (rect.b - rect.t)
+                if size < smallestSize
+                    smallest := el, smallestSize := size
+            }
+        }
+        return smallest
+    }
+
+
+    static GetFocusedElement(cacheRequest?) {
+        if IsSet(cacheRequest)
+            return this.GetFocusedElementBuildCache(cacheRequest)
+        if (ComCall(8, this, "ptr*", &element := 0), element)
+            return this.IUIAutomationElement(element)
+        throw UnsetError("No element returned by " A_ThisFunc, -1)
+    }
+
+    ; This is a raw wrapper, instead use GetRootElement and specify cacheRequest.
+    static GetRootElementBuildCache(cacheRequest) {
+        local root
+        if (ComCall(9, this, "ptr", this.TypeValidation.CacheRequest(cacheRequest), "ptr*", &root := 0), root)
+            return this.IUIAutomationElement(root)
+        throw UnsetError("No element returned by " A_ThisFunc, -1)
+    }
+
+    ; This is a raw wrapper, instead use ElementFromHandle and specify cacheRequest.
+    static ElementFromHandleBuildCache(cacheRequest, hwnd) {
+        local element
+        if (ComCall(10, this, "ptr", hwnd, "ptr", this.TypeValidation.CacheRequest(cacheRequest), "ptr*", &element := 0), element)
+            return this.IUIAutomationElement(element)
+        throw UnsetError("No element returned by " A_ThisFunc, -1)
+    }
+
+    ; This is a raw wrapper, instead use ElementFromPoint and specify cacheRequest.
+    static ElementFromPointBuildCache(cacheRequest, pt) {
+        local element
+        if (ComCall(11, this, "int64", pt, "ptr", this.TypeValidation.CacheRequest(cacheRequest), "ptr*", &element := 0), element)
+            return this.IUIAutomationElement(element)
+        throw UnsetError("No element returned by " A_ThisFunc, -1)
+    }
+
+    ; This is a raw wrapper, instead use GetFocusedElement and specify cacheRequest.
+    static GetFocusedElementBuildCache(cacheRequest) {
+        local element
+        if (ComCall(12, this, "ptr", this.TypeValidation.CacheRequest(cacheRequest), "ptr*", &element := 0), element)
+            return this.IUIAutomationElement(element)
+        throw UnsetError("No element returned by " A_ThisFunc, -1)
+    }
+
+    static CreateTreeWalker(pCondition) {
+        local walker
+        if (ComCall(13, this, "ptr", (Type(pCondition) ~= "i)Condition|ComValue") ? pCondition : this.__CreateRawCondition(pCondition), "ptr*", &walker := 0), walker)
+            return this.IUIAutomationTreeWalker(walker)
+        throw UnsetError("No TreeWalker returned by " A_ThisFunc, -1)
+    }
+
+
+    static CreateCacheRequest(properties?, patterns?, scope?, mode?, filter?) {
+        local cacheRequest, v
+        if cacheRequest := (ComCall(20, this, "ptr*", &cacheRequest := 0), cacheRequest ? this.IUIAutomationCacheRequest(cacheRequest) : "") {
+            if IsSet(properties) {
+                if Type(properties) = "Object" {
+                    if properties.HasOwnProp("filter")
+                        filter := properties.DeleteProp("filter")
+                    if properties.HasOwnProp("mode")
+                        mode := properties.DeleteProp("mode")
+                    if properties.HasOwnProp("scope")
+                        scope := properties.DeleteProp("scope")
+                    if properties.HasOwnProp("patterns")
+                        patterns := properties.DeleteProp("patterns")
+                    if properties.HasOwnProp("properties")
+                        properties := properties.DeleteProp("properties")
+                }
+                if properties is Array && properties[1] is String {
+                    for v in properties
+                        cacheRequest.AddProperty(v)
+                } else if IsObject(properties) {
+                    cacheRequest.AddPropertiesFromCondition(properties)
+                } else
+                    throw TypeError("Expected properties argument of type Array or Object, but got " Type(properties), -1)
+            }
+            if IsSet(patterns) {
+                if not patterns is Array
+                    throw TypeError("Expected patterns argument of type Array, but got " Type(properties), -1)
+                for v in patterns
+                    cacheRequest.AddPattern(v)
+            }
+            if IsSet(scope)
+                cacheRequest.TreeScope := scope
+            if IsSet(mode)
+                cacheRequest.AutomationElementMode := mode
+            if IsSet(filter)
+                cacheRequest.TreeFilter := filter
+        }
+        return cacheRequest
+    }
+
+    static CreateTrueCondition() {
+        local newCondition
+        if (ComCall(21, this, "ptr*", &newCondition := 0), newCondition)
+            return this.IUIAutomationBoolCondition(newCondition)
+        throw UnsetError("No condition returned by " A_ThisFunc, -1)
+    }
+
+    static CreateFalseCondition() {
+        local newCondition
+        if (ComCall(22, this, "ptr*", &newCondition := 0), newCondition)
+            return this.IUIAutomationBoolCondition(newCondition)
+        throw UnsetError("No condition returned by " A_ThisFunc, -1)
+    }
+
+    static CreatePropertyCondition(propertyId, value, variant?) {
+        local v, newCondition
+        if A_PtrSize = 4
+            v := this.ComVar(value, variant ?? this.PropertyVariantType[propertyId], true), ComCall(23, this, "int", propertyId, "int64", NumGet(v, 'int64'), "int64", NumGet(v, 8, "int64"), "ptr*", &newCondition := 0)
+        else
+            ComCall(23, this, "int", propertyId, "ptr", this.ComVar(value, variant ?? this.PropertyVariantType[propertyId], true), "ptr*", &newCondition := 0)
+        if newCondition
+            return this.IUIAutomationPropertyCondition(newCondition)
+        throw Error("Creating property condition failed", -1)
+    }
+
+    static CreatePropertyConditionEx(propertyId, value, flags := 0, variant?) {
+        local v, newCondition
+        if A_PtrSize = 4
+            v := this.ComVar(value, variant ?? this.PropertyVariantType[propertyId], true), ComCall(24, this, "int", propertyId, "int64", NumGet(v, 'int64'), "int64", NumGet(v, 8, "int64"), "int", flags, "ptr*", &newCondition := 0)
+        else
+            ComCall(24, this, "int", propertyId, "ptr", this.ComVar(value, variant ?? this.PropertyVariantType[propertyId], true), "int", flags, "ptr*", &newCondition := 0)
+        if newCondition
+            return this.IUIAutomationPropertyCondition(newCondition)
+        throw Error("Creating property condition failed", -1)
+    }
+
+    static CreateAndCondition(condition1, condition2) {
+        local newCondition
+        if (ComCall(25, this, "ptr", condition1, "ptr", condition2, "ptr*", &newCondition := 0), newCondition)
+            return this.IUIAutomationAndCondition(newCondition)
+        throw UnsetError("No condition returned by " A_ThisFunc, -1)
+    }
+
+    static CreateAndConditionFromArray(conditions) {
+        local newCondition
+        if (ComCall(26, this, "ptr", conditions is Array ? this.Variant(conditions, 0xd) : conditions, "ptr*", &newCondition := 0), newCondition)
+            return this.IUIAutomationAndCondition(newCondition)
+        throw UnsetError("No condition returned by " A_ThisFunc, -1)
+    }
+
+    static CreateAndConditionFromNativeArray(conditions, conditionCount) {
+        local newCondition
+        if (ComCall(27, this, "ptr", conditions, "int", conditionCount, "ptr*", &newCondition := 0), newCondition)
+            return this.IUIAutomationAndCondition(newCondition)
+        throw UnsetError("No condition returned by " A_ThisFunc, -1)
+    }
+
+    static CreateOrCondition(condition1, condition2) {
+        local newCondition
+        if (ComCall(28, this, "ptr", condition1, "ptr", condition2, "ptr*", &newCondition := 0), newCondition)
+            return this.IUIAutomationOrCondition(newCondition)
+        throw UnsetError("No condition returned by " A_ThisFunc, -1)
+    }
+
+    static CreateOrConditionFromArray(conditions) {
+        local newCondition
+        if (ComCall(29, this, "ptr", conditions is Array ? this.Variant(conditions, 0xd) : conditions, "ptr*", &newCondition := 0), newCondition)
+            return this.IUIAutomationOrCondition(newCondition)
+        throw UnsetError("No condition returned by " A_ThisFunc, -1)
+    }
+
+    static CreateOrConditionFromNativeArray(conditions, conditionCount) {
+        local newCondition
+        if (ComCall(30, this, "ptr", conditions, "ptr", conditionCount, "ptr*", &newCondition := 0), newCondition)
+            return this.IUIAutomationOrCondition(newCondition)
+        throw UnsetError("No condition returned by " A_ThisFunc, -1)
+    }
+
+    static CreateNotCondition(condition) {
+        local newCondition
+        if (ComCall(31, this, "ptr", condition, "ptr*", &newCondition := 0), newCondition)
+            return this.IUIAutomationNotCondition(newCondition)
+        throw UnsetError("No condition returned by " A_ThisFunc, -1)
+    }
+
+    static AddAutomationEventHandler(handler, element, eventId, scope := 0x4, cacheRequest := 0) => ComCall(32, this, "int", this.TypeValidation.Event(eventId), "ptr", this.TypeValidation.Element(element), "int", this.TypeValidation.TreeScope(scope), "ptr", this.TypeValidation.CacheRequest(cacheRequest), "ptr", handler)
+
+
+    static RemoveAutomationEventHandler(handler, element, eventId) => ComCall(33, this, "int", this.TypeValidation.Event(eventId), "ptr", this.TypeValidation.Element(element), "ptr", handler)
+
+    static AddPropertyChangedEventHandlerNativeArray(handler, element, propertyArray, propertyCount, scope := 0x4, cacheRequest := 0) => ComCall(34, this, "ptr", this.TypeValidation.Element(element), "int", this.TypeValidation.TreeScope(scope), "ptr", this.TypeValidation.CacheRequest(cacheRequest), "ptr", handler, "ptr", propertyArray, "int", propertyCount)
+
+
+    static AddPropertyChangedEventHandler(handler, element, propertyArray, scope := 0x4, cacheRequest := 0) {
+        local i, SafeArray
+        if !IsObject(propertyArray)
+            propertyArray := [propertyArray]
+        SafeArray := ComObjArray(0x3, propertyArray.Length)
+        for i, propertyId in propertyArray
+            SafeArray[i - 1] := propertyId
+        ComCall(35, this, "ptr", this.TypeValidation.Element(element), "int", this.TypeValidation.TreeScope(scope), "ptr", this.TypeValidation.CacheRequest(cacheRequest), "ptr", handler, "ptr", SafeArray)
+    }
+
+    static RemovePropertyChangedEventHandler(handler, element) => ComCall(36, this, "ptr", this.TypeValidation.Element(element), "ptr", handler)
+
+
+    static AddStructureChangedEventHandler(handler, element, scope := 0x4, cacheRequest := 0) => ComCall(37, this, "ptr", this.TypeValidation.Element(element), "int", this.TypeValidation.TreeScope(scope), "ptr", this.TypeValidation.CacheRequest(cacheRequest), "ptr", handler)
+
+    static RemoveStructureChangedEventHandler(handler, element) => ComCall(38, this, "ptr", this.TypeValidation.Element(element), "ptr", handler)
+
+
+    static AddFocusChangedEventHandler(handler, cacheRequest := 0) => ComCall(39, this, "ptr", this.TypeValidation.CacheRequest(cacheRequest), "ptr", handler)
+
+    static RemoveFocusChangedEventHandler(handler) => ComCall(40, this, "ptr", handler)
+
+    static RemoveAllEventHandlers() => ComCall(41, this)
+
+    static IntNativeArrayToSafeArray(array, arrayCount) {
+        local safeArray
+        return (ComCall(42, this, "ptr", array, "int", arrayCount, "ptr*", &safeArray := 0), ComValue(0x2003, safeArray))
+    }
+
+    static IntSafeArrayToNativeArray(intArray) {
+        local array, arrayCount
+        return (ComCall(43, this, "ptr", intArray, "ptr*", &array := 0, "int*", &arrayCount := 0), this.NativeArray(array, arrayCount, "int"))
+    }
+
+    static RectToVariant(rc) {
+        local var
+        return (ComCall(44, this, "ptr", rc, "ptr", var := this.ComVar()), var)
+    }
+
+    static VariantToRect(var) {
+        if A_PtrSize = 4
+            ComCall(45, this, "int64", NumGet(var, "int64"), "int64", NumGet(var, 8, "int64"), "ptr", rc := this.NativeArray(0, 4, "Int"))
+        else
+            ComCall(45, this, "ptr", var, "ptr", rc := this.NativeArray(0, 4, "Int"))
+        return rc
+    }
+
+    static SafeArrayToRectNativeArray(rects) {
+        local rectArrayCount
+        return (ComCall(46, this, "ptr", rects, "ptr*", &rectArray := 0, "int*", &rectArrayCount := 0), this.NativeArray(rectArray, rectArrayCount, "int"))
+    }
+
+    static CreateProxyFactoryEntry(factory) {
+        local factoryEntry
+        if (ComCall(47, this, "ptr", factory, "ptr*", &factoryEntry := 0), factoryEntry)
+            return this.IUIAutomationProxyFactoryEntry(factoryEntry)
+        throw UnsetError("No ProxyFactoryEntry returned by " A_ThisFunc, -1)
+    }
+
+    static ProxyFactoryMapping() {
+        local factoryMapping
+        if (ComCall(48, this, "ptr*", &factoryMapping := 0), factoryMapping)
+            return this.IUIAutomationProxyFactoryMapping(factoryMapping)
+        throw UnsetError("No ProxyFactoryMapping returned by " A_ThisFunc, -1)
+    }
+
+   static GetPropertyProgrammaticName(property) {
+        local name
+        return (ComCall(49, this, "int", property, "ptr*", &name := 0), this.BSTR(name))
+    }
+
+    static GetPatternProgrammaticName(pattern) {
+        local name
+        return (ComCall(50, this, "int", this.TypeValidation.Pattern(pattern), "ptr*", &name := 0), this.BSTR(name))
+    }
+
+    static PollForPotentialSupportedPatterns(pElement, &patternIds, &patternNames) {
+        ComCall(51, this, "ptr", this.TypeValidation.Element(pElement), "ptr*", &patternIds := 0, "ptr*", &patternNames := 0)
+        patternIds := this.SafeArrayToAHKArray(patternIds, 3), patternNames := this.SafeArrayToAHKArray(patternNames, 8)
+    }
+
+    static PollForPotentialSupportedProperties(pElement, &propertyIds, &propertyNames) {
+        ComCall(52, this, "ptr", this.TypeValidation.Element(pElement), "ptr*", &propertyIds := 0, "ptr*", &propertyNames := 0)
+        propertyIds := this.SafeArrayToAHKArray(propertyIds, 3), propertyNames := this.SafeArrayToAHKArray(propertyNames, 8)
+    }
+
+    static CheckNotSupported(value) {
+        if A_PtrSize = 4
+            value := this.ComVar(value, , true), ComCall(53, this, "int64", NumGet(value, "int64"), "int64", NumGet(value, 8, "int64"), "int*", &isNotSupported := 0)
+        else
+            ComCall(53, this, "ptr", this.ComVar(value, , true), "int*", &isNotSupported := 0)
+        return isNotSupported
+    }
+
+    static ElementFromIAccessible(accessible, childId := 0) => (InStr(Type(accessible), "IAccessible") ? (ComCall(56, this, "ptr", accessible, "int", accessible.childId, "ptr*", &element := 0), this.IUIAutomationElement(element)) : (ComCall(56, this, "ptr", ComObjValue(accessible), "int", childId, "ptr*", &element := 0), this.IUIAutomationElement(element)))
+
+    static ElementFromIAccessibleBuildCache(cacheRequest, accessible, childId := 0) => (InStr(Type(accessible), "IAccessible") ? (ComCall(57, this, "ptr", accessible.accessible, "int", accessible.childId, "ptr", this.TypeValidation.CacheRequest(cacheRequest), "ptr*", &element := 0), this.IUIAutomationElement(element)) : (ComCall(57, this, "ptr", accessible, "int", childId, "ptr", this.TypeValidation.CacheRequest(cacheRequest), "ptr*", &element := 0), this.IUIAutomationElement(element)))
+
+    static AddTextEditTextChangedEventHandler(handler, element, textEditChangeType, scope := 0x4, cacheRequest := 0) => (ComCall(64, this, "ptr", UIA.TypeValidation.Element(element), "int", UIA.TypeValidation.TreeScope(scope), "int", UIA.TypeValidation.TextEditChangeType(textEditChangeType), "ptr", UIA.TypeValidation.CacheRequest(cacheRequest), "ptr", handler))
+    static RemoveTextEditTextChangedEventHandler(handler, element) => ComCall(65, this, "ptr", UIA.TypeValidation.Element(element), "ptr", handler)
+
+    static AddChangesEventHandler(handler, element, changeTypes, scope := 0x4, cacheRequest := 0) {
+        local k, v
+        if !IsObject(changeTypes)
+            changeTypes := [changeTypes]
+        nativeArray := this.NativeArray(0, changeTypes.Length, "int")
+        for k, v in changeTypes
+            NumPut("int", v, nativeArray, (k - 1) * 4)
+        ComCall(66, this, "ptr", this.TypeValidation.Element(element), "int", this.TypeValidation.TreeScope(scope), "ptr", nativeArray, "int", changeTypes.Length, "ptr", this.TypeValidation.CacheRequest(cacheRequest), "ptr", handler)
+    }
+    static RemoveChangesEventHandler(handler, element) => (ComCall(67, this, "ptr", this.TypeValidation.Element(element), "ptr", handler))
+
+    static AddNotificationEventHandler(handler, element, scope := 0x4, cacheRequest := 0) => (ComCall(68, this, "ptr", this.TypeValidation.Element(element), "uint", this.TypeValidation.TreeScope(scope), "ptr", this.TypeValidation.CacheRequest(cacheRequest), "ptr", handler))
+    static RemoveNotificationEventHandler(handler, element) => (ComCall(69, this, "ptr", this.TypeValidation.Element(element), "ptr", handler))
+
+    static CreateEventHandlerGroup() {
+        local out
+        return (ComCall(70, this, "ptr*", &out := 0), this.IUIAutomationEventHandlerGroup(out))
+    }
+    static AddEventHandlerGroup(handlerGroup, element) => (ComCall(71, this, "ptr", this.TypeValidation.Element(element), "ptr", handlerGroup))
+    static RemoveEventHandlerGroup(handlerGroup, element) => (ComCall(72, this, "ptr", this.TypeValidation.Element(element), "ptr", handlerGroup))
+    static AddActiveTextPositionChangedEventHandler(handler, element, scope := 0x4, cacheRequest := 0) => (ComCall(77, this, "ptr", this.TypeValidation.Element(element), "int", this.TypeValidation.TreeScope(scope), "ptr", this.TypeValidation.CacheRequest(cacheRequest), "ptr", handler))
+    static RemoveActiveTextPositionChangedEventHandler(handler, element) => (ComCall(78, this, "ptr", this.TypeValidation.Element(element), "ptr", handler))
+
+    static SetScreenReader(state, fWinIni := 2) {
+        DllCall("user32.dll\SystemParametersInfo", "uint", 0x0047, "uint", state, "uint", 0, "int", fWinIni) 
+    }
+    static GetScreenReader() {
+        A_PtrSize = 4 ? DllCall("user32.dll\SystemParametersInfo", "uint", 0x0046, "uint", 0, "ptr*", &screenreader := 0, "uint", 0) : DllCall("user32.dll\SystemParametersInfo", "uint", 0x0046, "uint", 0, "ptr*", &screenreader := 0)
+        return screenreader
+    }
+
+    static BSTR(ptr) {
+        static _ := DllCall("LoadLibrary", "str", "oleaut32.dll")
+        if ptr {
+            s := StrGet(ptr), DllCall("oleaut32\SysFreeString", "ptr", ptr)
+            return s
+        }
+    }
+    static SafeArrayToAHKArray(sArr, varType := 3) {
+        local _, v, ret := []
+        if IsInteger(sArr)
+            sArr := ComValue(0x2000 | varType, sArr)
+        for _, v in sArr
+            ret.Push(v)
+        ret.DefineProp("__Value", { value: sArr })
+        ret.DefineProp("ptr", { value: sArr.ptr })
+        return ret
+    }
+    static AHKArrayToSafeArray(arr, varType := 3) {
+        local index, value, cArr
+        cArr := ComObjArray(varType, arr.Length)
+        for index, value in arr
+            cArr[index - 1] := value
+        return cArr
+    }
+    static WindowFromPoint(X, Y?) { ; by SKAN and Linear Spoon
+        return DllCall("GetAncestor", "Ptr", DllCall("user32.dll\WindowFromPoint", "Int64", IsSet(Y) ? (Y << 32 | (X & 0xFFFFFFFF)) : X), "UInt", 2, "Ptr")
+    }
+
+
+    static IntersectRect(l1, t1, r1, b1, l2, t2, r2, b2) {
+        rect1 := Buffer(16), rect2 := Buffer(16), rectOut := Buffer(16)
+        NumPut("int", l1, "int", t1, "int", r1, "int", b1, rect1)
+        NumPut("int", l2, "int", t2, "int", r2, "int", b2, rect2)
+        if DllCall("user32\IntersectRect", "Ptr", rectOut, "Ptr", rect1, "Ptr", rect2)
+            return { l: NumGet(rectOut, 0, "Int"), t: NumGet(rectOut, 4, "Int"), r: NumGet(rectOut, 8, "Int"), b: NumGet(rectOut, 12, "Int") }
+    }
+
+    class Variant {
+        __New(Value := unset, VarType := 0xC) {
+            local v, i, obj
+            static SIZEOF_VARIANT := 8 + (2 * A_PtrSize)
+            this.var := Buffer(SIZEOF_VARIANT, 0)
+            if VarType != 0xC
+                NumPut "ushort", VarType, this.var
+            this.owner := True
+            if IsSet(Value) {
+                if (Type(Value) == "ComVar") {
+                    this.var := Value.var, this.ref := Value.ref, this.obj := Value, this.owner := False
+                    return
+                }
+                if (IsObject(Value)) {
+                    this.ref := ComValue(0x400C, this.var.ptr)
+                    if Value is Array {
+                        if Value.Length {
+                            switch Type(Value[1]) {
+                                case "Integer": VarType := 3
+                                case "String": VarType := 8
+                                case "Float": VarType := 5
+                                case "ComValue", "ComObject": VarType := ComObjType(Value[1])
+                                default: VarType := 0xC
+                            }
+                        } else
+                            VarType := 0xC
+                        ComObjFlags(obj := ComObjArray(VarType, Value.Length), -1), i := 0, this.ref[] := obj
+                        for v in Value
+                            obj[i++] := v
+                        return
+                    }
+                }
+            }
+            this.ref := ComValue(0x4000 | VarType, this.var.Ptr + (VarType = 0xC ? 0 : 8))
+            this.ref[] := Value
+        }
+        __Delete() => (this.owner ? DllCall("oleaut32\VariantClear", "ptr", this.var) : 0)
+        __Item {
+            get => this.Type = 0xB ? -this.ref[] : this.ref[]
+            set => this.ref[] := this.Type = 0xB ? (!value ? 0 : -1) : value
+        }
+        Ptr => this.var.Ptr
+        Size => this.var.Size
+        Type {
+            get => NumGet(this.var, "ushort")
+            set {
+                if (!this.IsVariant)
+                    throw PropertyError("VarType is not VT_VARIANT, Type is read-only.", -2)
+                NumPut("ushort", Value, this.var)
+            }
+        }
+        IsVariant => ComObjType(this.ref) & 0xC
+    }
+
+    class ComVar {
+
+        __New(vVal := unset, vType := 0xC, convert := false) {
+            local v, i, obj
+            static size := 8 + 2 * A_PtrSize
+            this.var := Buffer(size, 0), this.owner := true
+            this.ref := ComValue(0x4000 | vType, this.var.Ptr + (vType = 0xC ? 0 : 8))
+            if vType != 0xC
+                NumPut "ushort", vType, this.var
+            if IsSet(vVal) {
+                if (Type(vVal) == "ComVar") {
+                    this.var := vVal.var, this.ref := vVal.ref, this.obj := vVal, this.owner := false
+                } else {
+                    if (IsObject(vVal)) {
+                        if (vType != 0xC)
+                            this.ref := ComValue(0x400C, this.var.ptr)
+                        if convert && (vVal is Array) {
+                            switch Type(vVal[1]) {
+                                case "Integer": vType := 3
+                                case "String": vType := 8
+                                case "Float": vType := 5
+                                case "ComValue", "ComObject": vType := ComObjType(vVal[1])
+                                default: vType := 0xC
+                            }
+                            ComObjFlags(obj := ComObjArray(vType, vVal.Length), -1), i := 0, this.ref[] := obj
+                            for v in vVal
+                                obj[i++] := v
+                        } else
+                            this.ref[] := vVal
+                    } else
+                        this.ref[] := vVal
+                }
+            }
+        }
+        __Delete() => (this.owner ? DllCall("oleaut32\VariantClear", "ptr", this.var) : 0)
+        __Item {
+            get => this.ref[]
+            set => this.ref[] := value
+        }
+        Ptr => this.var.Ptr
+        Size => this.var.Size
+        Type {
+            get => NumGet(this.var, "ushort")
+            set {
+                if (!this.IsVariant)
+                    throw PropertyError("VarType is not VT_VARIANT, Type is read-only.", -2)
+                NumPut("ushort", Value, this.var)
+            }
+        }
+        IsVariant => ComObjType(this.ref) & 0xC
+    }
+    class NativeArray {
+        __New(ptr, count, type := "ptr") {
+            static _ := DllCall("LoadLibrary", "str", "ole32.dll")
+            static bits := { UInt: 4, UInt64: 8, Int: 4, Int64: 8, Short: 2, UShort: 2, Char: 1, UChar: 1, Double: 8, Float: 4, Ptr: A_PtrSize, UPtr: A_PtrSize }
+            this.size := (this.count := count) * (bit := bits.%type%), this.ptr := ptr || DllCall("ole32\CoTaskMemAlloc", "uint", this.size, "ptr")
+            this.DefineProp("__Item", { get: (s, i) => NumGet(s, i * bit, type) })
+            this.DefineProp("__Enum", { call: (s, i) => (i = 1 ?
+                (i := 0, (&v) => i < count ? (v := NumGet(s, i * bit, type), ++i) : false) :
+                (i := 0, (&k, &v) => (i < count ? (k := i, v := NumGet(s, i * bit, type), ++i) : false))
+            ) })
+        }
+        __Delete() => DllCall("ole32\CoTaskMemFree", "ptr", this)
+    }
+
+    class TypeValidation {
+        static __Call(method, args) {
+            local val
+            if UIA.HasProp(method) {
+                val := args[1]
+                if IsInteger(val) {
+                    try UIA.%method%[val]
+                    catch
+                        throw ValueError("UIA." method " does not contain constant `"" val "`"", -2)
+                    return val is Integer ? val : Integer(val)
+                }
+                if val is String {
+                    try return UIA.%method%.%val%
+                    throw ValueError("UIA." method " does not contain value for `"" val "`"", -2)
+                }
+                throw TypeError(method " requires parameter with type Integer or String, but received " Type(val), -2)
+            } else {
+                if !(val := args[1])
+                    return val
+                if (IsObject(val) && (val is UIA.IUIAutomation%method%)) || (val is ComValue) || (val is Integer)
+                    return val
+                throw TypeError(method " requires parameter with type UIA.IUIAutomation" method ", but was provided type " Type(val), -2)
+            }
+        }
+        static Integer(arg, paramName) {
+            if IsInteger(arg)
+                return arg is Integer ? arg : Integer(arg)
+            throw TypeError(paramName " requires type Integer, but received type " Type(arg), -2)
+        }
+        static String(arg, paramName) {
+            if arg is String
+                return arg
+            if !(arg is Object)
+                return String(arg)
+            throw TypeError(paramName " requires type String, but received type " Type(arg), -2)
+        }
+        static Object(arg, paramName) {
+            if arg is Object
+                return arg
+            throw TypeError(paramName " requires type Object, but received type " Type(arg), -2)
+        }
+        static RawCondition(arg) {
+            if (Type(arg) ~= "i)Condition|ComValue")
+                return arg
+            throw TypeError("Condition argument requires parameter with type UIA.IUIAutomationCondition or a ComValue, but receiver " Type(arg), -2)
+        }
+        static CacheRequest(arg) {
+            if !arg || (arg is UIA.IUIAutomationCacheRequest) || (arg is ComValue) || (arg is Integer)
+                return arg
+            throw TypeError("CacheRequest argument requires parameter with type UIA.IUIAutomationCacheRequest, but received " Type(arg), -2)
+        }
+        static Element(arg) {
+            if !arg || (arg is UIA.IUIAutomationElement) || (arg is ComValue) || (arg is Integer)
+                return arg
+            throw TypeError("Element argument requires parameter with type UIA.IUIAutomationElement, but received " Type(arg), -2)
+        }
+        static TreeScope(arg) {
+            if IsInteger(arg) {
+                if arg < 1 || arg > 31
+                    throw ValueError("UIA.TreeScope does not contain constant `"" arg "`"", -2)
+                return arg is Integer ? arg : Integer(arg)
+            } else if arg is String {
+                try return UIA.TreeScope.%arg%
+                throw ValueError("UIA.TreeScope does not contain value for `"" arg "`"", -2)
+            }
+            throw TypeError("TreeScope requires parameter with type Integer or String, but received " Type(arg), -2)
+        }
+        static Type(arg) {
+            if IsInteger(arg) {
+                if arg < 50 && arg >= 0
+                    return arg + 50000
+                if arg < 50000 || arg > 50050
+                    throw ValueError("UIA.Type does not contain constant `"" arg "`"", -2)
+                return Integer(arg)
+            } else if arg is String {
+                try return UIA.Type.%arg%
+                try {
+                    local match
+                    RegExMatch(arg, "\d{5}", &match := "") && Integer(match[]) >= 50000
+                    return Integer(match[])
+                }
+                throw ValueError("UIA.Type does not contain value for `"" arg "`"", -2)
+            }
+            throw TypeError("UIA.Type requires parameter with type Integer or String, but received " Type(arg), -2)
+        }
+        static Property(arg) {
+            if IsInteger(arg) {
+                try UIA.Property[arg]
+                catch
+                    throw ValueError("UIA.Property does not contain constant `"" arg "`"", -2)
+                return Integer(arg)
+            } else if arg is String {
+                try return UIA.Property.%RegexReplace(arg, "^(Cached|Current)", , , 1)%
+                throw ValueError("UIA.Property does not contain value for `"" arg "`"", -2)
+            }
+            throw TypeError("Property requires parameter with type Integer or String, but received " Type(arg), -2)
+        }
+        static Pattern(arg) {
+            if IsInteger(arg) {
+                try UIA.Pattern[arg]
+                catch
+                    throw ValueError("UIA.Pattern does not contain constant `"" arg "`"", -2)
+                return Integer(arg)
+            } else if arg is String {
+                try return UIA.Pattern.%StrReplace(arg, "Pattern")%
+                throw ValueError("UIA.Pattern does not contain value for `"" arg "`"", -2)
+            }
+            throw TypeError("Pattern requires parameter with type Integer or String, but received " Type(arg), -2)
+        }
+        static TreeTraversalOptions(arg) {
+            if IsInteger(arg) {
+                try UIA.TreeTraversalOptions[arg]
+                catch
+                    throw ValueError("UIA.TreeTraversalOptions does not contain constant `"" arg "`"", -2)
+                return Integer(arg)
+            } else if arg is String {
+                try return UIA.TreeTraversalOptions.%arg%
+                try return UIA.TreeTraversalOptions.%arg "Order"%
+                throw ValueError("UIA.TreeTraversalOptions does not contain value for `"" arg "`"", -2)
+            }
+            throw TypeError("Invalid type provided for UIA.TreeTraversalOptions", -2, "Allowed types are Integer and String, but was provided type " Type(arg))
+        }
+    }
+
+    ; The base class for IUIAutomation objects that return releasable pointers
+    class IUIAutomationBase {
+        __New(ptr) {
+            if !ptr
+                throw ValueError('Invalid IUnknown interface pointer', -2, this.__Class)
+            this.DefineProp("ptr", { Value: ptr })
+        }
+        __Delete() => this.Release()
+        __Item => (ObjAddRef(this.ptr), ComValue(0xd, this.ptr))
+        AddRef() => ObjAddRef(this.ptr)
+        Release() => this.ptr ? ObjRelease(this.ptr) : 0
+
+        __Get(Name, Params) {
+            if this.base.HasOwnProp(NewName := StrReplace(Name, "Current"))
+                return this.%NewName%
+            throw PropertyError("Property " Name " not found in " this.__Class " Class.", -2, Name)
+        }
+
+        __Call(Name, Params) {
+            if this.base.HasOwnProp(NewName := StrReplace(Name, "Current"))
+                return this.%NewName%(Params*)
+            throw MethodError("Method " Name " not found in " this.__Class " Class.", -2, Name)
+        }
+    }
+
+    class IUIAutomationElement extends UIA.IUIAutomationBase {
+
+        __Item[params*] {
+            get {
+                local el, _, param, i, arr, found, path, m
+                el := this
+                for _, param in params {
+                    if IsObject(param) {
+                        try el := el.FindElement(param, 2)
+                        catch TargetError {
+                            el := ""
+                        } catch {
+                            try el := el.FindCachedElement(param, 2)
+                            catch
+                                el := ""
+                        }
+                    } else if param is Integer {
+                        try {
+                            ComCall(6, el, "int", 2, "ptr", UIA.TrueCondition, "ptr*", &found := 0)
+                            if found {
+                                arr := UIA.IUIAutomationElementArray(found)
+                                if (i := param < 0 ? arr.Length + param : param - 1) <= arr.Length
+                                    el := arr.GetElement(i)
+                                else
+                                    el := ""
+                            }
+                        } catch {
+                            try {
+                                arr := el.CachedChildren
+                                el := arr[param < 0 ? arr.Length + param + 1 : param]
+                            } catch
+                                el := ""
+                        }
+                    } else if param is String {
+                        maybeEl := ""
+                        for path in StrSplit(param, "|") {
+                            try {
+                                if InStr(path, ".") || InStr(path, ",") {
+                                    arr := StrSplit(StrReplace(path, ".", ","), ",")
+                                    for i, int in arr
+                                        arr[i] := IsInteger(int) ? Integer(int) : int
+                                    maybeEl := el[arr*]
+                                } else if RegexMatch(path, "i)([a-zA-Z]+) *(\d+)?", &m := "") && UIA.Type.HasOwnProp(m[1]) {
+                                    try maybeEl := el.FindElement({ Type: m[1], i: (m.Count > 1 ? m[2] : 1) }, 2)
+                                    catch TargetError
+                                        maybeEl := ""
+                                    catch
+                                        try maybeEl := el.FindCachedElement({ Type: m[1], i: m[2] }, 2)
+                                } else if !(path ~= ",\.+-")
+                                    maybeEl := el[UIA.DecodePath(path)*]
+                                else
+                                    continue
+                                break ; no errors encountered means that match was found
+                            }
+                        }
+                        el := maybeEl
+                    } else
+                        throw TypeError("Invalid item type at index " _, -1)
+                    if !el
+                        throw IndexError("Invalid index/condition at index " _, -1)
+                }
+                return el
+            }
+        }
+
+        __Enum(varCount) {
+            local maxLen := this.Length, i := 0, children := this.GetChildren()
+            EnumElements(&element) {
+                if ++i > maxLen
+                    return false
+                element := children[i]
+                return true
+            }
+            EnumIndexAndElements(&index, &element) {
+                if ++i > maxLen
+                    return false
+                index := i
+                element := children[i]
+                return true
+            }
+            return (varCount = 1) ? EnumElements : EnumIndexAndElements
+        }
+
+        __Get(Name, Params) {
+            local pName, pVal, NewName := StrReplace(Name, "Current", , , , 1), err, tryName
+            if (SubStr(Name, 1, 6) = "Cached") {
+                if UIA.Property.HasOwnProp(PropName := SubStr(Name, 7))
+                    return this.GetCachedPropertyValue(UIA.Property.%PropName%)
+            } else if this.base.HasOwnProp(NewName)
+                return this.%NewName%
+            else if UIA.Property.HasOwnProp(NewName)
+                return this.GetPropertyValue(UIA.Property.%NewName%)
+            else {
+                for pName, pVal in UIA.Pattern.OwnProps()
+                    if IsInteger(pVal) && IsAlnum(pName) && UIA.HasProp("IUIAutomation" pName "Pattern") && (pName != "LegacyIAccessible") { ; Skip LegacyIAccessible to avoid name collisions (eg Select)
+                        if tryName := UIA.IUIAutomation%pName%Pattern.Prototype.HasProp(NewName) ? NewName : UIA.IUIAutomation%pName%Pattern.Prototype.HasProp(Name) ? Name : "" {
+                            try return this.%pName%Pattern.%tryName%
+                            catch Any as err {
+                                if this.Is%pName%PatternAvailable
+                                    throw %Type(err)%(err.Message, -1, err.Extra)
+                            }
+                        }
+                    }
+
+                if (tryName := UIA.IUIAutomationLegacyIAccessiblePattern.Prototype.HasProp(NewName) ? NewName : UIA.IUIAutomationLegacyIAccessiblePattern.Prototype.HasProp(Name) ? Name : "") && this.IsLegacyIAccessiblePatternAvailable
+                    return this.LegacyIAccessiblePattern.%tryName%
+                throw PropertyError("Property " Name " not found in " this.__Class " Class.", -1, Name)
+            }
+        }
+        __Set(Name, Params, Value) {
+            local pVal, pName, NewName := StrReplace(Name, "Current", , , , 1), tryName, err
+            if this.base.HasOwnProp(NewName)
+                return this.%NewName% := Value
+            for pName, pVal in UIA.Pattern.OwnProps()
+                if IsInteger(pVal) && IsAlnum(pName) && UIA.HasProp("IUIAutomation" pName "Pattern") && pName != "LegacyIAccessible" {
+                    if tryName := UIA.IUIAutomation%pName%Pattern.Prototype.HasProp(NewName) ? NewName : UIA.IUIAutomation%pName%Pattern.Prototype.HasProp(Name) ? Name : "" {
+                        try return this.%pName%Pattern.%tryName% := Value
+                        catch Any as err {
+                            if this.Is%pName%PatternAvailable
+                                throw %Type(err)%(err.Message, -1, err.Extra)
+                        }
+                    }
+                }
+
+            if (tryName := UIA.IUIAutomationLegacyIAccessiblePattern.Prototype.HasProp(NewName) ? NewName : UIA.IUIAutomationLegacyIAccessiblePattern.Prototype.HasProp(Name) ? Name : "") && this.IsLegacyIAccessiblePatternAvailable
+                return this.LegacyIAccessiblePattern.%tryName% := Value
+            throw PropertyError("This class does not support adding properties")
+        }
+
+        __Call(Name, Params) {
+            local NewName, pName, pVal, tryName, err
+            if this.base.HasOwnProp(NewName := StrReplace(Name, "Current", , , , 1))
+                return this.%NewName%(Params*)
+            for pName, pVal in UIA.Pattern.OwnProps()
+                if IsInteger(pVal) && IsAlpha(pName) && UIA.HasProp("IUIAutomation" pName "Pattern") && (pName != "LegacyIAccessible") {
+                    if (tryName := UIA.IUIAutomation%pName%Pattern.Prototype.HasMethod(Name) ? Name : UIA.IUIAutomation%pName%Pattern.Prototype.HasMethod(NewName) ? NewName : "") {
+                        try return this.%pName%Pattern.%tryName%(Params*)
+                        catch Any as err {
+                            if this.Is%pName%PatternAvailable
+                                throw %Type(err)%(err.Message, -1, err.Extra)
+                        }
+                    }
+                }
+            if (tryName := UIA.IUIAutomationLegacyIAccessiblePattern.Prototype.HasMethod(Name) ? Name : UIA.IUIAutomationLegacyIAccessiblePattern.Prototype.HasMethod(NewName) ? NewName : "") && this.IsLegacyIAccessiblePatternAvailable
+                return this.LegacyIAccessiblePattern.%tryName%(Params*)
+            throw MethodError("Method " Name " not found in " this.__Class " Class.", -1, Name)
+        }
+        Children => ((ComCall(6, this, "int", 2, "ptr", UIA.TrueCondition, "ptr*", &found := 0), found) ? UIA.IUIAutomationElementArray(found).ToArray() : [])
+        ReversedChildren => ((ComCall(6, this, "int", 2, "ptr", UIA.TrueCondition, "ptr*", &found := 0), found) ? UIA.IUIAutomationElementArray(found).ToArray().DefineProp("__Enum", { call: (s, i) => (i = 1 ? (i := s.Length, (&v) => i > 0 ? (v := s[i], i--) : false) : (i := s.Length, (&k, &v) => (i > 0 ? (k := i, v := s[i], i--) : false))) }) : [])
+
+        CachedChildren => (ComCall(19, this, "ptr*", &children := 0), children ? UIA.IUIAutomationElementArray(children).ToArray() : [])
+        ReversedCachedChildren => (ComCall(19, this, "ptr*", &children := 0), children ? UIA.IUIAutomationElementArray(children).ToArray().DefineProp("__Enum", { call: (s, i) => (i = 1 ? (i := s.Length, (&v) => i > 0 ? (v := s[i], i--) : false) : (i := s.Length, (&k, &v) => (i > 0 ? (k := i, v := s[i], i--) : false))) }) : [])
+
+        GetCachedChildren(scope := 2) {
+            local children
+            scope := UIA.TypeValidation.TreeScope(scope)
+            if this.HasOwnProp("CachedChildrenTreeScope" (UIA.TreeScope[scope & ~1])) {
+                if scope & 1 {
+                    local children := this.CachedChildrenTreeScope%UIA.TreeScope[scope]%.Clone()
+                    children.Push(this)
+                    return children
+                }
+                return this.CachedChildrenTreeScope%UIA.TreeScope[scope & ~1]%
+            }
+            if scope & 4 {
+                children := []
+                AppendChildren(this)
+            } else if scope & 2 {
+                children := this.CachedChildren
+            }
+            if scope & 1
+                this.DefineProp("CachedChildrenTreeScope" UIA.TreeScope[scope], { value: children.Clone() }), children.Push(this)
+            else ; do not create circular reference
+                this.DefineProp("CachedChildrenTreeScope" UIA.TreeScope[scope], { value: children })
+            return children
+            AppendChildren(el) {
+                local subchildren := el.CachedChildren, child
+                for child in subchildren {
+                    children.Push(child)
+                    AppendChildren(child)
+                }
+            }
+        }
+        Parent => UIA.TreeWalkerTrue.GetParentElement(this)
+        CachedParent {
+            get {
+                local parent
+                if (ComCall(18, this, "ptr*", &parent := 0), parent)
+                    return UIA.IUIAutomationElement(parent)
+                throw UnsetError("No element returned by " A_ThisFunc, -1)
+            }
+        }
+        Length => this.GetChildren().Length
+
+        Location => (br := this.BoundingRectangle, { x: br.l, y: br.t, w: br.r - br.l, h: br.b - br.t })
+
+        CachedLocation => (br := this.CachedBoundingRectangle, { x: br.l, y: br.t, w: br.r - br.l, h: br.b - br.t })
+
+        Value {
+            get {
+                try return this.ValuePattern.Value
+                try return this.RangeValuePattern.Value
+                try return this.LegacyIAccessiblePattern.Value
+                Throw Error("ValuePattern, RangeValuePattern or LegacyIAccessiblePattern not found!", , -1)
+            }
+            set {
+                try return this.ValuePattern.SetValue(value)
+                try return this.RangeValuePattern.SetValue(value)
+                try return this.LegacyIAccessiblePattern.SetValue(value)
+                Throw Error("Setting the value failed! Is ValuePattern, RangeValuePattern or LegacyIAccessiblePattern supported?", , -1)
+            }
+        }
+        CachedValue => this.GetCachedPropertyValue(UIA.Property.ValueValue)
+        ; Checks whether this object still exists
+        Exists {
+            get {
+                try {
+                    local br
+                    if (br := this.BoundingRectangle) && (!(br.b - br.t) || !(br.r - br.l))
+                        return 0
+                    if this.IsOffscreen
+                        return 0
+                } catch
+                    return 0
+                return 1
+            }
+        }
+
+        ; Aliases for UIA.GetPattern(UIA.Pattern.PatternName)
+        InvokePattern => (this.DefineProp("InvokePattern", { value: this.GetPattern(UIA.Pattern.Invoke) }), this.InvokePattern)
+        SelectionPattern {
+            get {
+                try return (this.DefineProp("SelectionPattern", { value: this.GetPattern(UIA.Pattern.Selection2) }), this.SelectionPattern)
+                return (this.DefineProp("SelectionPattern", { value: this.GetPattern(UIA.Pattern.Selection) }), this.SelectionPattern)
+            }
+        }
+        ValuePattern => (this.DefineProp("ValuePattern", { value: this.GetPattern(UIA.Pattern.Value) }), this.ValuePattern)
+        RangeValuePattern => (this.DefineProp("RangeValuePattern", { value: this.GetPattern(UIA.Pattern.RangeValue) }), this.RangeValuePattern)
+        ScrollPattern => (this.DefineProp("ScrollPattern", { value: this.GetPattern(UIA.Pattern.Scroll) }), this.ScrollPattern)
+        ExpandCollapsePattern => (this.DefineProp("ExpandCollapsePattern", { value: this.GetPattern(UIA.Pattern.ExpandCollapse) }), this.ExpandCollapsePattern)
+        GridPattern => (this.DefineProp("GridPattern", { value: this.GetPattern(UIA.Pattern.Grid) }), this.GridPattern)
+        GridItemPattern => (this.DefineProp("GridItemPattern", { value: this.GetPattern(UIA.Pattern.GridItem) }), this.GridItemPattern)
+        MultipleViewPattern => (this.DefineProp("MultipleViewPattern", { value: this.GetPattern(UIA.Pattern.MultipleView) }), this.MultipleViewPattern)
+        WindowPattern => (this.DefineProp("WindowPattern", { value: this.GetPattern(UIA.Pattern.Window) }), this.WindowPattern)
+        SelectionItemPattern => (this.DefineProp("SelectionItemPattern", { value: this.GetPattern(UIA.Pattern.SelectionItem) }), this.SelectionItemPattern)
+        DockPattern => (this.DefineProp("DockPattern", { value: this.GetPattern(UIA.Pattern.Dock) }), this.DockPattern)
+        TablePattern => (this.DefineProp("TablePattern", { value: this.GetPattern(UIA.Pattern.Table) }), this.TablePattern)
+        TableItemPattern => (this.DefineProp("TableItemPattern", { value: this.GetPattern(UIA.Pattern.TableItem) }), this.TableItemPattern)
+        TextPattern {
+            get {
+                try return (this.DefineProp("TextPattern", { value: this.GetPattern(UIA.Pattern.Text2) }), this.TextPattern)
+                return (this.DefineProp("TextPattern", { value: this.GetPattern(UIA.Pattern.Text) }), this.TextPattern)
+            }
+        }
+        TogglePattern => (this.DefineProp("TogglePattern", { value: this.GetPattern(UIA.Pattern.Toggle) }), this.TogglePattern)
+        TransformPattern {
+            get {
+                try return (this.DefineProp("TransformPattern", { value: this.GetPattern(UIA.Pattern.Transform2) }), this.TransformPattern)
+                return (this.DefineProp("TransformPattern", { value: this.GetPattern(UIA.Pattern.Transform) }), this.TransformPattern)
+            }
+        }
+        ScrollItemPattern => (this.DefineProp("ScrollItemPattern", { value: this.GetPattern(UIA.Pattern.ScrollItem) }), this.ScrollItemPattern)
+        LegacyIAccessiblePattern => (this.DefineProp("LegacyIAccessiblePattern", { value: this.GetPattern(UIA.Pattern.LegacyIAccessible) }), this.LegacyIAccessiblePattern)
+        ItemContainerPattern => (this.DefineProp("ItemContainerPattern", { value: this.GetPattern(UIA.Pattern.ItemContainer) }), this.ItemContainerPattern)
+        VirtualizedItemPattern => (this.DefineProp("VirtualizedItemPattern", { value: this.GetPattern(UIA.Pattern.VirtualizedItem) }), this.VirtualizedItemPattern)
+        SynchronizedInputPattern => (this.DefineProp("SynchronizedInputPattern", { value: this.GetPattern(UIA.Pattern.SynchronizedInput) }), this.SynchronizedInputPattern)
+        ObjectModelPattern => (this.DefineProp("ObjectModelPattern", { value: this.GetPattern(UIA.Pattern.ObjectModel) }), this.ObjectModelPattern)
+        AnnotationPattern => (this.DefineProp("AnnotationPattern", { value: this.GetPattern(UIA.Pattern.Annotation) }), this.AnnotationPattern)
+        StylesPattern => (this.DefineProp("StylesPattern", { value: this.GetPattern(UIA.Pattern.Styles) }), this.StylesPattern)
+        SpreadsheetPattern => (this.DefineProp("SpreadsheetPattern", { value: this.GetPattern(UIA.Pattern.Spreadsheet) }), this.SpreadsheetPattern)
+        SpreadsheetItemPattern => (this.DefineProp("SpreadsheetItemPattern", { value: this.GetPattern(UIA.Pattern.SpreadsheetItem) }), this.SpreadsheetItemPattern)
+        TextChildPattern => (this.DefineProp("TextChildPattern", { value: this.GetPattern(UIA.Pattern.TextChild) }), this.TextChildPattern)
+        DragPattern => (this.DefineProp("DragPattern", { value: this.GetPattern(UIA.Pattern.Drag) }), this.DragPattern)
+        DropTargetPattern => (this.DefineProp("DropTargetPattern", { value: this.GetPattern(UIA.Pattern.DropTarget) }), this.DropTargetPattern)
+        TextEditPattern => (this.DefineProp("TextEditPattern", { value: this.GetPattern(UIA.Pattern.TextEdit) }), this.TextEditPattern)
+        CustomNavigationPattern => (this.DefineProp("CustomNavigationPattern", { value: this.GetPattern(UIA.Pattern.CustomNavigation) }), this.CustomNavigationPattern)
+        ; Aliases for UIA.GetCachedPattern(UIA.Pattern.PatternName)
+        CachedInvokePattern => (this.DefineProp("CachedInvokePattern", { value: this.GetCachedPattern(UIA.Pattern.Invoke) }), this.CachedInvokePattern)
+        CachedSelectionPattern {
+            get {
+                try return (this.DefineProp("CachedSelectionPattern", { value: this.GetCachedPattern(UIA.Pattern.Selection2) }), this.CachedSelectionPattern)
+                return (this.DefineProp("CachedSelectionPattern", { value: this.GetCachedPattern(UIA.Pattern.Selection) }), this.CachedSelectionPattern)
+            }
+        }
+        CachedValuePattern => (this.DefineProp("CachedValuePattern", { value: this.GetCachedPattern(UIA.Pattern.Value) }), this.CachedValuePattern)
+        CachedRangeValuePattern => (this.DefineProp("CachedRangeValuePattern", { value: this.GetCachedPattern(UIA.Pattern.RangeValue) }), this.CachedRangeValuePattern)
+        CachedScrollPattern => (this.DefineProp("CachedScrollPattern", { value: this.GetCachedPattern(UIA.Pattern.Scroll) }), this.CachedScrollPattern)
+        CachedExpandCollapsePattern => (this.DefineProp("CachedExpandCollapsePattern", { value: this.GetCachedPattern(UIA.Pattern.ExpandCollapse) }), this.CachedExpandCollapsePattern)
+        CachedGridPattern => (this.DefineProp("CachedGridPattern", { value: this.GetCachedPattern(UIA.Pattern.Grid) }), this.CachedGridPattern)
+        CachedGridItemPattern => (this.DefineProp("CachedGridItemPattern", { value: this.GetCachedPattern(UIA.Pattern.GridItem) }), this.CachedGridItemPattern)
+        CachedMultipleViewPattern => (this.DefineProp("CachedMultipleViewPattern", { value: this.GetCachedPattern(UIA.Pattern.MultipleView) }), this.CachedMultipleViewPattern)
+        CachedWindowPattern => (this.DefineProp("CachedWindowPattern", { value: this.GetCachedPattern(UIA.Pattern.Window) }), this.CachedWindowPattern)
+        CachedSelectionItemPattern => (this.DefineProp("CachedSelectionItemPattern", { value: this.GetCachedPattern(UIA.Pattern.SelectionItem) }), this.CachedSelectionItemPattern)
+        CachedDockPattern => (this.DefineProp("CachedDockPattern", { value: this.GetCachedPattern(UIA.Pattern.Dock) }), this.CachedDockPattern)
+        CachedTablePattern => (this.DefineProp("CachedTablePattern", { value: this.GetCachedPattern(UIA.Pattern.Table) }), this.CachedTablePattern)
+        CachedTableItemPattern => (this.DefineProp("CachedTableItemPattern", { value: this.GetCachedPattern(UIA.Pattern.TableItem) }), this.CachedTableItemPattern)
+        CachedTextPattern {
+            get {
+                try return (this.DefineProp("CachedTextPattern", { value: this.GetCachedPattern(UIA.Pattern.Text2) }), this.CachedTextPattern)
+                return (this.DefineProp("CachedTextPattern", { value: this.GetCachedPattern(UIA.Pattern.Text) }), this.CachedTextPattern)
+            }
+        }
+        CachedTogglePattern => (this.DefineProp("CachedTogglePattern", { value: this.GetCachedPattern(UIA.Pattern.Toggle) }), this.CachedTogglePattern)
+        CachedTransformPattern {
+            get {
+                try return (this.DefineProp("CachedTransformPattern", { value: this.GetCachedPattern(UIA.Pattern.Transform2) }), this.CachedTransformPattern)
+                return (this.DefineProp("CachedTransformPattern", { value: this.GetCachedPattern(UIA.Pattern.Transform) }), this.CachedTransformPattern)
+            }
+        }
+        CachedScrollItemPattern => (this.DefineProp("CachedScrollItemPattern", { value: this.GetCachedPattern(UIA.Pattern.ScrollItem) }), this.CachedScrollItemPattern)
+        CachedLegacyIAccessiblePattern => (this.DefineProp("CachedLegacyIAccessiblePattern", { value: this.GetCachedPattern(UIA.Pattern.LegacyIAccessible) }), this.CachedLegacyIAccessiblePattern)
+        CachedItemContainerPattern => (this.DefineProp("CachedItemContainerPattern", { value: this.GetCachedPattern(UIA.Pattern.ItemContainer) }), this.CachedItemContainerPattern)
+        CachedVirtualizedItemPattern => (this.DefineProp("CachedVirtualizedItemPattern", { value: this.GetCachedPattern(UIA.Pattern.VirtualizedItem) }), this.CachedVirtualizedItemPattern)
+        CachedSynchronizedInputPattern => (this.DefineProp("CachedSynchronizedInputPattern", { value: this.GetCachedPattern(UIA.Pattern.SynchronizedInput) }), this.CachedSynchronizedInputPattern)
+        CachedObjectModelPattern => (this.DefineProp("CachedObjectModelPattern", { value: this.GetCachedPattern(UIA.Pattern.ObjectModel) }), this.CachedObjectModelPattern)
+        CachedAnnotationPattern => (this.DefineProp("CachedAnnotationPattern", { value: this.GetCachedPattern(UIA.Pattern.Annotation) }), this.CachedAnnotationPattern)
+        CachedStylesPattern => (this.DefineProp("CachedStylesPattern", { value: this.GetCachedPattern(UIA.Pattern.Styles) }), this.CachedStylesPattern)
+        CachedSpreadsheetPattern => (this.DefineProp("CachedSpreadsheetPattern", { value: this.GetCachedPattern(UIA.Pattern.Spreadsheet) }), this.CachedSpreadsheetPattern)
+        CachedSpreadsheetItemPattern => (this.DefineProp("CachedSpreadsheetItemPattern", { value: this.GetCachedPattern(UIA.Pattern.SpreadsheetItem) }), this.CachedSpreadsheetItemPattern)
+        CachedTextChildPattern => (this.DefineProp("CachedTextChildPattern", { value: this.GetCachedPattern(UIA.Pattern.TextChild) }), this.CachedTextChildPattern)
+        CachedDragPattern => (this.DefineProp("CachedDragPattern", { value: this.GetCachedPattern(UIA.Pattern.Drag) }), this.CachedDragPattern)
+        CachedDropTargetPattern => (this.DefineProp("CachedDropTargetPattern", { value: this.GetCachedPattern(UIA.Pattern.DropTarget) }), this.CachedDropTargetPattern)
+        CachedTextEditPattern => (this.DefineProp("CachedTextEditPattern", { value: this.GetCachedPattern(UIA.Pattern.TextEdit) }), this.CachedTextEditPattern)
+        CachedCustomNavigationPattern => (this.DefineProp("CachedCustomNavigationPattern", { value: this.GetCachedPattern(UIA.Pattern.CustomNavigation) }), this.CachedCustomNavigationPattern)
+
+
+        GetChildren(c?, scope := 0x2) => this.FindAll(c ?? UIA.TrueCondition, scope)
+
+        TWGetChildren() {
+            local arr := [], nextChild
+            if !IsObject(nextChild := UIA.TreeWalkerTrue.GetFirstChildElement(this))
+                return ""
+            arr.Push(nextChild)
+            while IsObject(nextChild := UIA.TreeWalkerTrue.GetNextSiblingElement(nextChild))
+                arr.Push(nextChild)
+            return arr
+        }
+
+        Dump(scope := 1, delimiter := " ", maxDepth := -1) {
+            local out := "", n, oChild, el
+            if !IsInteger(scope)
+                try scope := UIA.TreeScope.%scope%
+
+            static cacheRequest := UIA.CreateCacheRequest(["Type", "LocalizedType", "AutomationId", "Name", "Value", "ClassName", "AcceleratorKey"], , 5, 0)
+
+            if scope < 4 {
+                if scope & 1 {
+                    out := this.CurrentDump(delimiter) "`n"
+                }
+                if scope & 2 {
+                    for n, oChild in this.GetChildren()
+                        out .= n ": " oChild.CurrentDump(delimiter) "`n"
+                }
+            } else {
+                ; Build the cache for the set scope
+                try el := this.CachedChildren.Length
+                el := IsSet(el) && el ? this : this.FindFirstBuildCache(cacheRequest, UIA.RawViewCondition, scope)
+                if scope & 1
+                    out := el.CachedDump(delimiter) "`n"
+                if scope & 2 {
+                    for n, oChild in el.CachedChildren
+                        out .= n ": " oChild.CachedDump(delimiter) "`n"
+                }
+                if scope & 4
+                    return RTrim(RecurseTree(el, out), "`n")
+            }
+            return RTrim(out, "`n")
+
+            RecurseTree(element, tree, path := "") {
+                local i, child, count
+                if maxDepth > 0 {
+                    StrReplace(path, ",", , , &count)
+                    if count >= (maxDepth - 1)
+                        return tree
+                }
+                For i, child in element.CachedChildren {
+                    tree .= path (path ? "," : "") i ":" delimiter child.CachedDump(delimiter) "`n"
+                    tree := RecurseTree(child, tree, path (path ? "," : "") i)
+                }
+                return tree
+            }
+        }
+        ; Dumps with only "Current" properties
+        CurrentDump(delimiter := " ") {
+            local ctrlType, name, val, lct, aid, cm, ak
+            return "Type: " (ctrlType := this.Type) " (" UIA.Type[ctrlType] ")" ((name := this.Name) == "" ? "" : delimiter "Name: `"" name "`"") ((val := this.Value) == "" ? "" : delimiter "Value: `"" val "`"") ((lct := this.LocalizedType) == "" ? "" : delimiter "LocalizedType: `"" lct "`"") ((aid := this.AutomationId) == "" ? "" : delimiter "AutomationId: `"" aid "`"") ((cm := this.ClassName) == "" ? "" : delimiter "ClassName: `"" cm "`"") ((ak := this.AcceleratorKey) == "" ? "" : delimiter "AcceleratorKey: `"" ak "`"")
+        }
+        ; Dumps with only "Cached" properties
+        CachedDump(delimiter := " ") {
+            local ctrlType, name, val, lct, aid, cm, ak
+            return "Type: " (ctrlType := this.CachedType) " (" UIA.Type[ctrlType] ")" ((name := this.CachedName) == "" ? "" : delimiter "Name: `"" name "`"") ((val := this.CachedValue) == "" ? "" : delimiter "Value: `"" val "`"") ((lct := this.CachedLocalizedType) == "" ? "" : delimiter "LocalizedType: `"" lct "`"") ((aid := this.CachedAutomationId) == "" ? "" : delimiter "AutomationId: `"" aid "`"") ((cm := this.CachedClassName) == "" ? "" : delimiter "ClassName: `"" cm "`"") ((ak := this.CachedAcceleratorKey) == "" ? "" : delimiter "AcceleratorKey: `"" ak "`"")
+        }
+        ToString() {
+            try return this.Dump()
+            return this.CachedDump()
+        }
+
+        DumpAll(delimiter := " ", maxDepth := -1) => this.Dump(5, delimiter, maxDepth)
+
+
+        GetUIAPath(targetEl, cached := False) => UIA.EncodePath(this.GetTypeConditionPath(targetEl, cached))
+
+        GetTypeConditionPath(targetEl, cached := False) {
+            local i, child, cachedThis, numPath, conditionPath, children, targetType, targetIndex, sameTypeCount, targetTypeIndex
+            cachedThis := cached ? this : this.BuildUpdatedCache(UIA.CreateCacheRequest(["Type", "Name", "ClassName", "AutomationId", "BoundingRectangle"], , 5))
+            numPath := cachedThis.GetNumericPath(targetEl, true)
+            conditionPath := []
+            Loop numPath.Length {
+                children := cachedThis.CachedChildren, targetIndex := numPath[A_index], sameTypeCount := 0, targetTypeIndex := 0
+                targetType := children[targetIndex].CachedType
+                for i, child in children {
+                    if child.CachedType == targetType
+                        sameTypeCount++
+                    if i == targetIndex
+                        targetTypeIndex := sameTypeCount
+                }
+                if targetTypeIndex = 1
+                    conditionPath.Push({ Type: targetType })
+                else if targetTypeIndex = sameTypeCount
+                    conditionPath.Push({ Type: targetType, i: -1 })
+                else
+                    conditionPath.Push({ Type: targetType, i: targetTypeIndex })
+                cachedThis := children[targetIndex]
+            }
+            return conditionPath
+        }
+
+
+        GetConditionPath(targetEl, cached := False, ignoreNames := False, asString := False) {
+            local i, child, cachedThis, numPath, conditionPath, children, targetIndex, sameTypeCount, targetTypeIndex
+            cachedThis := cached ? this : this.BuildUpdatedCache(UIA.CreateCacheRequest(["Type", "Name", "ClassName", "AutomationId", "BoundingRectangle"], , 5))
+            numPath := cachedThis.GetNumericPath(targetEl, true)
+            conditionPath := asString ? "" : []
+            Loop numPath.Length {
+                children := cachedThis.CachedChildren, targetIndex := numPath[A_index], sameTypeCount := 0, targetTypeIndex := 0
+                ; Create compact condition map for the level
+                local levelMap := Map(), levelConditions := [], t := "", a := "", n := "", c := "", type, automationId, className, name
+
+                ; First map all the children with the appropriate conditions to figure out whether to use index 1 or -1
+                for i, child in children {
+                    type := child.CachedType, t := "{T:" (type - 50000)
+                    ; levelMap will contain the max index of an element with certain Type, Type+AutomationId, Type+Name, and Type+ClassName
+                    levelMap[t] := levelMap.Has(t) ? levelMap[t] + 1 : 1
+                    try a := StrReplace(automationId := child.CachedAutomationId, "`"", "```"")
+                    ; Currently AutomationId will be paired with the Type, but perhaps this isn't necessary because AutomationId should be unique?
+                    if a != "" && !IsInteger(a) ; Ignore Integer AutomationIds, since they seem to be auto-generated in Chromium apps
+                        a := t ",A:`"" a "`"", levelMap[a] := levelMap.Has(a) ? levelMap[a] + 1 : 1 ; This actually shouldn't be needed, if AutomationId's are unique
+                    try c := StrReplace(className := child.CachedClassName, "`"", "```"")
+                    if c != ""
+                        c := t ",CN:`"" c "`"", levelMap[c] := levelMap.Has(c) ? levelMap[c] + 1 : 1
+                    ; Consider Name last, because it can change (eg. window title)
+                    try n := StrReplace(name := child.CachedName, "`"", "```"")
+                    if !IgnoreNames && n != ""
+                        n := t ",N:`"" n "`"", levelMap[n] := levelMap.Has(n) ? levelMap[n] + 1 : 1
+                    if levelMap[t] = 1 ; If this is the first element with such a type then only use the type (not including AutomationId etc, to keep the resulting object shorter)
+                        levelConditions.Push([{ T: type - 50000, i: levelMap[t] }, t])
+                    else if a != "" && !IsInteger(a) {
+                        levelConditions.Push(c != "" ? (levelMap[a] <= levelMap[c] ? [{ A: automationId, i: levelMap[a] }, a] : [{ CN: className, i: levelMap[c] }, c]) : [{ A: automationId, i: levelMap[a] }, a])
+                    } else if c != ""
+                        levelConditions.Push([{ CN: className, i: levelMap[c] }, c])
+                    else if !IgnoreNames && n != "" && (levelMap[n] < levelMap[t])
+                        levelConditions.Push([{ N: name, i: levelMap[n] }, n])
+                    else
+                        levelConditions.Push([{ T: type - 50000, i: levelMap[t] }, t])
+                }
+
+                levelCondition := levelConditions[targetIndex]
+                if asString
+                    conditionPath .= ((levelCondition[1].i = 1) ? levelCondition[2] : (levelCondition[1].i = levelMap[levelCondition[2]] ? (levelCondition[1].i := -1, levelCondition[2] ", i:-1") : (levelCondition[2] ", i:" levelCondition[1].i))) "}" (A_Index = numPath.Length ? "" : ", ")
+                else
+                    conditionPath.Push((levelCondition[1].i = 1) ? (levelCondition[1].DeleteProp("i"), levelCondition[1]) : (levelCondition[1].i = levelMap[levelCondition[2]] ? (levelCondition[1].i := -1, levelCondition[1]) : levelCondition[1]))
+                cachedThis := children[targetIndex]
+            }
+            return conditionPath
+        }
+
+
+        GetNumericPath(targetEl, cached := False) {
+            local cachedThis, found, cacheRequest
+            cachedThis := cached ? this : this.BuildUpdatedCache(cacheRequest := UIA.CreateCacheRequest(["Type", "Name", "ClassName", "AutomationId", "BoundingRectangle"], , 5))
+            if found := FindTarget(cachedThis)
+                return found
+            throw TargetError("No matching target element found", -1)
+
+            FindTarget(el, path := []) {
+                local i, child
+                for i, child in el.CachedChildren {
+                    path.Push(i)
+                    if UIA.CompareElementsEx(child, targetEl)
+                        return path
+                    if found := FindTarget(child, path)
+                        return found
+                    path.Pop()
+                }
+            }
+        }
+
+
+        GetPos(relativeTo := "", WinTitle?) {
+            if IsSet(WinTitle) && !IsInteger(WinTitle)
+                WinTitle := WinExist(WinTitle)
+            local br := this.BoundingRectangle, pt
+            relativeTo := (relativeTo == "") ? A_CoordModeMouse : relativeTo
+            if (relativeTo = "screen")
+                return { x: br.l, y: br.t, w: (br.r - br.l), h: (br.b - br.t) }
+            else if (relativeTo = "window") {
+                DllCall("user32\GetWindowRect", "Int", WinTitle ?? this.WinId, "Ptr", RECT := Buffer(16))
+                return { x: (br.l - NumGet(RECT, 0, "Int")), y: (br.t - NumGet(RECT, 4, "Int")), w: br.r - br.l, h: br.b - br.t }
+            } else if (relativeTo = "client") {
+                pt := Buffer(8), NumPut("int", br.l, pt), NumPut("int", br.t, pt, 4)
+                DllCall("ScreenToClient", "Int", WinTitle ?? this.WinId, "Ptr", pt)
+                return { x: NumGet(pt, 0, "int"), y: NumGet(pt, 4, "int"), w: br.r - br.l, h: br.b - br.t }
+            } else
+                throw Error(relativeTo "is not a valid CoordMode", -1)
+        }
+
+        ; Gets the Id in string format (currently the RuntimeId). The exact implementation is subject to
+        ; change in the future, so use of RuntimeId might be preferred. It can't be used for element searches!
+        Id => (this.DefineProp("Id", { value: this.RuntimeId }), this.Id)
+        ; Gets the RuntimeId in string format
+        RuntimeId => (this.DefineProp("RuntimeId", { value: UIA.RuntimeIdToString(this.GetRuntimeId()) }), this.RuntimeId)
+
+        ; Get the parent window hwnd from the element
+        GetWinId() {
+            static cacheRequest := UIA.CreateCacheRequest(["NativeWindowHandle"], , 1, UIA.AutomationElementMode.None), TW := UIA.CreateTreeWalker(UIA.CreateNotCondition(UIA.CreatePropertyCondition(UIA.Property.NativeWindowHandle, 0)))
+            try return DllCall("GetAncestor", "Ptr", TW.NormalizeElementBuildCache(cacheRequest, this).CachedNativeWindowHandle, "UInt", 2, "Ptr") ; hwnd from point by SKAN
+        }
+        WinId => (this.DefineProp("WinId", { value: this.GetWinId() }), this.WinId)
+        ; Get the control hwnd (that the element belongs to) from the element
+        GetControlId() {
+            static cacheRequest := UIA.CreateCacheRequest(["NativeWindowHandle"], , 1, UIA.AutomationElementMode.None), TW := UIA.CreateTreeWalker(UIA.CreateNotCondition(UIA.CreatePropertyCondition(UIA.Property.NativeWindowHandle, 0)))
+            try return TW.NormalizeElementBuildCache(cacheRequest, this).CachedNativeWindowHandle
+        }
+        ControlId => (this.DefineProp("ControlId", { value: this.GetControlId() }), this.ControlId)
+
+
+        Click(WhichButton := "", ClickCount := 1, DownOrUp := "", Relative := "", NoActivate := False, MoveBack?) {
+            local SleepTime, togglePattern, expandState, selectionPattern, rel, pos
+            if WhichButton = "" or IsInteger(WhichButton) {
+                ; Caching the properties doesn't seem to make a speed difference, rather it might be slower with caching
+                ; Using DoDefaultAction as default might end up slower (tested in Chrome - clicked much slower)
+                if (this.GetPropertyValue(UIA.Property.IsInvokePatternAvailable)) {
+                    this.InvokePattern.Invoke()
+                    if WhichButton != ""
+                        Sleep WhichButton
+                    return "Invoke"
+                }
+                if (this.GetPropertyValue(UIA.Property.IsTogglePatternAvailable)) {
+                    togglePattern := this.TogglePattern, toggleState := togglePattern.CurrentToggleState
+                    togglePattern.Toggle()
+                    if (togglePattern.CurrentToggleState != toggleState) {
+                        if WhichButton != ""
+                            Sleep WhichButton
+                        return "Toggle"
+                    }
+                }
+                if (this.GetPropertyValue(UIA.Property.IsExpandCollapsePatternAvailable)) {
+                    if ((expandState := (pattern := this.ExpandCollapsePattern).ExpandCollapseState) == 0) {
+                        try pattern.Expand() ; Sometimes throws UIA_E_INVALIDOPERATION 0x80131509
+                        action := "Expand"
+                    } else {
+                        try pattern.Collapse()
+                        action := "Collapse"
+                    }
+                    if (pattern.ExpandCollapseState != expandState) {
+                        if WhichButton != ""
+                            Sleep WhichButton
+                        return action
+                    }
+                }
+                if (this.GetPropertyValue(UIA.Property.IsSelectionItemPatternAvailable)) {
+                    selectionPattern := this.SelectionItemPattern, selectionState := selectionPattern.IsSelected
+                    selectionPattern.Select()
+                    if (selectionPattern.IsSelected != selectionState) {
+                        if WhichButton != ""
+                            Sleep WhichButton
+                        return "Select"
+                    }
+                }
+                if (this.GetPropertyValue(UIA.Property.IsLegacyIAccessiblePatternAvailable)) {
+                    this.LegacyIAccessiblePattern.DoDefaultAction()
+                    if WhichButton != ""
+                        Sleep WhichButton
+                    return "DoDefaultAction"
+                }
+                return 0
+            }
+            rel := [0, 0], pos := this.Location
+            if (Relative && !InStr(Relative, "rel"))
+                rel := StrSplit(Relative, " "), Relative := ""
+            if IsInteger(WhichButton)
+                SleepTime := WhichButton, WhichButton := "left"
+            if !IsInteger(ClickCount) && InStr(ClickCount, " ") {
+                sCount := StrSplit(ClickCount, " ")
+                ClickCount := sCount[1], SleepTime := sCount[2]
+            } else if ClickCount > 9 {
+                SleepTime := ClickCount, ClickCount := 1
+            }
+            if (!NoActivate && (UIA.WindowFromPoint(pos.x + pos.w // 2 + rel[1], pos.y + pos.h // 2 + rel[2]) != (wId := this.WinId))) {
+                WinActivate(wId)
+                WinWaitActive(wId)
+            }
+            saveCoordMode := A_CoordModeMouse
+            CoordMode("Mouse", "Screen")
+            if IsSet(MoveBack)
+                MouseGetPos(&prevX, &prevY)
+            Click(pos.x + pos.w // 2 + rel[1] " " pos.y + pos.h // 2 + rel[2] " " WhichButton (ClickCount ? " " ClickCount : "") (DownOrUp ? " " DownOrUp : "") (Relative ? " " Relative : ""))
+            if IsSet(MoveBack) {
+                if MoveBack != 0
+                    Sleep MoveBack
+                MouseMove(prevX, prevY)
+            }
+            CoordMode("Mouse", saveCoordMode)
+            if IsSet(SleepTime)
+                Sleep(SleepTime)
+        }
+
+
+        ControlClick(WhichButton := "left", ClickCount := 1, Options := "", WinTitle?) {
+            local pos := this.GetPos("client", WinTitle?)
+            ControlClick("X" pos.x + pos.w // 2 " Y" pos.y + pos.h // 2, WinTitle ?? this.WinId, , IsInteger(WhichButton) ? "left" : WhichButton, ClickCount, Options)
+            if IsInteger(WhichButton)
+                Sleep(WhichButton)
+        }
+
+        Highlight(showTime := unset, color := "Red", d := 2) {
+            local loc, x, y, w, h, key, prop
+            static Guis := Map()
+            if IsSet(showTime) && showTime = "clearall" {
+                for key, prop in Guis {
+                    SetTimer(prop.TimerObj, 0)
+                    try prop.GuiObj.Destroy()
+                }
+                Guis := Map()
+                return this
+            }
+
+            if (!IsSet(showTime) && Guis.Has(this.ptr)) || (IsSet(showTime) && showTime = "clear") {
+                if Guis.Has(this.ptr) {
+                    SetTimer(Guis[this.ptr].TimerObj, 0)
+                    try Guis[this.ptr].GuiObj.Destroy()
+                    Guis.Delete(this.ptr)
+                }
+                return this
+            } else if !IsSet(showTime)
+                showTime := 2000
+
+            try loc := this.BoundingRectangle
+            if !IsSet(loc) || !IsObject(loc)
+                try loc := this.CachedBoundingRectangle
+            if !IsSet(loc) || !IsObject(loc)
+                return this
+
+            if !Guis.Has(this.ptr) {
+                Guis[this.ptr] := {}
+                Guis[this.ptr].GuiObj := Gui("+AlwaysOnTop -Caption +ToolWindow -DPIScale +E0x08000000")
+                Guis[this.ptr].TimerObj := ObjBindMethod(this, "Highlight", "clear")
+            }
+            GuiObj := Guis[this.ptr].GuiObj
+            GuiObj.BackColor := color
+            x := loc.l, y := loc.t, w := (loc.r - loc.l), h := (loc.b - loc.t), iw := w + d, ih := h + d, w := w + d * 2, h := h + d * 2, x := x - d, y := y - d
+            WinSetRegion("0-0 " w "-0 " w "-" h " 0-" h " 0-0 " d "-" d " " iw "-" d " " iw "-" ih " " d "-" ih " " d "-" d, GuiObj.Hwnd)
+            GuiObj.Show("NA x" . x . " y" . y . " w" . w . " h" . h)
+
+            if showTime > 0 {
+                Sleep(showTime)
+                this.Highlight()
+            } else if showTime < 0
+                SetTimer(Guis[this.ptr].TimerObj, -Abs(showTime))
+            return this
+        }
+        ClearHighlight() => this.Highlight("clear")
+
+
+        WaitNotExist(timeOut := -1, tick := 20) {
+            local endtime := A_TickCount + timeout, exists
+            while ((exists := this.Exists) && ((timeout == -1) || (A_Tickcount < endtime)))
+                Sleep tick
+            return !exists
+        }
+
+        static __ExtractConditionNamedParameters(condition, &scope, &order, &startingElement, &cacheRequest?, &index?, &callback := 0) {
+            if Type(condition) != "Object" {
+                if IsObject(condition) && HasMethod(condition) {
+                    callback := condition
+                    return {}
+                }
+                return condition
+            }
+            pureCondition := condition.Clone()
+            if IsSet(index) {
+                index := pureCondition.DeleteProp("index") || pureCondition.DeleteProp("i") || index
+                if IsInteger(index) && !(index is Integer)
+                    index := Integer(index)
+            }
+            scope := pureCondition.DeleteProp("scope") || scope
+            order := pureCondition.DeleteProp("order") || order
+            startingElement := pureCondition.DeleteProp("startingElement") || startingElement
+            if IsSet(cacheRequest)
+                cacheRequest := pureCondition.DeleteProp("cacheRequest") || cacheRequest
+            callback := pureCondition.DeleteProp("callback") || callback
+            return pureCondition
+        }
+
+
+        ElementExist(condition, scope := 4, index := 1, order := 0, startingElement := 0, cacheRequest := 0) {
+            try return this.FindElement(condition, scope, index, order, startingElement, cacheRequest)
+            catch TargetError
+                return 0
+            return 0
+        }
+
+
+        FindElement(condition, scope := 4, index := 1, order := 0, startingElement := 0, cacheRequest := 0) {
+            local withOptions := 0, found, cache, callback := 0
+            condition := UIA.IUIAutomationElement.__ExtractConditionNamedParameters(condition, &scope, &order, &startingElement, &cacheRequest, &index, &callback)
+            scope := UIA.TypeValidation.TreeScope(scope), index := UIA.TypeValidation.Integer(index, "Index"), order := UIA.TypeValidation.TreeTraversalOptions(order), startingElement := UIA.TypeValidation.Element(startingElement), cacheRequest := UIA.TypeValidation.CacheRequest(cacheRequest)
+            if index < 0 ; Convert negative index to LastToFirst order
+                index := -index, order := order | 2
+            withOptions := order || startingElement
+            if withOptions && !UIA.IsIUIAutomationElement7Available && (Type(condition) ~= "i)Condition|ComValue")
+                throw ValueError("If using order or startingElement arguments in Windows <10.0.15063, then condition cannot be IUIAutomationCondition", -1)
+            if !(Type(condition) ~= "i)Condition|ComValue") {
+
+                IUIAcondition := UIA.__ConditionBuilder(condition, &nonUIAEncountered := 0), counter := 0
+
+                ; In the case of a defined callback, walk the tree with a TreeWalker made on the base of
+                ; IUIAcondition and validate with callback(element).
+                if callback {
+                    local found, TW := UIA.CreateTreeWalker(IUIAcondition), c := 0
+                    if startingElement
+                        startingElement := startingElement.RuntimeId
+                    ; FirstToLast or LastToFirst
+                    if order & 2
+                        nextElementFunc := UIA.IUIAutomationTreeWalker.Prototype.TryGetPreviousSiblingElement.Bind(TW),
+                            nextChildFunc := UIA.IUIAutomationTreeWalker.Prototype.TryGetLastChildElement.Bind(TW)
+                    else
+                        nextElementFunc := UIA.IUIAutomationTreeWalker.Prototype.TryGetNextSiblingElement.Bind(TW),
+                            nextChildFunc := UIA.IUIAutomationTreeWalker.Prototype.TryGetFirstChildElement.Bind(TW)
+                    ; First handle PostOrder
+                    if order & 1 {
+                        if IsObject(found := PostOrderRecursiveFind(this, scope))
+                            return cacheRequest ? found.BuildUpdatedCache(cacheRequest) : found
+                        throw TargetError("An element matching the condition was not found", -1)
+                    }
+                    ; PreOrder
+                    if scope & 1 && (c := callback(this, 1, 0)) > 0 && --index = 0
+                        return cacheRequest ? this.BuildUpdatedCache(cacheRequest) : this
+                    if c >= 0 && scope > 1 && found := PreOrderRecursiveFind(nextChildFunc(this))
+                        return cacheRequest ? found.BuildUpdatedCache(cacheRequest) : found
+                    throw TargetError("An element matching the condition was not found", -1)
+                }
+
+                if nonUIAEncountered = 1 { ; Some conditions need validating: MatchMode 1 or RegEx was used
+                    ; If no cacheRequest was specified, then speed-optimize the search by caching
+                    ; the required properties, and searching through cached elements.
+                    ; And although it looks like if adding an exception for a set startingElement
+                    ; and using FindAllWithOptions from startingElement should give a speed improvement,
+                    ; it actually doesn't  affect the search speed significantly, probably because
+                    ; the cache search is just so much faster.
+                    ; It would be useful to use TreeFilter=IUIAcondition, but unfortunately it seems
+                    ; that TreeFilter is applied before TreeScope. This leads to the unwanted behavior
+                    ; of the tree being flattened, so this can't be used with scope=Children
+                    cache := this.BuildUpdatedCache(UIA.CreateCacheRequest(condition, , scope, , scope > 3 ? IUIAcondition : unset))
+                    found := cache.FindCachedElement(condition, scope, index, order, startingElement)
+                    return cacheRequest ? found.BuildUpdatedCache(cacheRequest) : found
+                } else if nonUIAEncountered = 2 ; A cached name was encountered, use FindCachedElement instead
+                    return this.FindCachedElement(condition, scope, index, order, startingElement)
+
+                ; If the user is running an older Windows, but is trying to use FindFirstWithOptions arguments
+                ; then either use cached elements, or in the case of index 1 and PreOrder, use TreeWalker
+                if withOptions && (!UIA.IsIUIAutomationElement7Available || (scope < 4 && startingElement)) {
+                    if index = 1 && order = 2 && !startingElement { ; Special case for index -1, PreOrder, and older Windows version
+                        if scope & 1
+                            try return cacheRequest ? this.FindFirstBuildCache(cacheRequest, IUIAcondition, 1) : this.FindFirst(IUIAcondition, 1)
+                        if scope > 1
+                            return cacheRequest ? UIA.CreateTreeWalker(IUIAcondition).GetLastChildElementBuildCache(cacheRequest, this) : UIA.CreateTreeWalker(IUIAcondition).GetLastChildElement(this)
+                        else
+                            throw TargetError("An element matching the condition was not found", -1)
+                    }
+                    found := this.BuildUpdatedCache(UIA.CreateCacheRequest(condition, , scope, , scope > 3 ? IUIAcondition : unset)).FindCachedElement(condition, scope, index, order, startingElement)
+                    return cacheRequest ? found.BuildUpdatedCache(cacheRequest) : found
+                }
+                condition := IUIAcondition
+            }
+            if !startingElement ; If FindFirstWithOptions is used but startingElement isn't set, start from this element.
+                startingElement := this
+            ; Use FindAll instead if index > 1
+            if index != 1 {
+                try {
+                    unfilteredEls := (cacheRequest ? (withOptions ? startingElement.FindAllWithOptionsBuildCache(cacheRequest, condition, order, this, scope)
+                        : this.FindAllBuildCache(cacheRequest, condition, scope))
+                        : (withOptions ? startingElement.FindAllWithOptions(condition, order, this, scope)
+                            : this.FindAll(condition, scope)))
+                    return unfilteredEls[order & 2 && !withOptions ? unfilteredEls.Length + 1 - index : index]
+                } catch IndexError
+                    throw TargetError("An element matching the condition was not found", -1, "FindAll index " index " was invalid")
+            }
+            if cacheRequest {
+                if withOptions
+                    ComCall(112, startingElement, "int", scope, "ptr", condition, "ptr", cacheRequest, "int", order, "ptr", this, "ptr*", &found := 0) ; FindFirstWithOptionsBuildCache
+                else
+                    ComCall(7, this, "int", scope, "ptr", condition, "ptr", cacheRequest, "ptr*", &found := 0) ; FindFirstBuildCache
+            } else {
+                if withOptions {
+                    ComCall(110, startingElement, "int", scope, "ptr", condition, "int", order, "ptr", this, "ptr*", &found := 0) ; FindFirstWithOptions
+                } else {
+                    ComCall(5, this, "int", scope, "ptr", condition, "ptr*", &found := 0) ; FindFirst
+                }
+            }
+            if found
+                return UIA.IUIAutomationElement(found)
+            throw TargetError("An element matching the condition was not found", -1)
+
+            PreOrderRecursiveFind(el, depth := 0) {
+                local found
+                depth++
+                while (c := 0, IsObject(el)) {
+                    if (startingElement ? (startingElement = el.RuntimeId ? !(startingElement := "") : 0) : 1) && (c := callback(el, A_Index, depth)) > 0 && --index = 0
+                        return el
+                    else if c >= 0 && scope & 4 && IsObject(found := PreOrderRecursiveFind(nextChildFunc(el), depth))
+                        return found
+                    el := nextElementFunc(el)
+                }
+            }
+            PostOrderRecursiveFind(el, scope, i := 1, depth := 0) { ; this is only called if scope >= 4, and handles scope&2 as well
+                local found, child, c := 0
+                child := nextChildFunc(el), depth++
+                if scope > 1 {
+                    while (IsObject(child)) {
+                        if IsObject(found := PostOrderRecursiveFind(child, (scope & ~2) | 1, A_Index, depth))
+                            return found
+                        else if found = -1
+                            break
+                        child := nextElementFunc(child)
+                    }
+                }
+                if scope & 1 && (startingElement ? (startingElement = el.RuntimeId ? !(startingElement := "") : 0) : 1) && (c := callback(el, i, depth)) > 0 && --index = 0
+                    return el
+                return c
+            }
+        }
+
+
+        CachedElementExist(condition, scope := 4, index := 1, order := 0, startingElement := 0) {
+            try return this.FindCachedElement(condition, scope, index, order, startingElement)
+            catch TargetError
+                return 0
+            return 0
+        }
+
+
+        FindCachedElement(condition, scope := 4, index := 1, order := 0, startingElement := 0) {
+            local callback := 0, found, c := 0
+            condition := UIA.IUIAutomationElement.__ExtractConditionNamedParameters(condition, &scope, &order, &startingElement, , &index, &callback)
+            callback := callback || UIA.IUIAutomationElement.Prototype.ValidateCondition.Bind(unset, condition, true), scope := UIA.TypeValidation.TreeScope(scope), index := UIA.TypeValidation.Integer(index, "Index"), order := UIA.TypeValidation.TreeTraversalOptions(order), startingElement := UIA.TypeValidation.Element(startingElement)
+            if index < 0
+                order |= 2, index := -index
+            else if index = 0
+                throw ValueError("Condition index cannot be 0", -1)
+            if startingElement
+                startingElement := startingElement.RuntimeId
+            ChildOrder := order & 2 ? "ReversedCachedChildren" : "CachedChildren"
+            ; First handle PostOrder
+            if order & 1 {
+                if found := PostOrderRecursiveFind(this, scope)
+                    return found
+                throw TargetError("An element matching the condition was not found", -1)
+            }
+            ; PreOrder
+            if scope & 1 && (c := callback(this, 1, 0)) > 0 && --index = 0
+                return this
+            if scope > 1 && c >= 0 {
+                if found := PreOrderRecursiveFind(this)
+                    return found
+            }
+            throw TargetError("An element matching the condition was not found", -1)
+            PreOrderRecursiveFind(el, depth := 0) {
+                local child, found, c
+                depth++
+                for i, child in el.%ChildOrder% {
+                    c := 0
+                    if (startingElement ? (startingElement = child.RuntimeId ? !(startingElement := "") : 0) : 1) && (c := callback(child, i, depth)) > 0 && --index = 0
+                        return child
+                    else if (c >= 0) && scope & 4 && (found := PreOrderRecursiveFind(child, depth))
+                        return found
+                }
+            }
+            PostOrderRecursiveFind(el, scope, i := 1, depth := -1) {
+                local child, found, c := 0
+                depth++
+                for j, child in el.%ChildOrder% {
+                    if IsObject(found := PostOrderRecursiveFind(child, (scope & ~2) | 1, j, depth))
+                        return found
+                    else if found = -1
+                        break
+                }
+                if scope & 1 && (startingElement ? (startingElement = el.RuntimeId ? !(startingElement := "") : 0) : 1) && (c := callback(el, i, depth)) > 0 && --index = 0
+                    return el
+                return c
+            }
+        }
+
+
+        FindElements(condition, scope := 4, order := 0, startingElement := 0, cacheRequest := 0) {
+            local withOptions, found, cache, callback := 0
+            condition := UIA.IUIAutomationElement.__ExtractConditionNamedParameters(condition, &scope, &order, &startingElement, &cacheRequest, , &callback)
+            scope := UIA.TypeValidation.TreeScope(scope), order := UIA.TypeValidation.TreeTraversalOptions(order), startingElement := UIA.TypeValidation.Element(startingElement), cacheRequest := UIA.TypeValidation.CacheRequest(cacheRequest)
+            withOptions := order || startingElement
+            if withOptions && !UIA.IsIUIAutomationElement7Available && (Type(condition) ~= "i)Condition|ComValue")
+                throw ValueError("If using order or startingElement arguments in Windows <10.0.15063, then condition cannot be IUIAutomationCondition", -1)
+            if !(Type(condition) ~= "i)Condition|ComValue") {
+                IUIAcondition := UIA.__ConditionBuilder(condition, &nonUIAEncountered := 0), unfilteredEls := [], filteredEls := []
+
+                if callback {
+                    local foundElements := [], TW := UIA.CreateTreeWalker(IUIAcondition), c := 0
+                    if startingElement
+                        startingElement := startingElement.RuntimeId
+                    ; FirstToLast or LastToFirst
+                    if order & 2
+                        nextElementFunc := UIA.IUIAutomationTreeWalker.Prototype.TryGetPreviousSiblingElement.Bind(TW),
+                            nextChildFunc := UIA.IUIAutomationTreeWalker.Prototype.TryGetLastChildElement.Bind(TW)
+                    else
+                        nextElementFunc := UIA.IUIAutomationTreeWalker.Prototype.TryGetNextSiblingElement.Bind(TW),
+                            nextChildFunc := UIA.IUIAutomationTreeWalker.Prototype.TryGetFirstChildElement.Bind(TW)
+                    ; First handle PostOrder
+                    if order & 1
+                        return (PostOrderRecursiveFind(this, scope), foundElements)
+                    ; PreOrder
+                    if scope & 1 && (c := callback(this)) > 0
+                        foundElements.Push(cacheRequest ? this.BuildUpdatedCache(cacheRequest) : this)
+                    if scope > 1 && c >= 0
+                        PreOrderRecursiveFind(nextChildFunc(this))
+                    return foundElements
+                }
+
+                if nonUIAEncountered = 2 ; A cached name was encountered, use FindCachedElements instead
+                    return this.FindCachedElements(condition, scope, order, startingElement)
+                else if nonUIAEncountered = 1 || (withOptions && (!UIA.IsIUIAutomationElement7Available || (scope < 4 && startingElement))) {
+                    cache := this.BuildUpdatedCache(UIA.CreateCacheRequest(condition, , scope, , scope > 3 ? IUIAcondition : unset))
+                    found := cache.FindCachedElements(condition, scope, order, startingElement)
+                    if cacheRequest {
+                        Loop found.Length
+                            found[A_Index] := found[A_Index].BuildUpdatedCache(cacheRequest)
+                    }
+                    return found
+                }
+                unfilteredCondition := condition, condition := IUIAcondition
+            }
+            if !startingElement ; If FindFirstWithOptions is used but startingElement isn't set, start from this element.
+                startingElement := this
+            if cacheRequest {
+                if withOptions
+                    ComCall(113, startingElement, "int", scope, "ptr", condition, "ptr", cacheRequest, "int", order, "ptr", this, "ptr*", &found := 0) ; FindAllWithOptionsBuildCache
+                else
+                    ComCall(8, this, "int", scope, "ptr", condition, "ptr", cacheRequest, "ptr*", &found := 0) ; FindAllBuildCache
+            } else {
+                if withOptions
+                    ComCall(111, startingElement, "int", scope, "ptr", condition, "int", order, "ptr", this, "ptr*", &found := 0) ; FindAllWithOptions
+                else
+                    ComCall(6, this, "int", scope, "ptr", condition, "ptr*", &found := 0) ; FindAll
+            }
+            return found ? UIA.IUIAutomationElementArray(found).ToArray() : []
+
+            PreOrderRecursiveFind(el, depth := 0) {
+                ++depth
+                while (c := 0, IsObject(el)) {
+                    if (startingElement ? (startingElement = el.RuntimeId ? !(startingElement := "") : 0) : 1) && (c := callback(el, A_Index, depth)) > 0
+                        foundElements.Push(cacheRequest ? el.BuildUpdatedCache(cacheRequest) : el)
+                    if scope & 4 && c >= 0
+                        PreOrderRecursiveFind(nextChildFunc(el), depth)
+                    el := nextElementFunc(el)
+                }
+            }
+            PostOrderRecursiveFind(el, scope, i := 1, depth := -1) { ; this is only called if scope >= 4, and handles scope&2 as well
+                local child := nextChildFunc(el), c := 0
+                ++depth
+                if scope > 1 {
+                    while (IsObject(child)) {
+                        if PostOrderRecursiveFind(child, (scope & ~2) | 1, A_Index, depth) = -1
+                            break
+                        child := nextElementFunc(child)
+                    }
+                }
+                if (startingElement ? (startingElement = el.RuntimeId ? !(startingElement := "") : 0) : 1) && (c := callback(el)) > 0
+                    foundElements.Push(cacheRequest ? el.BuildUpdatedCache(cacheRequest) : el)
+                return c
+            }
+        }
+
+
+        FindCachedElements(condition, scope := 4, order := 0, startingElement := 0) {
+            local callback := 0, foundElements := [], c := 0
+            condition := UIA.IUIAutomationElement.__ExtractConditionNamedParameters(condition, &scope, &order, &startingElement, , , &callback)
+            callback := callback || UIA.IUIAutomationElement.Prototype.ValidateCondition.Bind(unset, condition, true), scope := UIA.TypeValidation.TreeScope(scope), order := UIA.TypeValidation.TreeTraversalOptions(order), startingElement := UIA.TypeValidation.Element(startingElement)
+            if startingElement
+                startingElement := startingElement.RuntimeId
+            ChildOrder := order & 2 ? "ReversedCachedChildren" : "CachedChildren"
+            ; First handle PostOrder
+            if order & 1
+                return (PostOrderRecursiveFind(this, scope), foundElements)
+            ; PreOrder
+            if scope & 1 && (c := callback(this, 1, 0)) > 0
+                foundElements.Push(this)
+            if scope > 1 && c >= 0
+                return (PreOrderRecursiveFind(this), foundElements)
+            return foundElements
+
+            PreOrderRecursiveFind(el, depth := 0) {
+                local child, c
+                depth++
+                for i, child in el.%ChildOrder% {
+                    c := 0
+                    if (startingElement ? (startingElement = child.RuntimeId ? !(startingElement := "") : 0) : 1) && (c := callback(child, i, depth)) > 0
+                        foundElements.Push(child)
+                    if c >= 0 && scope & 4
+                        PreOrderRecursiveFind(child, depth)
+                }
+            }
+            PostOrderRecursiveFind(el, scope, i := 1, depth := -1) {
+                local child, c := 0
+                depth++
+                if scope > 1 {
+                    for j, child in el.%ChildOrder% {
+                        if PostOrderRecursiveFind(child, (scope & ~2) | 1, j, depth) = -1
+                            break
+                    }
+                }
+                if scope & 1 && (startingElement ? (startingElement = el.RuntimeId ? !(startingElement := "") : 0) : 1) && (c := callback(el, i, depth)) > 0
+                    foundElements.Push(el)
+                return c
+            }
+        }
+
+
+        WaitElement(condition, timeOut := -1, scope := 4, index := 1, order := 0, startingElement := 0, cacheRequest := 0, tick := 20) {
+            local endtime
+            if Type(condition) = "Object" {
+                condition := condition.Clone()
+                timeOut := (condition.DeleteProp("timeOut") || timeOut), tick := (condition.DeleteProp("tick") || tick)
+            }
+            timeOut := UIA.TypeValidation.Integer(timeOut, "TimeOut"), tick := UIA.TypeValidation.Integer(tick, "Tick")
+            endtime := A_TickCount + timeOut
+            While ((timeOut == -1) || (A_Tickcount < endtime)) {
+                try return this.FindElement(condition, scope, index, order, startingElement, cacheRequest)
+                Sleep tick
+            }
+            return 0
+        }
+
+
+        WaitElementNotExist(condition, timeout := -1, scope := 4, index := 1, order := 0, startingElement := 0, cacheRequest := 0, tick := 20) {
+            local endtime
+            if Type(condition) = "Object" {
+                condition := condition.Clone()
+                timeOut := (condition.DeleteProp("timeOut") || timeOut), tick := (condition.DeleteProp("tick") || tick)
+            }
+            timeOut := UIA.TypeValidation.Integer(timeOut, "TimeOut"), tick := UIA.TypeValidation.Integer(tick, "Tick")
+            endtime := A_TickCount + timeout
+            While (timeout == -1) || (A_Tickcount < endtime) {
+                try this.FindElement(condition, scope, index, order, startingElement, cacheRequest)
+                catch
+                    return 1
+                Sleep tick
+            }
+            return 0
+        }
+
+
+        ElementFromPath(paths*) {
+            local err
+            try return this[paths*]
+            catch IndexError as err
+                throw IndexError(StrReplace(err.Message, "at index", "at path index"), -1, err.Extra)
+        }
+
+
+        CachedElementFromPath(paths*) {
+            local el := this, _, path, subpath, arr, m
+            for _, path in paths {
+                if IsObject(path) {
+                    try el := el.FindCachedElement(path, 2)
+                    catch
+                        el := ""
+                } else if IsInteger(path) {
+                    try {
+                        arr := el.CachedChildren
+                        el := arr[path < 0 ? arr.Length + path + 1 : path]
+                    } catch
+                        el := ""
+                } else if path is String {
+                    maybeEl := ""
+                    for subpath in StrSplit(path, "|") {
+                        try {
+                            if InStr(subpath, ".") || InStr(subpath, ",")
+                                maybeEl := el.CachedElementFromPath(StrSplit(StrReplace(subpath, ".", ","), ",")*)
+                            else if RegexMatch(subpath, "i)([a-zA-Z]+) *(\d+)?", &m := "") && UIA.Type.HasOwnProp(m[1]) {
+                                try maybeEl := el.FindCachedElement({ Type: m[1], i: m[2] }, 2)
+                            } else if !(subpath ~= ",\.+-")
+                                maybeEl := el.CachedElementFromPath(UIA.DecodePath(subpath)*)
+                            else
+                                continue
+                            break ; no errors encountered means that match was found
+                        }
+                    }
+                    el := maybeEl
+                } else
+                    throw TypeError("Invalid item type at index " _, -1)
+                if !el
+                    throw IndexError("Invalid index/condition at index " _, -1)
+            }
+            return el
+        }
+
+
+        ElementFromPathExist(paths*) {
+            try return this[paths*]
+            catch IndexError
+                return 0
+            return 0
+        }
+
+
+        CachedElementFromPathExist(paths*) {
+            try return this.CachedElementFromPath(paths*)
+            catch IndexError
+                return 0
+            return 0
+        }
+
+
+        WaitElementFromPath(paths*) {
+            local timeOut := -1, endtime, tick := 20
+            if paths.Length > 1 && paths[paths.Length] is Integer {
+                paths := paths.Clone()
+                if paths[-2] is Integer
+                    tick := paths.Pop()
+                timeOut := paths.Pop()
+            }
+            endtime := A_TickCount + timeOut
+            While ((timeOut == -1) || (A_Tickcount < endtime)) {
+                try return this[paths*]
+                Sleep tick
+            }
+        }
+
+
+        WalkTree(searchPath, filterCondition?) {
+            local PathTW, el, loopFunc, m, err
+            PathTW := IsSet(filterCondition) ? UIA.CreateTreeWalker(filterCondition) : UIA.TreeWalkerTrue
+            el := this, searchPath := StrReplace(StrReplace(String(searchPath), " "), ".", ",")
+            Loop Parse searchPath, "," {
+                try {
+                    if IsDigit(A_LoopField) {
+                        loopFunc := "GetFirstChildElement", el := PathTW.GetFirstChildElement(el)
+                        if A_LoopField > 1
+                            el := el.WalkTree("+" A_LoopField - 1)
+                    } else if A_LoopField = "n" {
+                        loopFunc := "NormalizeElement", el := PathTW.NormalizeElement(el)
+                    } else if RegexMatch(A_LoopField, "i)([p+-]+) *(\d+)?", &m := "") {
+                        if (loopFunc := (m[1] = "p") ? "GetParentElement" : (m[1] = "+") ? "GetNextSiblingElement" : (m[1] = "-") ? "GetPreviousSiblingElement" : "") {
+                            Loop m[2] || 1 {
+                                el := PathTW.%loopFunc%(el)
+                            }
+                        } else
+                            throw ValueError()
+                    } else
+                        throw ValueError()
+                } catch TargetError, IndexError {
+                    throw IndexError("Step " A_index " with value " A_LoopField " was out of bounds (" loopFunc " failed)", -1)
+                } catch ValueError {
+                    throw ValueError("Invalid path value " A_LoopField " at step " A_index, -1)
+                } catch OSError as err {
+                    throw ValueError("Step " A_index " with value " A_LoopField " caused COM error: " err.Message, -1, "Make sure the element is valid and not cached (use WalkCachedTree for cached elements).")
+                } catch Any as err
+                    throw
+            }
+            return el
+        }
+
+
+        WalkCachedTree(searchPath, filterCondition?) {
+            local el, m, parent, children, child, err, steps
+            el := this, searchPath := StrReplace(StrReplace(String(searchPath), " "), ".", ",")
+            Loop Parse searchPath, "," {
+                try {
+                    if IsDigit(A_LoopField) {
+                        el := el.CachedChildren[A_LoopField]
+                    } else if A_LoopField = "n" {
+                        if !IsSet(filterCondition)
+                            throw Error("Normalizing an element requires a filterCondition", -1)
+                        if !this.ValidateCondition(filterCondition, true) {
+                            if !(parent := el.CachedParent)
+                                throw TargetError()
+                            el := parent.WalkCachedTree("n", filterCondition)
+                        }
+                    } else if RegexMatch(A_LoopField, "i)([p+-]+) *(\d+)?", &m := "") {
+                        if (m[1] = "p") {
+                            counter := 0, steps := m[2] || 1
+                            Loop {
+                                if !(el := el.CachedParent)
+                                    throw TargetError()
+                                if IsSet(filterCondition) && !el.ValidateCondition(filterCondition, true)
+                                    continue
+                                if ++counter = steps
+                                    break
+                            }
+                        } else if (m[1] = "+") || (m[1] = "-") {
+                            parent := el.CachedParent, children := parent.CachedChildren
+                            if !parent
+                                throw TargetError()
+                            if IsSet(filterCondition) {
+                                startingIndex := GetIndex(parent), counter := 0, steps := Integer(m[2] || 1)
+                                Loop (m[1] = "+") ? children.Length - startingIndex : startingIndex - 1 {
+                                    child := children[startingIndex + ((m[1] = "+") ? A_index : -A_index)]
+                                    if child.ValidateCondition(filterCondition, true) && ++counter = steps {
+                                        el := child
+                                        break
+                                    }
+                                    RecurseTree(child)
+                                    if counter = steps
+                                        break
+                                }
+                                if counter != steps
+                                    el := ""
+                            } else
+                                el := parent[GetIndex(parent) + ((m[1] = "+") ? (m[2] || 1) : -(m[2] || 1))]
+                        } else
+                            throw ValueError()
+                    }
+                } catch TargetError, IndexError {
+                    throw IndexError("Step " A_index " with value " A_LoopField " was out of bounds", -1)
+                } catch ValueError {
+                    throw ValueError("Invalid path value " A_LoopField " at step " A_index, -1)
+                } catch OSError as err {
+                    throw ValueError("Step " A_index " with value " A_LoopField " caused COM error: " err.Message, -1, "Either CachedParent or CachedChildren failed: make sure the target and the targets parent are cached.")
+                } catch Any as err
+                    throw
+                if !el
+                    throw IndexError("No element found after step " A_index " with value " A_LoopField, -1)
+            }
+            return el
+            GetIndex(parent) {
+                local elId, i, child
+                elId := el.RuntimeId
+                for i, child in parent.CachedChildren {
+                    if child.RuntimeId = elId
+                        return i
+                }
+            }
+            RecurseTree(parent) {
+                local children := parent.CachedChildren, child
+                if (m[1] = "+") {
+                    for child in children {
+                        if child.ValidateCondition(filterCondition, true) && ++counter = steps
+                            return el := child
+                        if RecurseTree(child)
+                            return
+                    }
+                } else {
+                    Loop children.Length {
+                        child := children[children.Length - A_Index + 1]
+                        if child.ValidateCondition(filterCondition, true) && ++counter = steps
+                            return el := child
+                        if RecurseTree(child)
+                            return
+                    }
+                }
+            }
+        }
+
+        ; Gets all property values of this element and returns an object where Object.PropertyName = PropertyValue
+        ; Use only for debugging purposes, since this will be quite slow.
+        GetAllPropertyValues() {
+            local infos := {}, k, v, arr, t
+            for k, v in UIA.Property.OwnProps() {
+                if k = "__CachedValues"
+                    continue
+                v := this.GetPropertyValue(v)
+                if (v is ComObjArray) {
+                    arr := []
+                    for t in v
+                        arr.Push(t)
+                    v := arr
+                }
+                infos.%k% := v
+            }
+            return infos
+        }
+
+        ; Internal method: checks whether this element matches the condition
+        ValidateCondition(cond, cached := False, i?, depth?) {
+            local mm, cs, notCond := 0, k, v, result, val
+            if !IsObject(cond)
+                throw ValueError("Condition of type " Type(cond) " is an invalid ValidateCondition condition", -1, "The condition can be a plain object, array or a method")
+            if HasMethod(cond)
+                return cond(this, i?, depth?)
+            if Type(cond) = "Object" {
+                mm := cond.HasOwnProp("matchmode") ? cond.matchmode : cond.HasOwnProp("mm") ? cond.mm : unset
+                cs := cond.HasOwnProp("casesense") ? cond.casesense : cond.HasOwnProp("cs") ? cond.cs : unset
+                if !IsInteger(mm ?? 0)
+                    mm := UIA.MatchMode.%mm%
+                if !IsInteger(cs ?? 0)
+                    cs := UIA.CaseSense.%cs%
+                notCond := cond.HasOwnProp("operator") ? cond.operator = "not" : cond.HasOwnProp("op") ? cond.op = "not" : 0
+                cond := cond.OwnProps()
+            } else if cond is Array {
+                for k, v in cond {
+                    if IsObject(v) && this.ValidateCondition(v, cached, i?, depth?)
+                        return true
+                }
+                return false
+            } else
+                throw ValueError("Condition of type " Type(cond) " is an invalid ValidateCondition condition", -1, "The condition can be a plain object, array or a method")
+
+            for k, v in cond {
+                try k := UIA.TypeValidation.Property(k)
+                if !(IsInteger(k) && k >= 10000) {
+                    if IsObject(v) {
+                        if (k = "not" ? this.ValidateCondition(v, cached, i?, depth?) : !this.ValidateCondition(v, cached, i?, depth?))
+                            return False
+                    }
+                    continue
+                }
+                if k = 30003
+                    v := UIA.TypeValidation.Type(v)
+                try currentValue := this.Get%cached ? "Cached" : ""%PropertyValue(k)
+                catch { ; If caching is used, should this throw an error to notify the user of a missing cache property?
+                    result := 0
+                } else {
+                    switch UIA.PropertyVariantType[k] {
+                        case 8:
+                            if v is Array {
+                                for val in v {
+                                    if (result := CompareStrings(currentValue, val, mm?, cs?))
+                                        break
+                                }
+                            } else
+                                result := CompareStrings(currentValue, v, mm?, cs?)
+                        case 3, 5, 11:
+                            if v is Array {
+                                for val in v {
+                                    if k = 30003
+                                        val := UIA.TypeValidation.Type(val)
+                                    if (result := currentValue == val)
+                                        break
+                                }
+                            } else
+                                result := currentValue == v
+                        default:
+                            if Type(v) = "Object"
+                                v := v.OwnProps(), currentValue := currentValue is Array ? currentValue : currentValue.OwnProps()
+                            if not v is Array {
+                                if k = 30000 {
+                                    local v := StrSplit(v, ".")
+                                    for t in v
+                                        v[A_Index] := Integer("0x" t)
+                                } else
+                                    throw ValueError("Invalid PropertyId " k, -1)
+                            }
+                            if result := currentValue.Length == v.Length {
+                                for i, val in v {
+                                    try {
+                                        if currentValue[i] == val
+                                            continue
+                                    }
+                                    result := 0
+                                    break
+                                }
+                            }
+                    }
+                }
+                if notCond ? result : !result
+                    return False
+            }
+            return True
+
+            CompareStrings(str1, str2, matchmode := 3, casesense := -1) {
+                if not str1 is String
+                    str1 := String(str1)
+                if not str2 is String
+                    str2 := String(str2)
+                if matchmode = 3
+                    return (casesense ? str1 == str2 : str1 = str2)
+                else if matchmode = 2
+                    return InStr(str1, str2, !!casesense)
+                if matchmode = 1
+                    return ((casesense && SubStr(str1, 1, StrLen(str2)) == str2) || (!casesense && SubStr(str1, 1, StrLen(str2)) = str2))
+                else if matchmode = "RegEx" {
+                    if casesense = -1
+                        return RegExMatch(str1, str2)
+                    return RegExMatch(str1, (!casesense && !RegExMatch(str2, "^([^(\\]+)\)")) ? "i)" str2 : str2)
+                } else
+                    throw Error("Invalid MatchMode", -1, matchmode)
+            }
+        }
+
+        ; Sets the keyboard focus to this UI Automation element.
+        SetFocus() => ComCall(3, this)
+
+        ; The identifier is only guaranteed to be unique to the UI of the desktop on which it was generated. Identifiers can be reused over time.
+        ; The format of run-time identifiers might change in the future. The returned identifier should be treated as an opaque value and used only for comparison; for example, to determine whether a Microsoft UI Automation element is in the cache.
+        GetRuntimeId() {
+            local runtimeId
+            return (ComCall(4, this, "ptr*", &runtimeId := 0), UIA.SafeArrayToAHKArray(runtimeId))
+        }
+
+
+        FindFirst(condition := UIA.TrueCondition, scope := 4) {
+            local found
+            scope := UIA.TypeValidation.TreeScope(scope)
+            if !(Type(condition) ~= "i)Condition|ComValue")
+                condition := UIA.__CreateRawCondition(condition)
+            if (ComCall(5, this, "int", scope, "ptr", condition ?? UIA.TrueCondition, "ptr*", &found := 0), found)
+                return UIA.IUIAutomationElement(found)
+            throw TargetError("An element matching the condition was not found", -1)
+        }
+
+
+        FindAll(condition := UIA.TrueCondition, scope := 4) {
+            local found
+            if !IsObject(condition)
+                throw TypeError("Condition must be an condition object or array", -1)
+            if !(Type(condition) ~= "i)Condition|ComValue")
+                condition := UIA.__CreateRawCondition(condition)
+            return (ComCall(6, this, "int", UIA.TypeValidation.TreeScope(scope), "ptr", condition, "ptr*", &found := 0), found) ? UIA.IUIAutomationElementArray(found).ToArray() : []
+        }
+
+        FindFirstBuildCache(cacheRequest, condition := UIA.TrueCondition, scope := 4) {
+            local found
+            if !(Type(condition) ~= "i)Condition|ComValue")
+                condition := UIA.__CreateRawCondition(condition)
+            if (ComCall(7, this, "int", UIA.TypeValidation.TreeScope(scope), "ptr", condition, "ptr", UIA.TypeValidation.CacheRequest(cacheRequest), "ptr*", &found := 0), found)
+                return UIA.IUIAutomationElement(found)
+            throw TargetError("An element matching the condition was not found", -1)
+        }
+
+        FindAllBuildCache(cacheRequest, condition := UIA.TrueCondition, scope := 4) {
+            local found
+            if !(Type(condition) ~= "i)Condition|ComValue")
+                condition := UIA.__CreateRawCondition(condition)
+            return (ComCall(8, this, "int", UIA.TypeValidation.TreeScope(scope), "ptr", condition, "ptr", UIA.TypeValidation.CacheRequest(cacheRequest), "ptr*", &found := 0), found) ? UIA.IUIAutomationElementArray(found).ToArray() : []
+        }
+
+        ; The original UI Automation element is unchanged. The  UIA.IUIAutomationElement interface refers to the same element and has the same runtime identifier.
+        BuildUpdatedCache(cacheRequest) {
+            local updatedElement
+            return (ComCall(9, this, "ptr", UIA.TypeValidation.CacheRequest(cacheRequest), "ptr*", &updatedElement := 0), UIA.IUIAutomationElement(updatedElement))
+        }
+
+        ; Microsoft UI Automation properties of the double type support Not a Number (NaN) values. When retrieving a property of the double type, a client can use the _isnan function to determine whether the property is a NaN value.
+
+        ; This gets called when Element.Property is used
+        GetPropertyValue(propertyId) {
+            local val
+            if !IsNumber(propertyId) {
+                if UIA.Property.HasOwnProp(propertyId)
+                    propertyId := UIA.Property.%propertyId%
+                else
+                    throw ValueError("Invalid propertyId.", -1, IsObject(propertyId) ? "PropertyId must be a string or an integer, but " Type(propertyId) " was provided" : propertyId)
+            }
+            ComCall(10, this, "int", propertyId, "ptr", val := UIA.ComVar())
+            return val[] is ComObjArray ? UIA.SafeArrayToAHKArray(val[]) : val[]
+        }
+
+        ; Passing FALSE in the ignoreDefaultValue parameter is equivalent to calling UIA.IUIAutomationElement.GetPropertyValue.
+        ; If the Microsoft UI Automation provider for the element itself supports the property, the value of the property is returned. Otherwise, if ignoreDefaultValue is FALSE, a default value specified by UI Automation is returned.
+        ; This method returns a failure code if the requested property was not previously cached.
+        GetPropertyValueEx(propertyId, ignoreDefaultValue) {
+            local val
+            ComCall(11, this, "int", UIA.TypeValidation.Property(propertyId), "int", ignoreDefaultValue, "ptr", val := UIA.ComVar())
+            return val[] is ComObjArray ? UIA.SafeArrayToAHKArray(val[]) : val[]
+        }
+
+        ; This is called when Element.CachedProperty is used (eg Element.CachedName)
+        GetCachedPropertyValue(propertyId) {
+            local val
+            ComCall(12, this, "int", UIA.TypeValidation.Property(propertyId), "ptr", val := UIA.ComVar())
+            return val[] is ComObjArray ? UIA.SafeArrayToAHKArray(val[]) : val[]
+        }
+
+        GetCachedPropertyValueEx(propertyId, ignoreDefaultValue, retVal) {
+            local val
+            ComCall(13, this, "int", UIA.TypeValidation.Property(propertyId), "int", ignoreDefaultValue, "ptr", val := UIA.ComVar())
+            return val[] is ComObjArray ? UIA.SafeArrayToAHKArray(val[]) : val[]
+        }
+
+        ; For riid specify a GUID string, that is the IID for the desired pattern
+        ; GetPatternAs doesn't have a use in this library, use GetPattern instead
+        GetPatternAs(patternId, riid) {
+            local name, GUID
+            try {
+                if IsInteger(patternId)
+                    name := UIA.Pattern[patternId]
+                else
+                    patternId := UIA.Pattern.%(name := patternId)%
+            } catch
+                Throw ValueError("Failed to find pattern `"" name "`" among UIA.Pattern properties/values", -1)
+            DllCall("ole32\CLSIDFromString", "wstr", riid, "ptr", GUID := Buffer(16))
+            ComCall(14, this, "int", patternId, "ptr", GUID, "ptr*", &patternObject := 0)
+            return UIA.IUIAutomation%name%Pattern(patternObject)
+        }
+
+        ; GetCachedPatternAs doesn't have a use in this library, use GetCachedPattern instead
+        GetCachedPatternAs(patternId, riid) {	; not completed
+            local name, GUID, patternObject
+            try {
+                if IsInteger(patternId)
+                    name := UIA.Pattern[patternId]
+                else
+                    patternId := UIA.Pattern.%(name := patternId)%
+            } catch
+                Throw ValueError("Failed to find pattern `"" name "`" among UIA.Pattern properties/values", -1)
+            DllCall("ole32\CLSIDFromString", "wstr", riid, "ptr", GUID := Buffer(16))
+            ComCall(15, this, "int", patternId, "ptr", GUID, "ptr*", &patternObject := 0)
+            return UIA.IUIAutomation%name%Pattern(patternObject)
+        }
+
+        ; This method gets the specified control pattern based on its availability at the time of the call.
+        ; For some forms of UI, this method will incur cross-process performance overhead. Applications can reduce overhead by caching control patterns and then retrieving them by using UIA.IUIAutomationElement,,GetCachedPattern.
+        GetPattern(patternId) {
+            local name, patternObject
+            try {
+                if IsInteger(patternId)
+                    name := UIA.Pattern[patternId]
+                else
+                    patternId := UIA.Pattern.%(name := StrReplace(patternId, "Pattern"))%
+            } catch
+                Throw ValueError("Failed to find pattern `"" name "`" among UIA.Pattern properties/values", -1)
+            ComCall(16, this, "int", patternId, "ptr*", &patternObject := 0)
+            return UIA.IUIAutomation%RegExReplace(name, "\d+$")%Pattern(patternObject)
+        }
+
+        GetCachedPattern(patternId) {
+            local name, patternObject
+            try {
+                if IsInteger(patternId)
+                    name := UIA.Pattern[patternId]
+                else
+                    patternId := UIA.Pattern.%(name := StrReplace(patternId, "Pattern"))%
+            } catch
+                Throw ValueError("Failed to find pattern `"" name "`" among UIA.Pattern properties/values", -1)
+            ComCall(17, this, "int", patternId, "ptr*", &patternObject := 0)
+            return UIA.IUIAutomation%RegExReplace(name, "\d+$")%Pattern(patternObject)
+        }
+
+        ProcessId {
+            get {
+                local retVal
+                return (ComCall(20, this, "int*", &retVal := 0), retVal)
+            }
+        }
+
+        Type {
+            get {
+                local retVal
+                return (ComCall(21, this, "int*", &retVal := 0), retVal)
+            }
+        }
+        ControlType => this.Type
+
+        LocalizedType {
+            get {
+                local retVal
+                return (ComCall(22, this, "ptr*", &retVal := 0), UIA.BSTR(retVal))
+            }
+        }
+        LocalizedControlType => this.LocalizedType
+
+        Name {
+            get {
+                local retVal
+                return (ComCall(23, this, "ptr*", &retVal := 0), UIA.BSTR(retVal))
+            }
+        }
+
+        AcceleratorKey {
+            get {
+                local retVal
+                return (ComCall(24, this, "ptr*", &retVal := 0), UIA.BSTR(retVal))
+            }
+        }
+
+        AccessKey {
+            get {
+                local retVal
+                return (ComCall(25, this, "ptr*", &retVal := 0), UIA.BSTR(retVal))
+            }
+        }
+
+        ; Indicates whether the element has keyboard focus.
+        HasKeyboardFocus {
+            get {
+                local retVal
+                return (ComCall(26, this, "int*", &retVal := 0), retVal)
+            }
+        }
+
+        ; Indicates whether the element can accept keyboard focus.
+        IsKeyboardFocusable {
+            get {
+                local retVal
+                return (ComCall(27, this, "int*", &retVal := 0), retVal)
+            }
+        }
+
+        IsEnabled {
+            get {
+                local retVal
+                return (ComCall(28, this, "int*", &retVal := 0), retVal)
+            }
+        }
+
+        ; The identifier is unique among sibling elements in a container, and is the same in all instances of the application.
+        AutomationId {
+            get {
+                local retVal
+                return (ComCall(29, this, "ptr*", &retVal := 0), UIA.BSTR(retVal))
+            }
+        }
+
+        ; The value of this property is implementation-defined. The property is useful in testing environments.
+        ClassName {
+            get {
+                local retVal
+                return (ComCall(30, this, "ptr*", &retVal := 0), UIA.BSTR(retVal))
+            }
+        }
+
+        HelpText {
+            get {
+                local retVal
+                return (ComCall(31, this, "ptr*", &retVal := 0), UIA.BSTR(retVal))
+            }
+        }
+
+        Culture {
+            get {
+                local retVal
+                return (ComCall(32, this, "int*", &retVal := 0), retVal)
+            }
+        }
+
+        ; Indicates whether the element is a control element.
+        IsControlElement {
+            get {
+                local retVal
+                return (ComCall(33, this, "int*", &retVal := 0), retVal)
+            }
+        }
+
+        IsContentElement {
+            get {
+                local retVal
+                return (ComCall(34, this, "int*", &retVal := 0), retVal)
+            }
+        }
+
+        ; Indicates whether the element contains a disguised password.
+        ; This property enables applications such as screen-readers to determine whether the text content of a control should be read aloud.
+        IsPassword {
+            get {
+                local retVal
+                return (ComCall(35, this, "int*", &retVal := 0), retVal)
+            }
+        }
+
+        NativeWindowHandle {
+            get {
+                local retVal
+                return (ComCall(36, this, "ptr*", &retVal := 0), retVal)
+            }
+        }
+
+        ; This property is used to obtain information about items in a list, tree view, or data grid. For example, an item in a file directory view might be a "Document File" or a "Folder".
+        ItemType {
+            get {
+                local retVal
+                return (ComCall(37, this, "ptr*", &retVal := 0), UIA.BSTR(retVal))
+            }
+        }
+
+        ; Indicates whether the element is off-screen.
+        IsOffscreen {
+            get {
+                local retVal
+                return (ComCall(38, this, "int*", &retVal := 0), retVal)
+            }
+        }
+
+        ; This property is supported by controls such as scroll bars and sliders that can have either a vertical or a horizontal orientation.
+        Orientation {
+            get {
+                local retVal
+                return (ComCall(39, this, "int*", &retVal := 0), retVal)
+            }
+        }
+
+        FrameworkId {
+            get {
+                local retVal
+                return (ComCall(40, this, "ptr*", &retVal := 0), UIA.BSTR(retVal))
+            }
+        }
+
+        ; Indicates whether the element is required to be filled out on a form.
+        IsRequiredForForm {
+            get {
+                local retVal
+                return (ComCall(41, this, "int*", &retVal := 0), retVal)
+            }
+        }
+
+        ; This property enables a client to ascertain whether an element is conveying status about an item. For example, an item associated with a contact in a messaging application might be "Busy" or "Connected".
+        ItemStatus {
+            get {
+                local retVal
+                return (ComCall(42, this, "ptr*", &retVal := 0), UIA.BSTR(retVal))
+            }
+        }
+
+        BoundingRectangle => (ComCall(43, this, "ptr", retVal := UIA.NativeArray(0, 4, "int")), { l: retVal[0], t: retVal[1], r: retVal[2], b: retVal[3] })
+
+        ; This property maps to the Accessible Rich Internet Applications (ARIA) property.
+
+        ; This property could be used to retrieve, for example, the static text label for a combo box.
+        LabeledBy {
+            get {
+                local retVal
+                return (ComCall(44, this, "ptr*", &retVal := 0), UIA.IUIAutomationElement(retVal))
+            }
+        }
+
+        AriaRole {
+            get {
+                local retVal
+                return (ComCall(45, this, "ptr*", &retVal := 0), UIA.BSTR(retVal))
+            }
+        }
+
+        AriaProperties {
+            get {
+                local retVal
+                return (ComCall(46, this, "ptr*", &retVal := 0), UIA.BSTR(retVal))
+            }
+        }
+
+        ; Indicates whether the element contains valid data for a form.
+        IsDataValidForForm {
+            get {
+                local retVal
+                return (ComCall(47, this, "int*", &retVal := 0), retVal)
+            }
+        }
+
+        ControllerFor {
+            get {
+                local retVal
+                return (ComCall(48, this, "ptr*", &retVal := 0), retVal ? UIA.IUIAutomationElementArray(retVal).ToArray() : [])
+            }
+        }
+
+        DescribedBy {
+            get {
+                local retVal
+                return (ComCall(49, this, "ptr*", &retVal := 0), retVal ? UIA.IUIAutomationElementArray(retVal).ToArray() : [])
+            }
+        }
+
+        FlowsTo {
+            get {
+                local retVal
+                return (ComCall(50, this, "ptr*", &retVal := 0), retVal ? UIA.IUIAutomationElementArray(retVal).ToArray() : [])
+            }
+        }
+
+        ProviderDescription {
+            get {
+                local retVal
+                return (ComCall(51, this, "ptr*", &retVal := 0), UIA.BSTR(retVal))
+            }
+        }
+
+        CachedRuntimeId => (this.DefineProp("CachedRuntimeId", { value: this.RuntimeId }), this.CachedRuntimeId)
+
+        CachedProcessId {
+            get {
+                local retVal
+                return (ComCall(52, this, "int*", &retVal := 0), this.DefineProp("CachedProcessId", { value: retVal }), this.CachedProcessId)
+            }
+        }
+
+        CachedType {
+            get {
+                local retVal
+                return (ComCall(53, this, "int*", &retVal := 0), this.DefineProp("CachedType", { value: retVal }), this.CachedType)
+            }
+        }
+        CachedControlType => this.CachedType
+
+        CachedLocalizedType {
+            get {
+                local retVal
+                return (ComCall(54, this, "ptr*", &retVal := 0), this.DefineProp("CachedLocalizedType", { value: UIA.BSTR(retVal) }), this.CachedLocalizedType)
+            }
+        }
+        CachedLocalizedControlType => this.CachedLocalizedType
+
+        CachedName {
+            get {
+                local retVal
+                return (ComCall(55, this, "ptr*", &retVal := 0), this.DefineProp("CachedName", { value: UIA.BSTR(retVal) }), this.CachedName)
+            }
+        }
+
+        CachedAcceleratorKey {
+            get {
+                local retVal
+                return (ComCall(56, this, "ptr*", &retVal := 0), this.DefineProp("CachedAcceleratorKey", { value: UIA.BSTR(retVal) }), this.CachedAcceleratorKey)
+            }
+        }
+
+        CachedAccessKey {
+            get {
+                local retVal
+                return (ComCall(57, this, "ptr*", &retVal := 0), this.DefineProp("CachedAccessKey", { value: UIA.BSTR(retVal) }), this.CachedAccessKey)
+            }
+        }
+
+        ; A cached value that indicates whether the element has keyboard focus.
+        CachedHasKeyboardFocus {
+            get {
+                local retVal
+                return (ComCall(58, this, "int*", &retVal := 0), this.DefineProp("CachedHasKeyboardFocus", { value: retVal }), this.CachedHasKeyboardFocus)
+            }
+        }
+
+        CachedIsKeyboardFocusable {
+            get {
+                local retVal
+                return (ComCall(59, this, "int*", &retVal := 0), this.DefineProp("CachedIsKeyboardFocusable", { value: retVal }), this.CachedIsKeyboardFocusable)
+            }
+        }
+
+        CachedIsEnabled {
+            get {
+                local retVal
+                return (ComCall(60, this, "int*", &retVal := 0), this.DefineProp("CachedIsEnabled", { value: retVal }), this.CachedIsEnabled)
+            }
+        }
+
+        CachedAutomationId {
+            get {
+                local retVal
+                return (ComCall(61, this, "ptr*", &retVal := 0), this.DefineProp("CachedAutomationId", { value: UIA.BSTR(retVal) }), this.CachedAutomationId)
+            }
+        }
+
+        CachedClassName {
+            get {
+                local retVal
+                return (ComCall(62, this, "ptr*", &retVal := 0), this.DefineProp("CachedClassName", { value: UIA.BSTR(retVal) }), this.CachedClassName)
+            }
+        }
+
+        ;
+        CachedHelpText {
+            get {
+                local retVal
+                return (ComCall(63, this, "ptr*", &retVal := 0), this.DefineProp("CachedHelpText", { value: UIA.BSTR(retVal) }), this.CachedHelpText)
+            }
+        }
+
+        CachedCulture {
+            get {
+                local retVal
+                return (ComCall(64, this, "int*", &retVal := 0), this.DefineProp("CachedCulture", { value: retVal }), this.CachedCulture)
+            }
+        }
+
+        CachedIsControlElement {
+            get {
+                local retVal
+                return (ComCall(65, this, "int*", &retVal := 0), this.DefineProp("CachedIsControlElement", { value: retVal }), this.CachedIsControlElement)
+            }
+        }
+
+        ; A cached value that indicates whether the element is a content element.
+        CachedIsContentElement {
+            get {
+                local retVal
+                return (ComCall(66, this, "int*", &retVal := 0), this.DefineProp("CachedIsContentElement", { value: retVal }), this.CachedIsContentElement)
+            }
+        }
+
+        CachedIsPassword {
+            get {
+                local retVal
+                return (ComCall(67, this, "int*", &retVal := 0), this.DefineProp("CachedIsPassword", { value: retVal }), this.CachedIsPassword)
+            }
+        }
+
+        CachedNativeWindowHandle {
+            get {
+                local retVal
+                return (ComCall(68, this, "ptr*", &retVal := 0), this.DefineProp("CachedNativeWindowHandle", { value: retVal }), this.CachedNativeWindowHandle)
+            }
+        }
+
+        CachedItemType {
+            get {
+                local retVal
+                return (ComCall(69, this, "ptr*", &retVal := 0), this.DefineProp("CachedItemType", { value: UIA.BSTR(retVal) }), this.CachedItemType)
+            }
+        }
+
+        CachedIsOffscreen {
+            get {
+                local retVal
+                return (ComCall(70, this, "int*", &retVal := 0), this.DefineProp("CachedIsOffscreen", { value: retVal }), this.CachedIsOffscreen)
+            }
+        }
+
+        CachedOrientation {
+            get {
+                local retVal
+                return (ComCall(71, this, "int*", &retVal := 0), this.DefineProp("CachedOrientation", { value: retVal }), this.CachedOrientation)
+            }
+        }
+
+        CachedFrameworkId {
+            get {
+                local retVal
+                return (ComCall(72, this, "ptr*", &retVal := 0), this.DefineProp("CachedFrameworkId", { value: UIA.BSTR(retVal) }), this.CachedFrameworkId)
+            }
+        }
+
+        CachedIsRequiredForForm {
+            get {
+                local retVal
+                return (ComCall(73, this, "int*", &retVal := 0), this.DefineProp("CachedIsRequiredForForm", { value: retVal }), this.CachedIsRequiredForForm)
+            }
+        }
+
+        CachedItemStatus {
+            get {
+                local retVal
+                return (ComCall(74, this, "ptr*", &retVal := 0), this.DefineProp("CachedItemStatus", { value: UIA.BSTR(retVal) }), this.CachedItemStatus)
+            }
+        }
+
+        CachedBoundingRectangle => (ComCall(75, this, "ptr", retVal := UIA.NativeArray(0, 4, "int")), this.DefineProp("CachedBoundingRectangle", { value: { l: retVal[0], t: retVal[1], r: retVal[2], b: retVal[3] } }), this.CachedBoundingRectangle)
+
+        CachedLabeledBy {
+            get {
+                local retVal
+                return (ComCall(76, this, "ptr*", &retVal := 0), this.DefineProp("CachedLabeledBy", { value: UIA.IUIAutomationElement(retVal) }), this.CachedLabeledBy)
+            }
+        }
+
+        CachedAriaRole {
+            get {
+                local retVal
+                return (ComCall(77, this, "ptr*", &retVal := 0), this.DefineProp("CachedAriaRole", { value: UIA.BSTR(retVal) }), this.CachedAriaRole)
+            }
+        }
+
+        CachedAriaProperties {
+            get {
+                local retVal
+                return (ComCall(78, this, "ptr*", &retVal := 0), this.DefineProp("CachedAriaProperties", { value: UIA.BSTR(retVal) }), this.CachedAriaProperties)
+            }
+        }
+
+        CachedIsDataValidForForm {
+            get {
+                local retVal
+                return (ComCall(79, this, "int*", &retVal := 0), this.DefineProp("CachedIsDataValidForForm", { value: retVal }), this.CachedIsDataValidForForm)
+            }
+        }
+
+        CachedControllerFor {
+            get {
+                local retVal
+                return (ComCall(80, this, "ptr*", &retVal := 0), this.DefineProp("CachedControllerFor", { value: retVal ? UIA.IUIAutomationElementArray(retVal).ToArray() : [] }), this.CachedControllerFor)
+            }
+        }
+
+        CachedDescribedBy {
+            get {
+                local retVal
+                return (ComCall(81, this, "ptr*", &retVal := 0), this.DefineProp("CachedDescribedBy", { value: retVal ? UIA.IUIAutomationElementArray(retVal).ToArray() : [] }), this.CachedDescribedBy)
+            }
+        }
+
+        CachedFlowsTo {
+            get {
+                local retVal
+                return (ComCall(82, this, "ptr*", &retVal := 0), this.DefineProp("CachedFlowsTo", { value: retVal ? UIA.IUIAutomationElementArray(retVal).ToArray() : [] }), this.CachedFlowsTo)
+            }
+        }
+
+        CachedProviderDescription {
+            get {
+                local retVal
+                return (ComCall(83, this, "ptr*", &retVal := 0), this.DefineProp("CachedProviderDescription", { value: UIA.BSTR(retVal) }), this.CachedProviderDescription)
+            }
+        }
+
+        ; A client application can use this method to simulate clicking the left or right mouse button. For example, to simulate clicking the right mouse button to display the context menu for a control,
+        ; • Call the GetClickablePoint method to find a clickable point on the control.
+        ; • Call the SendInput function to send a right-mouse-down, right-mouse-up sequence.
+        GetClickablePoint() {
+            if (ComCall(84, this, "int64*", &clickable := 0, "int*", &gotClickable := 0), gotClickable)
+                return { x: clickable & 0xffff, y: clickable >> 32 }
+            throw TargetError('The element has no clickable point')
+        }
+
+        ;; UIA.IUIAutomationElement2
+        OptimizeForVisualContent {
+            get {
+                local retVal
+                return (ComCall(85, this, "int*", &retVal := 0), retVal)
+            }
+        }
+        CachedOptimizeForVisualContent {
+            get {
+                local retVal
+                return (ComCall(86, this, "int*", &retVal := 0), retVal)
+            }
+        }
+        LiveSetting {
+            get {
+                local retVal
+                return (ComCall(87, this, "int*", &retVal := 0), retVal)
+            }
+        }
+        CachedLiveSetting {
+            get {
+                local retVal
+                return (ComCall(88, this, "int*", &retVal := 0), retVal)
+            }
+        }
+        FlowsFrom {
+            get {
+                local retVal
+                return (ComCall(89, this, "ptr*", &retVal := 0), retVal ? UIA.IUIAutomationElementArray(retVal).ToArray() : [])
+            }
+        }
+        CachedFlowsFrom {
+            get {
+                local retVal
+                return (ComCall(90, this, "ptr*", &retVal := 0), retVal ? UIA.IUIAutomationElementArray(retVal).ToArray() : [])
+            }
+        }
+
+        ;; UIA.IUIAutomationElement3
+        ShowContextMenu() => ComCall(91, this)
+        IsPeripheral {
+            get {
+                local retVal
+                return (ComCall(92, this, "int*", &retVal := 0), retVal)
+            }
+        }
+        CachedIsPeripheral {
+            get {
+                local retVal
+                return (ComCall(93, this, "int*", &retVal := 0), retVal)
+            }
+        }
+
+        ;; UIA.IUIAutomationElement4
+        PositionInSet {
+            get {
+                local retVal
+                return (ComCall(94, this, "int*", &retVal := 0), retVal)
+            }
+        }
+        SizeOfSet {
+            get {
+                local retVal
+                return (ComCall(95, this, "int*", &retVal := 0), retVal)
+            }
+        }
+        Level {
+            get {
+                local retVal
+                return (ComCall(96, this, "int*", &retVal := 0), retVal)
+            }
+        }
+        AnnotationTypes {
+            get {
+                local retVal
+                return (ComCall(97, this, "ptr*", &retVal := 0), ComValue(0x2003, retVal))
+            }
+        }
+        AnnotationObjects {
+            get {
+                local retVal
+                return (ComCall(98, this, "ptr*", &retVal := 0), retVal ? UIA.IUIAutomationElementArray(retVal).ToArray() : [])
+            }
+        }
+        CachedPositionInSet {
+            get {
+                local retVal
+                return (ComCall(99, this, "int*", &retVal := 0), retVal)
+            }
+        }
+        CachedSizeOfSet {
+            get {
+                local retVal
+                return (ComCall(100, this, "int*", &retVal := 0), retVal)
+            }
+        }
+        CachedLevel {
+            get {
+                local retVal
+                return (ComCall(101, this, "int*", &retVal := 0), retVal)
+            }
+        }
+        CachedAnnotationTypes {
+            get {
+                local retVal
+                return (ComCall(102, this, "ptr*", &retVal := 0), ComValue(0x2003, retVal))
+            }
+        }
+        CachedAnnotationObjects {
+            get {
+                local retVal
+                return (ComCall(103, this, "ptr*", &retVal := 0), retVal ? UIA.IUIAutomationElementArray(retVal).ToArray() : [])
+            }
+        }
+
+        ;; UIA.IUIAutomationElement5
+        LandmarkType {
+            get {
+                local retVal
+                return (ComCall(104, this, "int*", &retVal := 0), retVal)
+            }
+        }
+        LocalizedLandmarkType {
+            get {
+                local retVal
+                return (ComCall(105, this, "ptr*", &retVal := 0), UIA.BSTR(retVal))
+            }
+        }
+        CachedLandmarkType {
+            get {
+                local retVal
+                return (ComCall(106, this, "int*", &retVal := 0), retVal)
+            }
+        }
+        CachedLocalizedLandmarkType {
+            get {
+                local retVal
+                return (ComCall(107, this, "ptr*", &retVal := 0), UIA.BSTR(retVal))
+            }
+        }
+
+        ;; UIA.IUIAutomationElement6
+        FullDescription {
+            get {
+                local retVal
+                return (ComCall(108, this, "ptr*", &retVal := 0), UIA.BSTR(retVal))
+            }
+        }
+        CachedFullDescription {
+            get {
+                local retVal
+                return (ComCall(109, this, "ptr*", &retVal := 0), UIA.BSTR(retVal))
+            }
+        }
+
+        ;; UIA.IUIAutomationElement7
+        ; FindFirst with additional parameters
+        ; This gets called when FindFirst or FindElement is used with traversalOptions or startingElement arguments
+        FindFirstWithOptions(condition, traversalOptions := 0, root := 0, scope := 4) {
+            local found
+            if (ComCall(110, this, "int", UIA.TypeValidation.TreeScope(scope), "ptr", (Type(condition) ~= "i)Condition|ComValue") ? condition : UIA.__CreateRawCondition(condition), "int", UIA.TypeValidation.TreeTraversalOptions(traversalOptions), "ptr", root, "ptr*", &found := 0), found)
+                return UIA.IUIAutomationElement(found)
+            throw TargetError("An element matching the condition was not found", -1)
+        }
+        ; FindAll with additional parameters
+        ; This gets called when FindAll or FindElements is used with traversalOptions or startingElement arguments
+        FindAllWithOptions(condition, traversalOptions := 0, root := 0, scope := 4) {
+            local found
+            if (ComCall(111, this, "int", UIA.TypeValidation.TreeScope(scope), "ptr", (Type(condition) ~= "i)Condition|ComValue") ? condition : UIA.__CreateRawCondition(condition), "int", UIA.TypeValidation.TreeTraversalOptions(traversalOptions), "ptr", root, "ptr*", &found := 0), found)
+                return UIA.IUIAutomationElementArray(found).ToArray()
+            return []
+        }
+
+        ; TreeScope, IUIAutomationCondition, IUIAutomationCacheRequest, TreeTraversalOptions, UIA.IUIAutomationElement
+        FindFirstWithOptionsBuildCache(cacheRequest, condition, traversalOptions := 0, root := 0, scope := 4) {
+            local found
+            if (ComCall(112, this, "int", UIA.TypeValidation.TreeScope(scope), "ptr", InStr(Type(condition), "Condition") ? condition : UIA.__CreateRawCondition(condition), "ptr", UIA.TypeValidation.CacheRequest(cacheRequest), "int", traversalOptions, "ptr", root, "ptr*", &found := 0), found)
+                return UIA.IUIAutomationElement(found)
+            throw TargetError("An element matching the condition was not found", -1)
+        }
+        FindAllWithOptionsBuildCache(cacheRequest, condition, traversalOptions := 0, root := 0, scope := 4) {
+            local found
+            if (ComCall(113, this, "int", UIA.TypeValidation.TreeScope(scope), "ptr", InStr(Type(condition), "Condition") ? condition : UIA.__CreateRawCondition(condition), "ptr", UIA.TypeValidation.CacheRequest(cacheRequest), "int", traversalOptions, "ptr", root, "ptr*", &found := 0), found)
+                return UIA.IUIAutomationElementArray(found).ToArray()
+            return []
+        }
+        GetMetadataValue(targetId, metadataId) {
+            local returnVal
+            return (ComCall(114, this, "int", targetId, "int", metadataId, "ptr", returnVal := UIA.ComVar()), returnVal[])
+        }
+
+        ;; UIA.IUIAutomationElement8
+        HeadingLevel {
+            get {
+                local retVal
+                return (ComCall(115, this, "int*", &retVal := 0), retVal)
+            }
+        }
+        CachedHeadingLevel {
+            get {
+                local retVal
+                return (ComCall(116, this, "int*", &retVal := 0), retVal)
+            }
+        }
+
+        ;; UIA.IUIAutomationElement9
+        IsDialog {
+            get {
+                local retVal
+                return (ComCall(117, this, "int*", &retVal := 0), retVal)
+            }
+        }
+        CachedIsDialog {
+            get {
+                local retVal
+                return (ComCall(118, this, "int*", &retVal := 0), retVal)
+            }
+        }
+
+        ;; Some aliases for properties from GetPropertyValue
+
+    }
+
+    class IUIAutomationArray extends UIA.IUIAutomationBase {
+        ; Provide base stubs so analyzers know these members exist. Derived classes should override.
+        Length {
+            get {
+                return 0
+            }
+        }
+
+        GetElement(index) {
+            throw UnsetError("GetElement is not implemented in base IUIAutomationArray", -1)
+        }
+
+        __Item[index] {
+            get {
+                try {
+                    if index > 0
+                        return this.GetElement(index - 1)
+                    else
+                        return this.GetElement(this.Length + index)
+                } catch
+                    throw IndexError("Index " index " out of bounds", -2)
+            }
+        }
+        __Enum(varCount) {
+            local maxLen := this.Length - 1, i := 0
+            EnumElements(&element) {
+                if i > maxLen
+                    return false
+                element := this.GetElement(i++)
+                return true
+            }
+            EnumIndexAndElements(&index, &element) {
+                if i > maxLen
+                    return false
+                element := this.GetElement(i++)
+                index := i
+                return true
+            }
+            return (varCount = 1) ? EnumElements : EnumIndexAndElements
+        }
+        ToArray() {
+            local ret := []
+            Loop this.Length
+                ret.Push(this.GetElement(A_index - 1))
+            return ret
+        }
+        ToReversedArray() {
+            local ret := [], len := this.Length
+            Loop len
+                ret.Push(this.GetElement(len - A_Index))
+            return ret
+        }
+    }
+
+    class IUIAutomationElementArray extends UIA.IUIAutomationArray {
+        Length {
+            get {
+                local length
+                return (ComCall(3, this, "int*", &length := 0), length)
+            }
+        }
+
+        ; Index is 0-based
+        GetElement(index) {
+            local element
+            return (ComCall(4, this, "int", index, "ptr*", &element := 0), UIA.IUIAutomationElement(element))
+        }
+    }
+
+
+    class IUIAutomationTreeWalker extends UIA.IUIAutomationBase {
+        ; The structure of the Microsoft UI Automation tree changes as the visible UI elements on the desktop change.
+        ; An element can have additional child elements that do not match the current view condition and thus are not returned when navigating the element tree.
+
+        GetParentElement(element) {
+            local out
+            if (ComCall(3, this, "ptr", UIA.TypeValidation.Element(element), "ptr*", &out := 0), out)
+                return UIA.IUIAutomationElement(out)
+            throw UnsetError("No element found with GetParentElement", -1)
+        }
+        TryGetParentElement(element) {
+            local out
+            try if (ComCall(3, this, "ptr", element, "ptr*", &out := 0), out)
+                return UIA.IUIAutomationElement(out)
+            return 0
+        }
+
+        GetFirstChildElement(element) {
+            local out
+            if (ComCall(4, this, "ptr", UIA.TypeValidation.Element(element), "ptr*", &out := 0), out)
+                return UIA.IUIAutomationElement(out)
+            throw UnsetError("No element found with GetFirstChildElement", -1)
+        }
+        TryGetFirstChildElement(element) {
+            local out
+            try if (ComCall(4, this, "ptr", element, "ptr*", &out := 0), out)
+                return UIA.IUIAutomationElement(out)
+            return 0
+        }
+
+        GetLastChildElement(element) {
+            local out
+            if (ComCall(5, this, "ptr", UIA.TypeValidation.Element(element), "ptr*", &out := 0), out)
+                return UIA.IUIAutomationElement(out)
+            throw UnsetError("No element found with GetLastChildElement", -1)
+        }
+        TryGetLastChildElement(element) {
+            local out
+            try if (ComCall(5, this, "ptr", element, "ptr*", &out := 0), out)
+                return UIA.IUIAutomationElement(out)
+            return 0
+        }
+
+        GetNextSiblingElement(element) {
+            local out
+            if (ComCall(6, this, "ptr", UIA.TypeValidation.Element(element), "ptr*", &out := 0), out)
+                return UIA.IUIAutomationElement(out)
+            throw UnsetError("No element found with GetNextSiblingElement", -1)
+        }
+        TryGetNextSiblingElement(element) {
+            local out
+            try if (ComCall(6, this, "ptr", element, "ptr*", &out := 0), out)
+                return UIA.IUIAutomationElement(out)
+            return 0
+        }
+
+        GetPreviousSiblingElement(element) {
+            local out
+            if (ComCall(7, this, "ptr", UIA.TypeValidation.Element(element), "ptr*", &out := 0), out)
+                return UIA.IUIAutomationElement(out)
+            throw UnsetError("No element found with GetPreviousSiblingElement", -1)
+        }
+        TryGetPreviousSiblingElement(element) {
+            local out
+            try if (ComCall(7, this, "ptr", element, "ptr*", &out := 0), out)
+                return UIA.IUIAutomationElement(out)
+            return 0
+        }
+
+        ; The element is normalized by navigating up the ancestor chain in the tree until an element that satisfies the view condition (specified by a previous call to IUIAutomationTreeWalker,,Condition) is reached. If the root element is reached, the root element is returned, even if it does not satisfy the view condition.
+        ; This method is useful for applications that obtain references to UI Automation elements by hit-testing. The application might want to work only with specific types of elements, and can use IUIAutomationTreeWalker,,Normalize to make sure that no matter what element is initially retrieved (for example, when a scroll bar gets the input focus), only the element of interest (such as a content element) is ultimately retrieved.
+        NormalizeElement(element) {
+            local out
+            if (ComCall(8, this, "ptr", UIA.TypeValidation.Element(element), "ptr*", &out := 0), out)
+                return UIA.IUIAutomationElement(out)
+            throw UnsetError("No element found with NormalizeElement", -1)
+        }
+        TryNormalizeElement(element) {
+            local out
+            try if (ComCall(8, this, "ptr", element, "ptr*", &out := 0), out)
+                return UIA.IUIAutomationElement(out)
+            return 0
+        }
+
+        GetParentElementBuildCache(cacheRequest, element) {
+            local out
+            if (ComCall(9, this, "ptr", UIA.TypeValidation.Element(element), "ptr", UIA.TypeValidation.CacheRequest(cacheRequest), "ptr*", &out := 0), out)
+                return UIA.IUIAutomationElement(out)
+            throw UnsetError("No element found with GetParentElementBuildCache", -1)
+        }
+        TryGetParentElementBuildCache(cacheRequest, element) {
+            local out
+            try if (ComCall(9, this, "ptr", element, "ptr", cacheRequest, "ptr*", &out := 0), out)
+                return UIA.IUIAutomationElement(out)
+            return 0
+        }
+
+        GetFirstChildElementBuildCache(cacheRequest, element) {
+            local out
+            if (ComCall(10, this, "ptr", UIA.TypeValidation.Element(element), "ptr", UIA.TypeValidation.CacheRequest(cacheRequest), "ptr*", &out := 0), out)
+                return UIA.IUIAutomationElement(out)
+            throw UnsetError("No element found with GetFirstChildElementBuildCache", -1)
+        }
+        TryGetFirstChildElementBuildCache(cacheRequest, element) {
+            local out
+            try if (ComCall(10, this, "ptr", element, "ptr", cacheRequest, "ptr*", &out := 0), out)
+                return UIA.IUIAutomationElement(out)
+            return 0
+        }
+
+        GetLastChildElementBuildCache(cacheRequest, element) {
+            local out
+            if (ComCall(11, this, "ptr", UIA.TypeValidation.Element(element), "ptr", UIA.TypeValidation.CacheRequest(cacheRequest), "ptr*", &out := 0), out)
+                return UIA.IUIAutomationElement(out)
+            throw UnsetError("No element found with GetLastChildElementBuildCache", -1)
+        }
+        TryGetLastChildElementBuildCache(cacheRequest, element) {
+            local out
+            try if (ComCall(11, this, "ptr", element, "ptr", cacheRequest, "ptr*", &out := 0), out)
+                return UIA.IUIAutomationElement(out)
+            return 0
+        }
+
+        GetNextSiblingElementBuildCache(cacheRequest, element) {
+            local out
+            if (ComCall(12, this, "ptr", UIA.TypeValidation.Element(element), "ptr", UIA.TypeValidation.CacheRequest(cacheRequest), "ptr*", &out := 0), out)
+                return UIA.IUIAutomationElement(out)
+            throw UnsetError("No element found with GetNextSiblingElementBuildCache", -1)
+        }
+        TryGetNextSiblingElementBuildCache(cacheRequest, element) {
+            local out
+            try if (ComCall(12, this, "ptr", element, "ptr", cacheRequest, "ptr*", &out := 0), out)
+                return UIA.IUIAutomationElement(out)
+            return 0
+        }
+
+        GetPreviousSiblingElementBuildCache(cacheRequest, element) {
+            local out
+            if (ComCall(13, this, "ptr", UIA.TypeValidation.Element(element), "ptr", UIA.TypeValidation.CacheRequest(cacheRequest), "ptr*", &out := 0), out)
+                return UIA.IUIAutomationElement(out)
+            throw UnsetError("No element found with GetPreviousSiblingElementBuildCache", -1)
+        }
+        TryGetPreviousSiblingElementBuildCache(cacheRequest, element) {
+            local out
+            try if (ComCall(13, this, "ptr", element, "ptr", cacheRequest, "ptr*", &out := 0), out)
+                return UIA.IUIAutomationElement(out)
+            return 0
+        }
+
+        NormalizeElementBuildCache(cacheRequest, element) {
+            local out
+            if (ComCall(14, this, "ptr", UIA.TypeValidation.Element(element), "ptr", UIA.TypeValidation.CacheRequest(cacheRequest), "ptr*", &out := 0), out)
+                return UIA.IUIAutomationElement(out)
+            throw UnsetError("No element found with NormalizeElementBuildCache", -1)
+        }
+        TryNormalizeElementBuildCache(cacheRequest, element) {
+            local out
+            try if (ComCall(14, this, "ptr", element, "ptr", cacheRequest, "ptr*", &out := 0), out)
+                return UIA.IUIAutomationElement(out)
+            return 0
+        }
+
+        ; The condition that defines the view. This is the interface that was passed to CreateTreeWalker.
+        Condition {
+            get {
+                local condition
+                return (ComCall(15, this, "ptr*", &condition := 0), UIA.IUIAutomationCondition(condition))
+            }
+        }
+    }
+
+
+    class IUIAutomationPropertyCondition extends UIA.IUIAutomationCondition {
+        static __IID := "{99ebf2cb-5578-4267-9ad4-afd6ea77e94b}"
+        PropertyId {
+            get {
+                local propertyId
+                return (ComCall(3, this, "int*", &propertyId := 0), propertyId)
+            }
+        }
+        PropertyValue {
+            get {
+                local propertyValue
+                return (ComCall(4, this, "ptr", propertyValue := UIA.ComVar()), propertyValue[])
+            }
+        }
+        PropertyConditionFlags {
+            get {
+                local flags
+                return (ComCall(5, this, "int*", &flags := 0), flags)
+            }
+        }
+    }
+
+
+    class IUIAutomationAndCondition extends UIA.IUIAutomationCondition {
+        static __IID := "{a7d0af36-b912-45fe-9855-091ddc174aec}"
+        ChildCount {
+            get {
+                local childCount
+                return (ComCall(3, this, "int*", &childCount := 0), childCount)
+            }
+        }
+        GetChildrenAsNativeArray() {
+            local childArrayCount
+            return (ComCall(4, this, "ptr*", &childArray := 0, "int*", &childArrayCount := 0), UIA.NativeArray(childArray, childArrayCount))
+        }
+        GetChildren() {
+            local childArray
+            return (ComCall(5, this, "ptr*", &childArray := 0), UIA.IUIAutomationCondition.__SafeArrayToConditionArray(childArray))
+        }
+    }
+
+
+    class IUIAutomationOrCondition extends UIA.IUIAutomationAndCondition {
+        static __IID := "{8753f032-3db1-47b5-a1fc-6e34a266c712}"
+        ChildCount {
+            get {
+                local childCount
+                return (ComCall(3, this, "int*", &childCount := 0), childCount)
+            }
+        }
+        GetChildrenAsNativeArray() {
+            local childArrayCount
+            return (ComCall(4, this, "ptr*", &childArray := 0, "int*", &childArrayCount := 0), UIA.NativeArray(childArray, childArrayCount))
+        }
+        GetChildren() {
+            local childArray
+            return (ComCall(5, this, "ptr*", &childArray := 0), UIA.IUIAutomationCondition.__SafeArrayToConditionArray(childArray))
+        }
+    }
+
+
+    class IUIAutomationBoolCondition extends UIA.IUIAutomationCondition {
+        static __IID := "{1B4E1F2E-75EB-4D0B-8952-5A69988E2307}"
+        Value {
+            get {
+                local boolVal
+                return (ComCall(3, this, "int*", &boolVal := 0), boolVal)
+            }
+        }
+    }
+
+
+    class IUIAutomationNotCondition extends UIA.IUIAutomationCondition {
+        static __IID := "{f528b657-847b-498c-8896-d52b565407a1}"
+        GetChild() {
+            local condition
+            return (ComCall(3, this, "ptr*", &condition := 0), UIA.IUIAutomationCondition.__QueryCondition(condition))
+        }
+    }
+
+    class IUIAutomationCondition extends UIA.IUIAutomationBase {
+        static __QueryCondition(pCond) {
+            for n in ["Property", "Bool", "And", "Or", "Not"] {
+                try {
+                    if ComObjQuery(pCond, UIA.IUIAutomation%n%Condition.__IID)
+                        return UIA.IUIAutomation%n%Condition(pCond)
+                }
+            }
+        }
+        static __SafeArrayToConditionArray(pSafeArr) {
+            local safeArray := ComValue(0x2003, pSafeArr), out := [], k, cond
+            for k in safeArray {
+                if cond := UIA.IUIAutomationCondition.__QueryCondition(k)
+                    out.Push(cond)
+            }
+            return out
+        }
+    }
+
+
+    class IUIAutomationCacheRequest extends UIA.IUIAutomationBase {
+        ; Adds a property to the cache request.
+        AddProperty(propertyId) => ComCall(3, this, "int", UIA.TypeValidation.Property(propertyId))
+
+        ; Adds a control pattern to the cache request. Adding a control pattern that is already in the cache request has no effect.
+        AddPattern(patternId) => ComCall(4, this, "int", UIA.TypeValidation.Pattern(patternId))
+
+        Clone() {
+            local clonedRequest
+            if (ComCall(5, this, "ptr*", &clonedRequest := 0), clonedRequest)
+                return UIA.IUIAutomationCacheRequest(clonedRequest)
+            throw Error("Cloning the CacheRequest failed", -1)
+        }
+
+        TreeScope {
+            get {
+                local scope
+                return (ComCall(6, this, "int*", &scope := 0), scope)
+            }
+            set => ComCall(7, this, "int", UIA.TypeValidation.TreeScope(value))
+        }
+
+        TreeFilter {
+            get {
+                local filter
+                if (ComCall(8, this, "ptr*", &filter := 0), filter)
+                    return UIA.IUIAutomationCondition(filter)
+                throw UnsetError("No condition returned by " A_ThisFunc, -1)
+            }
+            set => ComCall(9, this, "ptr", (Type(Value) ~= "i)Condition|ComValue") ? value : UIA.__CreateRawCondition(value))
+        }
+
+        AutomationElementMode {
+            get {
+                local mode
+                return (ComCall(10, this, "int*", &mode := 0), mode)
+            }
+            set => ComCall(11, this, "int", UIA.TypeValidation.AutomationElementMode(Value))
+        }
+
+        ; Extracts all properties from an object condition and adds them to the CacheRequest
+        AddPropertiesFromCondition(condition) {
+            local value, prop
+            if Type(condition) = "Object"
+                condition := condition.OwnProps()
+            for prop, value in condition {
+                try prop := UIA.TypeValidation.Property(prop)
+                if !(IsInteger(prop) && prop > 10000) {
+                    if IsObject(value)
+                        this.AddPropertiesFromCondition(value)
+                } else
+                    this.AddProperty(prop)
+            }
+        }
+    }
+
+
+    static CreateEventHandler(funcObj, handlerType := "") {
+        local buf, handler, cR, cAF, cQI, cF
+        if funcObj is String
+            try funcObj := %funcObj%
+        if !HasMethod(funcObj, "Call")
+            throw TypeError("Invalid function provided", -2)
+
+        buf := Buffer(A_PtrSize * 6)
+        handler := UIA.IUIAutomation%handlerType%EventHandler()
+        handler.Buffer := buf, handler.Ptr := buf.ptr
+        handlerFunc := handler.Handle%(handlerType ? handlerType : "Automation")%Event
+        NumPut("ptr", buf.Ptr + 2 * A_PtrSize, "ptr", ObjPtr(handler), "ptr", cQI := CallbackCreate(QueryInterface, , 3), "ptr", cAF := CallbackCreate(AddRef, , 1), "ptr", cR := CallbackCreate(Release, , 1), "ptr", cF := CallbackCreate(handlerFunc.Bind(handler), , handlerFunc.MaxParams - 1), buf)
+        ObjRelease(ObjPtr(handler)) ; CallbackCreate binds "handler" to itself, so decrease ref count by 1 to allow it to be released, then inside __Delete add it back before CallbackFree
+        handler.DefineProp("__Delete", { call: (this, *) => (ObjAddRef(ObjPtr(this)), CallbackFree(cQI), CallbackFree(cAF), CallbackFree(cR), CallbackFree(cF)) })
+        handler.EventHandler := funcObj
+
+        return handler
+
+        QueryInterface(pSelf, pRIID, pObj) { ; Credit: https://github.com/neptercn/UIAutomation/blob/master/UIA.ahk
+            DllCall("ole32\StringFromIID", "ptr", pRIID, "wstr*", &str)
+            return (str = "{00000000-0000-0000-C000-000000000046}") || (str = "{146c3c17-f12e-4e22-8c27-f894b9b79c69}") || (str = "{40cd37d4-c756-4b0c-8c6f-bddfeeb13b50}") || (str = "{e81d1b4e-11c5-42f8-9754-e7036c79f054}") || (str = "{c270f6b5-5c69-4290-9745-7a7f97169468}") || (str = "{92FAA680-E704-4156-931A-E32D5BB38F3F}") || (str = "{58EDCA55-2C3E-4980-B1B9-56C17F27A2A0}") || (str = "{C7CB2637-E6C2-4D0C-85DE-4948C02175C7}") ? (NumPut("ptr", pSelf, pObj), ObjAddRef(pSelf)) * 0 : 0x80004002 ; E_NOINTERFACE
+        }
+        AddRef(pSelf) => ObjAddRef(NumGet(pSelf, A_PtrSize, "ptr"))
+        Release(pSelf) => ObjRelease(NumGet(pSelf, A_PtrSize, "ptr"))
+    }
+    static CreateAutomationEventHandler(funcObj) => UIA.CreateEventHandler(funcObj)
+    static CreateFocusChangedEventHandler(funcObj) => UIA.CreateEventHandler(funcObj, "FocusChanged")
+    static CreatePropertyChangedEventHandler(funcObj) => UIA.CreateEventHandler(funcObj, "PropertyChanged")
+    static CreateStructureChangedEventHandler(funcObj) => UIA.CreateEventHandler(funcObj, "StructureChanged")
+    static CreateTextEditTextChangedEventHandler(funcObj) => UIA.CreateEventHandler(funcObj, "TextEditTextChanged")
+    static CreateChangesEventHandler(funcObj) => UIA.CreateEventHandler(funcObj, "Changes")
+    static CreateNotificationEventHandler(funcObj) => UIA.CreateEventHandler(funcObj, "Notification")
+
+    class IUIAutomationEventHandler {
+        static __IID := "{146c3c17-f12e-4e22-8c27-f894b9b79c69}"
+
+        HandleAutomationEvent(pSelf, sender, eventId) {
+            ObjAddRef(sender), this.EventHandler.Call(UIA.IUIAutomationElement(sender), eventId & 0xFFFFFFFF)
+        }
+    }
+    class IUIAutomationFocusChangedEventHandler {
+        static __IID := "{c270f6b5-5c69-4290-9745-7a7f97169468}"
+
+        HandleFocusChangedEvent(pSelf, sender) {
+            ObjAddRef(sender), this.EventHandler.Call(UIA.IUIAutomationElement(sender))
+        }
+    }
+
+
+    class IUIAutomationPropertyChangedEventHandler { ; UNTESTED
+        ;~ http://msdn.microsoft.com/en-us/library/windows/desktop/ee696119(v=vs.85).aspx
+        static __IID := "{40cd37d4-c756-4b0c-8c6f-bddfeeb13b50}"
+
+        HandlePropertyChangedEvent(pSelf, sender, propertyId, newValue) {
+            local val := ComValue(0x400C, newValue)[]
+            DllCall("oleaut32\VariantClear", "ptr", newValue)
+            ObjAddRef(sender), this.EventHandler.Call(UIA.IUIAutomationElement(sender), propertyId & 0xFFFFFFFF, val)
+        }
+    }
+
+    class IUIAutomationStructureChangedEventHandler {
+        ;~ http://msdn.microsoft.com/en-us/library/windows/desktop/ee696197(v=vs.85).aspx
+        static __IID := "{e81d1b4e-11c5-42f8-9754-e7036c79f054}"
+
+        HandleStructureChangedEvent(pSelf, sender, changeType, runtimeId) {
+            ObjAddRef(sender), this.EventHandler.Call(UIA.IUIAutomationElement(sender), changeType & 0xFFFFFFFF, UIA.SafeArrayToAHKArray(runtimeId))
+            DllCall("oleaut32\VariantClear", "ptr", runtimeId)
+        }
+    }
+
+    class IUIAutomationTextEditTextChangedEventHandler { ; UNTESTED
+        ;~ http://msdn.microsoft.com/en-us/library/windows/desktop/dn302202(v=vs.85).aspx
+        static __IID := "{92FAA680-E704-4156-931A-E32D5BB38F3F}"
+
+        HandleTextEditTextChangedEvent(pSelf, sender, changeType, eventStrings) {
+            local val := ComValue(0x400C, eventStrings)[]
+            DllCall("oleaut32\VariantClear", "ptr", eventStrings)
+            ObjAddRef(sender), this.EventHandler.Call(UIA.IUIAutomationElement(sender), changeType & 0xFFFFFFFF, val)
+        }
+    }
+
+
+    class IUIAutomationChangesEventHandler { ; UNTESTED
+        static __IID := "{58EDCA55-2C3E-4980-B1B9-56C17F27A2A0}"
+
+        HandleChangesEvent(pSelf, sender, uiaChanges, changesCount) {
+            local changes, pExtraInfo
+            changes := { id: NumGet(uiaChanges, "Int"), payload: ComValue(0x400C, pPayload := NumGet(uiaChanges, 8, "uint64"))[], extraInfo: ComValue(0x400C, pExtraInfo := NumGet(uiaChanges, 16 + 2 * A_PtrSize, "uint64")[]) }
+            DllCall("oleaut32\VariantClear", "ptr", pPayload), DllCall("oleaut32\VariantClear", "ptr", pExtraInfo)
+            ObjAddRef(sender), this.EventHandler.Call(UIA.IUIAutomationElement(sender), changes, changesCount)
+        }
+    }
+
+    class IUIAutomationNotificationEventHandler {
+        static __IID := "{C7CB2637-E6C2-4D0C-85DE-4948C02175C7}"
+
+        HandleNotificationEvent(pSelf, sender, notificationKind, notificationProcessing, displayString, activityId) {
+            ObjAddRef(sender), this.EventHandler.Call(UIA.IUIAutomationElement(sender), notificationKind, notificationProcessing, UIA.BSTR(displayString), UIA.BSTR(activityId))
+        }
+    }
+
+    class IUIAutomationEventHandlerGroup extends UIA.IUIAutomationBase {
+        static __IID := "{C9EE12F2-C13B-4408-997C-639914377F4E}"
+
+        AddActiveTextPositionChangedEventHandler(handler, scope := 0x4, cacheRequest := 0) => ComCall(3, this, "int", UIA.TypeValidation.TreeScope(scope), "ptr", UIA.TypeValidation.CacheRequest(cacheRequest), "ptr", handler)
+        AddAutomationEventHandler(handler, eventId, scope := 0x4, cacheRequest := 0) => ComCall(4, this, "uint", eventId, "int", UIA.TypeValidation.TreeScope(scope), "ptr", UIA.TypeValidation.CacheRequest(cacheRequest), "ptr", handler)
+        AddChangesEventHandler(handler, changeTypes, scope := 0x4, cacheRequest := 0) {
+            local k, v
+            if !IsObject(changeTypes)
+                changeTypes := [changeTypes]
+            nativeArray := UIA.NativeArray(0, changeTypes.Length, "int")
+            for k, v in changeTypes
+                NumPut("int", v, nativeArray, (k - 1) * 4)
+            return ComCall(5, this, "int", UIA.TypeValidation.TreeScope(scope), "ptr", nativeArray, "int", changeTypes.Length, "int", cacheRequest, "ptr", handler)
+        }
+        AddNotificationEventHandler(handler, scope := 0x4, cacheRequest := 0) => ComCall(6, this, "int", UIA.TypeValidation.TreeScope(scope), "ptr", UIA.TypeValidation.CacheRequest(cacheRequest), "ptr", handler)
+        AddPropertyChangedEventHandler(handler, propertyArray, scope := 0x1, cacheRequest := 0) {
+            local i, propertyId, SafeArray
+            if !IsObject(propertyArray)
+                propertyArray := [propertyArray]
+            SafeArray := ComObjArray(0x3, propertyArray.Length)
+            for i, propertyId in propertyArray
+                SafeArray[i - 1] := propertyId
+            return ComCall(7, this, "int", UIA.TypeValidation.TreeScope(scope), "ptr", UIA.TypeValidation.CacheRequest(cacheRequest), "ptr", handler, "ptr", SafeArray)
+        }
+        AddStructureChangedEventHandler(handler, scope := 0x4, cacheRequest := 0) => ComCall(8, this, "int", UIA.TypeValidation.TreeScope(scope), "ptr", UIA.TypeValidation.CacheRequest(cacheRequest), "ptr", handler)
+        AddTextEditTextChangedEventHandler(handler, textEditChangeType, scope := 0x4, cacheRequest := 0) => ComCall(9, this, "int", UIA.TypeValidation.TreeScope(scope), "int", UIA.TypeValidation.TextEditChangeType(textEditChangeType), "ptr", UIA.TypeValidation.CacheRequest(cacheRequest), "ptr", handler)
+    }
+
+
+    class IUIAutomationAnnotationPattern extends UIA.IUIAutomationBase {
+        AnnotationTypeId {
+            get {
+                local retVal
+                return (ComCall(3, this, "int*", &retVal := 0), retVal)
+            }
+        }
+        AnnotationTypeName {
+            get {
+                local retVal
+                return (ComCall(4, this, "ptr*", &retVal := 0), UIA.BSTR(retVal))
+            }
+        }
+        Author {
+            get {
+                local retVal
+                return (ComCall(5, this, "ptr*", &retVal := 0), UIA.BSTR(retVal))
+            }
+        }
+        DateTime {
+            get {
+                local retVal
+                return (ComCall(6, this, "ptr*", &retVal := 0), UIA.BSTR(retVal))
+            }
+        }
+        Target {
+            get {
+                local retVal
+                if (ComCall(7, this, "ptr*", &retVal := 0), retVal)
+                    return UIA.IUIAutomationElement(retVal)
+                throw UnsetError("No element returned by " A_ThisFunc, -1)
+            }
+        }
+        CachedAnnotationTypeId {
+            get {
+                local retVal
+                return (ComCall(8, this, "int*", &retVal := 0), retVal)
+            }
+        }
+        CachedAnnotationTypeName {
+            get {
+                local retVal
+                return (ComCall(9, this, "ptr*", &retVal := 0), UIA.BSTR(retVal))
+            }
+        }
+        CachedAuthor {
+            get {
+                local retVal
+                return (ComCall(10, this, "ptr*", &retVal := 0), UIA.BSTR(retVal))
+            }
+        }
+        CachedDateTime {
+            get {
+                local retVal
+                return (ComCall(11, this, "ptr*", &retVal := 0), UIA.BSTR(retVal))
+            }
+        }
+        CachedTarget {
+            get {
+                local retVal
+                if (ComCall(11, this, "ptr*", &retVal := 0), retVal)
+                    return UIA.IUIAutomationElement(retVal)
+                throw UnsetError("No element returned by " A_ThisFunc, -1)
+            }
+        }
+    }
+
+
+    class IUIAutomationCustomNavigationPattern extends UIA.IUIAutomationBase {
+        ; Gets the next element in the specified direction within the logical UI tree.
+        ; direction can be one of UIA.NavigateDirection values: Parent, NextSibling, PreviousSibling, FirstChild, LastChild
+        Navigate(direction) {
+            local pRetVal
+            if (ComCall(3, this, "int", UIA.TypeValidation.NavigateDirection(direction), "ptr*", &pRetVal := 0), pRetVal)
+                return UIA.IUIAutomationElement(pRetVal)
+            throw UnsetError("No element returned by " A_ThisFunc, -1)
+        }
+    }
+
+
+    class IUIAutomationDockPattern extends UIA.IUIAutomationBase {
+        static __IID := "{fde5ef97-1464-48f6-90bf-43d0948e86ec}"
+
+        DockPosition {
+            get {
+                local retVal
+                return (ComCall(4, this, "int*", &retVal := 0), retVal)
+            }
+        }
+        CachedDockPosition {
+            get {
+                local retVal
+                return (ComCall(5, this, "int*", &retVal := 0), retVal)
+            }
+        }
+
+
+        SetDockPosition(dockPos) => ComCall(3, this, "int", UIA.TypeValidation.DockPosition(dockPos))
+    }
+
+
+    class IUIAutomationDragPattern extends UIA.IUIAutomationBase {
+        static __IID := "{1DC7B570-1F54-4BAD-BCDA-D36A722FB7BD}"
+        IsGrabbed {
+            get {
+                local retVal
+                return (ComCall(3, this, "int*", &retVal := 0), retVal)
+            }
+        }
+        CachedIsGrabbed {
+            get {
+                local retVal
+                return (ComCall(4, this, "int*", &retVal := 0), retVal)
+            }
+        }
+        DropEffect {
+            get {
+                local retVal
+                return (ComCall(5, this, "ptr*", &retVal := 0), UIA.BSTR(retVal))
+            }
+        }
+        CachedDropEffect {
+            get {
+                local retVal
+                return (ComCall(6, this, "ptr*", &retVal := 0), UIA.BSTR(retVal))
+            }
+        }
+        DropEffects {
+            get {
+                local retVal
+                return (ComCall(7, this, "ptr*", &retVal := 0), ComValue(0x2008, retVal))
+            }
+        }
+        CachedDropEffects {
+            get {
+                local retVal
+                return (ComCall(8, this, "ptr*", &retVal := 0), ComValue(0x2008, retVal))
+            }
+        }
+
+        GetGrabbedItems() {
+            local retVal
+            return (ComCall(9, this, "ptr*", &retVal := 0), retVal ? UIA.IUIAutomationElementArray(retVal).ToArray() : [])
+        }
+        GetCachedGrabbedItems() {
+            local retVal
+            return (ComCall(10, this, "ptr*", &retVal := 0), retVal ? UIA.IUIAutomationElementArray(retVal).ToArray() : [])
+        }
+    }
+
+
+    class IUIAutomationDropTargetPattern extends UIA.IUIAutomationBase {
+        static __IID := "{69A095F7-EEE4-430E-A46B-FB73B1AE39A5}"
+        DropTargetEffect {
+            get {
+                local retVal
+                return (ComCall(3, this, "ptr*", &retVal := 0), UIA.BSTR(retVal))
+            }
+        }
+        CachedDropTargetEffect {
+            get {
+                local retVal
+                return (ComCall(4, this, "ptr*", &retVal := 0), UIA.BSTR(retVal))
+            }
+        }
+        DropTargetEffects {
+            get {
+                local retVal
+                return (ComCall(5, this, "ptr*", &retVal := 0), ComValue(0x2008, retVal))
+            }
+        }
+        CachedDropTargetEffects {
+            get {
+                local retVal
+                return (ComCall(6, this, "ptr*", &retVal := 0), ComValue(0x2008, retVal))
+            }
+        }
+    }
+
+    class IUIAutomationExpandCollapsePattern extends UIA.IUIAutomationBase {
+        ; This is a blocking method that returns after the element has been collapsed.
+        ; There are cases when a element that is marked as a leaf node might not know whether it has children until either the IUIAutomationExpandCollapsePattern,,Collapse or the IUIAutomationExpandCollapsePattern,,Expand method is called. This behavior is possible with a tree view control that does delayed loading of its child items. For example, Microsoft Windows Explorer might display the expand icon for a node even though there are currently no child items; when the icon is clicked, the control polls for child items, finds none, and removes the expand icon. In these cases clients should listen for a property-changed event on the IUIAutomationExpandCollapsePattern,,ExpandCollapseState property.
+
+        ; Displays all child nodes, controls, or content of the element.
+        Expand() => ComCall(3, this)
+
+        ; Hides all child nodes, controls, or content of the element.
+        Collapse() => ComCall(4, this)
+
+        ; Retrieve the name of the state via UIA.ExpandCollapseState[value]
+        ExpandCollapseState {
+            get {
+                local retVal
+                return (ComCall(5, this, "int*", &retVal := 0), retVal)
+            }
+        }
+
+        CachedExpandCollapseState {
+            get {
+                local retVal
+                return (ComCall(6, this, "int*", &retVal := 0), retVal)
+            }
+        }
+    }
+
+    class IUIAutomationGridItemPattern extends UIA.IUIAutomationBase {
+        ContainingGrid {
+            get {
+                local retVal
+                if (ComCall(3, this, "ptr*", &retVal := 0), retVal)
+                    return UIA.IUIAutomationElement(retVal)
+                throw UnsetError("No element returned by " A_ThisFunc, -1)
+            }
+        }
+
+        Row {
+            get {
+                local retVal
+                return (ComCall(4, this, "int*", &retVal := 0), retVal)
+            }
+        }
+
+        Column {
+            get {
+                local retVal
+                return (ComCall(5, this, "int*", &retVal := 0), retVal)
+            }
+        }
+
+        RowSpan {
+            get {
+                local retVal
+                return (ComCall(6, this, "int*", &retVal := 0), retVal)
+            }
+        }
+
+        ColumnSpan {
+            get {
+                local retVal
+                return (ComCall(7, this, "int*", &retVal := 0), retVal)
+            }
+        }
+
+        CachedContainingGrid {
+            get {
+                local retVal
+                if (ComCall(8, this, "ptr*", &retVal := 0), retVal)
+                    return UIA.IUIAutomationElement(retVal)
+                throw UnsetError("No element returned by " A_ThisFunc, -1)
+            }
+        }
+
+        CachedRow {
+            get {
+                local retVal
+                return (ComCall(9, this, "int*", &retVal := 0), retVal)
+            }
+        }
+
+        CachedColumn {
+            get {
+                local retVal
+                return (ComCall(10, this, "int*", &retVal := 0), retVal)
+            }
+        }
+
+        CachedRowSpan {
+            get {
+                local retVal
+                return (ComCall(11, this, "int*", &retVal := 0), retVal)
+            }
+        }
+
+        CachedColumnSpan {
+            get {
+                local retVal
+                return (ComCall(12, this, "int*", &retVal := 0), retVal)
+            }
+        }
+    }
+
+    class IUIAutomationGridPattern extends UIA.IUIAutomationBase {
+        GetItem(row, column) {
+            local element
+            if (ComCall(3, this, "int", row, "int", column, "ptr*", &element := 0), element)
+                return UIA.IUIAutomationElement(element)
+            throw UnsetError("No element returned by " A_ThisFunc, -1)
+        }
+
+        ; Hidden rows and columns, depending on the provider implementation, may be loaded in the Microsoft UI Automation tree and will therefore be reflected in the row count and column count properties. If the hidden rows and columns have not yet been loaded they are not counted.
+
+        RowCount {
+            get {
+                local retVal
+                return (ComCall(4, this, "int*", &retVal := 0), retVal)
+            }
+        }
+
+        ; The number of columns in the grid.
+        ColumnCount {
+            get {
+                local retVal
+                return (ComCall(5, this, "int*", &retVal := 0), retVal)
+            }
+        }
+
+        CachedRowCount {
+            get {
+                local retVal
+                return (ComCall(6, this, "int*", &retVal := 0), retVal)
+            }
+        }
+
+        CachedColumnCount {
+            get {
+                local retVal
+                return (ComCall(7, this, "int*", &retVal := 0), retVal)
+            }
+        }
+    }
+
+    class IUIAutomationInvokePattern extends UIA.IUIAutomationBase {
+        ; Invokes the action of a control, such as a button click.
+        ; Calls to this method should return immediately without blocking. However, this behavior depends on the implementation.
+        Invoke() => ComCall(3, this)
+    }
+
+    class IUIAutomationItemContainerPattern extends UIA.IUIAutomationBase {
+        ; IUIAutomationItemContainerPattern
+
+        ; The provider may return an actual UIA.IUIAutomationElement interface or a placeholder if the matching element is virtualized.
+        ; This method returns E_INVALIDARG if the property requested is not one that the container supports searching over. It is expected that most containers will support Name property, and if appropriate for the container, AutomationId and IsSelected.
+        ; This method can be slow, because it may need to traverse multiple objects to find a matching one. When used in a loop to return multiple items, no specific order is defined so long as each item is returned only once (that is, the loop should terminate). This method is also item-centric, not UI-centric, so items with multiple UI representations need to be hit only once.
+        ; When the propertyId parameter is specified as 0 (zero), the provider is expected to return the next item after pStartAfter. If pStartAfter is specified as NULL with a propertyId of 0, the provider should return the first item in the container. When propertyId is specified as 0, the value parameter should be VT_EMPTY.
+        FindItemByProperty(pStartAfter, propertyId, value) {
+            if A_PtrSize = 4
+                value := UIA.ComVar(value, , true), ComCall(3, this, "ptr", pStartAfter, "int", propertyId, "int64", NumGet(value, "int64"), "int64", NumGet(value, 8, "int64"), "ptr*", &pFound := 0)
+            else
+                ComCall(3, this, "ptr", pStartAfter, "int", propertyId, "ptr", UIA.ComVar(value, , true), "ptr*", &pFound := 0)
+            if (pFound)
+                return UIA.IUIAutomationElement(pFound)
+        }
+    }
+
+    class IUIAutomationLegacyIAccessiblePattern extends UIA.IUIAutomationBase {
+
+        ; IUIAutomationLegacyIAccessiblePattern
+
+        ; Performs a Microsoft Active Accessibility selection.
+        Select(flagsSelect := 3) => ComCall(3, this, "int", flagsSelect)
+
+        ; Performs the Microsoft Active Accessibility default action for the element.
+        DoDefaultAction() => ComCall(4, this)
+
+        ; Sets the Microsoft Active Accessibility value property for the element. This method is supported only for some elements (usually edit controls).
+        SetValue(szValue) => ComCall(5, this, "wstr", szValue)
+
+        ChildId {
+            get {
+                local pRetVal
+                return (ComCall(6, this, "int*", &pRetVal := 0), pRetVal)
+            }
+        }
+
+        Name {
+            get {
+                local pszName
+                return (ComCall(7, this, "ptr*", &pszName := 0), UIA.BSTR(pszName))
+            }
+        }
+
+        Value {
+            get {
+                local pszValue
+                return (ComCall(8, this, "ptr*", &pszValue := 0), UIA.BSTR(pszValue))
+            }
+            set => this.SetValue(value)
+        }
+
+        Description {
+            get {
+                local pszDescription
+                return (ComCall(9, this, "ptr*", &pszDescription := 0), UIA.BSTR(pszDescription))
+            }
+        }
+
+        Role {
+            get {
+                local pdwRole
+                return (ComCall(10, this, "uint*", &pdwRole := 0), pdwRole)
+            }
+        }
+
+        State {
+            get {
+                local pdwState
+                return (ComCall(11, this, "uint*", &pdwState := 0), pdwState)
+            }
+        }
+
+        Help {
+            get {
+                local pszHelp
+                return (ComCall(12, this, "ptr*", &pszHelp := 0), UIA.BSTR(pszHelp))
+            }
+        }
+
+        KeyboardShortcut {
+            get {
+                local pszKeyboardShortcut
+                return (ComCall(13, this, "ptr*", &pszKeyboardShortcut := 0), UIA.BSTR(pszKeyboardShortcut))
+            }
+        }
+
+        GetSelection() {
+            local pvarSelectedChildren
+            return (ComCall(14, this, "ptr*", &pvarSelectedChildren := 0), pvarSelectedChildren ? UIA.IUIAutomationElementArray(pvarSelectedChildren).ToArray() : [])
+        }
+
+        DefaultAction {
+            get {
+                local pszDefaultAction
+                return (ComCall(15, this, "ptr*", &pszDefaultAction := 0), UIA.BSTR(pszDefaultAction))
+            }
+        }
+
+        CachedChildId {
+            get {
+                local pRetVal
+                return (ComCall(16, this, "int*", &pRetVal := 0), pRetVal)
+            }
+        }
+
+        CachedName {
+            get {
+                local pszName
+                return (ComCall(17, this, "ptr*", &pszName := 0), UIA.BSTR(pszName))
+            }
+        }
+
+        CachedValue {
+            get {
+                local pszValue
+                return (ComCall(18, this, "ptr*", &pszValue := 0), UIA.BSTR(pszValue))
+            }
+        }
+
+        CachedDescription {
+            get {
+                local pszDescription
+                return (ComCall(19, this, "ptr*", &pszDescription := 0), UIA.BSTR(pszDescription))
+            }
+        }
+
+        CachedRole {
+            get {
+                local pdwRole
+                return (ComCall(20, this, "uint*", &pdwRole := 0), pdwRole)
+            }
+        }
+
+        CachedState {
+            get {
+                local pdwState
+                return (ComCall(21, this, "uint*", &pdwState := 0), pdwState)
+            }
+        }
+
+        CachedHelp {
+            get {
+                local pszHelp
+                return (ComCall(22, this, "ptr*", &pszHelp := 0), UIA.BSTR(pszHelp))
+            }
+        }
+
+        CachedKeyboardShortcut {
+            get {
+                local pszKeyboardShortcut
+                return (ComCall(23, this, "ptr*", &pszKeyboardShortcut := 0), UIA.BSTR(pszKeyboardShortcut))
+            }
+        }
+
+        GetCachedSelection() {
+            local pvarSelectedChildren
+            return (ComCall(24, this, "ptr*", &pvarSelectedChildren := 0), pvarSelectedChildren ? UIA.IUIAutomationElementArray(pvarSelectedChildren).ToArray() : [])
+        }
+
+        CachedDefaultAction {
+            get {
+                local pszDefaultAction
+                return (ComCall(25, this, "ptr*", &pszDefaultAction := 0), UIA.BSTR(pszDefaultAction))
+            }
+        }
+
+        ; This method returns NULL if the underlying implementation of the UI Automation element is not a native Microsoft Active Accessibility server; that is, if a client attempts to retrieve the IAccessible interface for an element originally supported by a proxy object from OLEACC.dll, or by the UIA-to-MSAA Bridge.
+        GetIAccessible() {
+            local ppAccessible
+            return (ComCall(26, this, "ptr*", &ppAccessible := 0), ComValue(9, ppAccessible))
+        }
+    }
+
+    class IUIAutomationMultipleViewPattern extends UIA.IUIAutomationBase {
+        static __IID := "{8d253c91-1dc5-4bb5-b18f-ade16fa495e8}"
+
+        GetViewName(view) {
+            local name
+            return (ComCall(3, this, "int", view, "ptr*", &name := 0), UIA.BSTR(name))
+        }
+
+        ; Sets the view of the control.
+        SetView(view) => ComCall(4, this, "int", view)
+
+        View => this.CurrentView
+        CurrentView {
+            get {
+                local retVal
+                return (ComCall(5, this, "int*", &retVal := 0), retVal)
+            }
+        }
+
+        GetSupportedViews() {
+            local retVal
+            return (ComCall(6, this, "ptr*", &retVal := 0), UIA.SafeArrayToAHKArray(retVal))
+        }
+
+        CachedView => this.CachedCurrentView
+        CachedCurrentView {
+            get {
+                local retVal
+                return (ComCall(7, this, "int*", &retVal := 0), retVal)
+            }
+        }
+
+        GetCachedSupportedViews() {
+            local retVal
+            return (ComCall(8, this, "ptr*", &retVal := 0), UIA.SafeArrayToAHKArray(retVal))
+        }
+    }
+
+
+    class IUIAutomationObjectModelPattern extends UIA.IUIAutomationBase {
+        static __IID := "{71c284b3-c14d-4d14-981e-19751b0d756d}"
+        GetUnderlyingObjectModel() {
+            local retVal
+            return (ComCall(3, this, "ptr*", &retVal := 0), ComValue(0xd, retVal))
+        }
+    }
+
+    class IUIAutomationProxyFactory extends UIA.IUIAutomationBase {
+        CreateProvider(hwnd, idObject, idChild) {
+            local provider
+            return (ComCall(3, this, "ptr", hwnd, "int", idObject, "int", idChild, "ptr*", &provider := 0), ComValue(0xd, provider))
+        }
+        ProxyFactoryId {
+            get {
+                local factoryId
+                return (ComCall(4, this, "ptr*", &factoryId := 0), UIA.BSTR(factoryId))
+            }
+        }
+    }
+
+    class IUIAutomationProxyFactoryEntry extends UIA.IUIAutomationBase {
+        ProxyFactory() {
+            local factory
+            if (ComCall(3, this, "ptr*", &factory := 0), factory)
+                return UIA.IUIAutomationProxyFactory(factory)
+            throw UnsetError("No ProxyFactory returned by " A_ThisFunc, -1)
+        }
+        ClassName {
+            get {
+                local classname
+                return (ComCall(4, this, "ptr*", &classname := 0), UIA.BSTR(classname))
+            }
+            set => (ComCall(9, this, "wstr", Value))
+        }
+        ImageName {
+            get {
+                local imageName
+                return (ComCall(5, this, "ptr*", &imageName := 0), UIA.BSTR(imageName))
+            }
+            set => (ComCall(10, this, "wstr", Value))
+        }
+        AllowSubstringMatch {
+            get {
+                local allowSubstringMatch
+                return (ComCall(6, this, "int*", &allowSubstringMatch := 0), allowSubstringMatch)
+            }
+            set => (ComCall(11, this, "int", Value))
+        }
+        CanCheckBaseClass {
+            get {
+                local canCheckBaseClass
+                return (ComCall(7, this, "int*", &canCheckBaseClass := 0), canCheckBaseClass)
+            }
+            set => (ComCall(12, this, "int", Value))
+        }
+        NeedsAdviseEvents {
+            get {
+                local adviseEvents
+                return (ComCall(8, this, "int*", &adviseEvents := 0), adviseEvents)
+            }
+            set => (ComCall(13, this, "int", Value))
+        }
+        SetWinEventsForAutomationEvent(eventId, propertyId, winEvents) => ComCall(14, this, "int", eventId, "Int", propertyId, "ptr", winEvents)
+        GetWinEventsForAutomationEvent(eventId, propertyId) {
+            local winEvents
+            return (ComCall(15, this, "int", eventId, "Int", propertyId, "ptr*", &winEvents := 0), ComValue(0x200d, winEvents))
+        }
+    }
+
+    class IUIAutomationProxyFactoryMapping extends UIA.IUIAutomationBase {
+        Count {
+            get {
+                local count
+                return (ComCall(3, this, "uint*", &count := 0), count)
+            }
+        }
+        GetTable() {
+            local table
+            return (ComCall(4, this, "ptr*", &table := 0), ComValue(0x200d, table))
+        }
+        GetEntry(index) {
+            local entry
+            if (ComCall(5, this, "int", index, "ptr*", &entry := 0), entry)
+                return UIA.IUIAutomationProxyFactoryEntry(entry)
+            throw UnsetError("No ProxyFactoryEntry returned by " A_ThisFunc, -1)
+        }
+        SetTable(factoryList) => ComCall(6, this, "ptr", factoryList)
+        InsertEntries(before, factoryList) => ComCall(7, this, "uint", before, "ptr", factoryList)
+        InsertEntry(before, factory) => ComCall(8, this, "uint", before, "ptr", factory)
+        RemoveEntry(index) => ComCall(9, this, "uint", index)
+        ClearTable() => ComCall(10, this)
+        RestoreDefaultTable() => ComCall(11, this)
+    }
+
+    class IUIAutomationRangeValuePattern extends UIA.IUIAutomationBase {
+        ; Sets the value of the control.
+        SetValue(val) => ComCall(3, this, "double", val)
+
+        Value {
+            get {
+                local retVal
+                return (ComCall(4, this, "double*", &retVal := 0), retVal)
+            }
+            set => ComCall(3, this, "double", value)
+        }
+
+        ; Indicates whether the value of the element can be changed.
+        IsReadOnly {
+            get {
+                local retVal
+                return (ComCall(5, this, "int*", &retVal := 0), retVal)
+            }
+        }
+
+        Maximum {
+            get {
+                local retVal
+                return (ComCall(6, this, "double*", &retVal := 0), retVal)
+            }
+        }
+
+        Minimum {
+            get {
+                local retVal
+                return (ComCall(7, this, "double*", &retVal := 0), retVal)
+            }
+        }
+
+        ; The LargeChange and SmallChange property can support a Not a Number (NaN) value. When retrieving this property, a client can use the _isnan function to determine whether the property is a NaN value.
+
+        LargeChange {
+            get {
+                local retVal
+                return (ComCall(8, this, "double*", &retVal := 0), retVal)
+            }
+        }
+
+        SmallChange {
+            get {
+                local retVal
+                return (ComCall(9, this, "double*", &retVal := 0), retVal)
+            }
+        }
+
+        CachedValue {
+            get {
+                local retVal
+                return (ComCall(10, this, "double*", &retVal := 0), retVal)
+            }
+        }
+
+        CachedIsReadOnly {
+            get {
+                local retVal
+                return (ComCall(11, this, "int*", &retVal := 0), retVal)
+            }
+        }
+
+        CachedMaximum {
+            get {
+                local retVal
+                return (ComCall(12, this, "double*", &retVal := 0), retVal)
+            }
+        }
+
+        CachedMinimum {
+            get {
+                local retVal
+                return (ComCall(13, this, "double*", &retVal := 0), retVal)
+            }
+        }
+
+        ; Retrieves, from the cache, the value that is added to or subtracted from the value of the control when a large change is made, such as when the PAGE DOWN key is pressed.
+        CachedLargeChange {
+            get {
+                local retVal
+                return (ComCall(14, this, "double*", &retVal := 0), retVal)
+            }
+        }
+
+        ; Retrieves, from the cache, the value that is added to or subtracted from the value of the control when a small change is made, such as when an arrow key is pressed.
+        CachedSmallChange {
+            get {
+                local retVal
+                return (ComCall(15, this, "double*", &retVal := 0), retVal)
+            }
+        }
+    }
+
+    class IUIAutomationScrollItemPattern extends UIA.IUIAutomationBase {
+        ; Scrolls the content area of a container object to display the UI Automation element within the visible region (viewport) of the container.
+        ; This method does not provide the ability to specify the position of the element within the viewport.
+        ScrollIntoView() => ComCall(3, this)
+    }
+
+    class IUIAutomationScrollPattern extends UIA.IUIAutomationBase {
+        ; Scrolls the visible region of the content area horizontally and vertically.
+        ; Default values for horizontalAmount and horizontalAmount is UIA.ScrollAmount.NoAmount
+        Scroll(verticalAmount := -1, horizontalAmount := -1) => ComCall(3, this, "int", UIA.TypeValidation.ScrollAmount(horizontalAmount), "int", UIA.TypeValidation.ScrollAmount(verticalAmount))
+
+        ; Sets the horizontal and vertical scroll positions as a percentage of the total content area within the UI Automation element.
+        ; This method is useful only when the content area of the control is larger than the visible region.
+        ; Default values for horizontalPercent and verticalPercent is UIA.ScrollAmount.NoAmount
+        SetScrollPercent(verticalPercent := -1, horizontalPercent := -1) => ComCall(4, this, "double", horizontalPercent, "double", verticalPercent)
+
+        HorizontalScrollPercent {
+            get {
+                local retVal
+                return (ComCall(5, this, "double*", &retVal := 0), retVal)
+            }
+            set => this.SetScrollPercent(, value)
+        }
+
+        VerticalScrollPercent {
+            get {
+                local retVal
+                return (ComCall(6, this, "double*", &retVal := 0), retVal)
+            }
+            set => this.SetScrollPercent(value)
+        }
+
+        HorizontalViewSize {
+            get {
+                local retVal
+                return (ComCall(7, this, "double*", &retVal := 0), retVal)
+            }
+        }
+
+        VerticalViewSize {
+            get {
+                local retVal
+                return (ComCall(8, this, "double*", &retVal := 0), retVal)
+            }
+        }
+
+        ; Indicates whether the element can scroll horizontally.
+        ; This property can be dynamic. For example, the content area of the element might not be larger than the current viewable area, meaning that the property is FALSE. However, resizing the element or adding child items can increase the bounds of the content area beyond the viewable area, making the property TRUE.
+        HorizontallyScrollable {
+            get {
+                local retVal
+                return (ComCall(9, this, "int*", &retVal := 0), retVal)
+            }
+        }
+
+        ; Indicates whether the element can scroll vertically.
+        VerticallyScrollable {
+            get {
+                local retVal
+                return (ComCall(10, this, "int*", &retVal := 0), retVal)
+            }
+        }
+
+        CachedHorizontalScrollPercent {
+            get {
+                local retVal
+                return (ComCall(11, this, "double*", &retVal := 0), retVal)
+            }
+        }
+
+        CachedVerticalScrollPercent {
+            get {
+                local retVal
+                return (ComCall(12, this, "double*", &retVal := 0), retVal)
+            }
+        }
+
+        CachedHorizontalViewSize {
+            get {
+                local retVal
+                return (ComCall(13, this, "double*", &retVal := 0), retVal)
+            }
+        }
+
+        CachedVerticalViewSize {
+            get {
+                local retVal
+                return (ComCall(14, this, "double*", &retVal := 0), retVal)
+            }
+        }
+
+        CachedHorizontallyScrollable {
+            get {
+                local retVal
+                return (ComCall(15, this, "int*", &retVal := 0), retVal)
+            }
+        }
+
+        CachedVerticallyScrollable {
+            get {
+                local retVal
+                return (ComCall(16, this, "int*", &retVal := 0), retVal)
+            }
+        }
+    }
+
+    class IUIAutomationSelectionItemPattern extends UIA.IUIAutomationBase {
+        ; Clears any selected items and then selects the current element.
+        Select() => ComCall(3, this)
+
+        ; Adds the current element to the collection of selected items.
+        AddToSelection() => ComCall(4, this)
+
+        ; An error code is returned if this element is the only one in the selection and the selection container requires at least one element to be selected.
+        RemoveFromSelection() => ComCall(5, this)
+
+        ; Indicates whether this item is selected.
+        IsSelected {
+            get {
+                local retVal
+                return (ComCall(6, this, "int*", &retVal := 0), retVal)
+            }
+        }
+
+        SelectionContainer {
+            get {
+                local retVal
+                if (ComCall(7, this, "ptr*", &retVal := 0), retVal)
+                    return UIA.IUIAutomationElement(retVal)
+                throw UnsetError("No element returned by " A_ThisFunc, -1)
+            }
+        }
+
+        ; A cached value that indicates whether this item is selected.
+        CachedIsSelected {
+            get {
+                local retVal
+                return (ComCall(8, this, "int*", &retVal := 0), retVal)
+            }
+        }
+
+        CachedSelectionContainer {
+            get {
+                local retVal
+                if (ComCall(9, this, "ptr*", &retVal := 0), retVal)
+                    return UIA.IUIAutomationElement(retVal)
+                throw UnsetError("No element returned by " A_ThisFunc, -1)
+            }
+        }
+    }
+
+    class IUIAutomationSelectionPattern extends UIA.IUIAutomationBase {
+        GetSelection() {
+            local retVal
+            return (ComCall(3, this, "ptr*", &retVal := 0), retVal ? UIA.IUIAutomationElementArray(retVal).ToArray() : [])
+        }
+
+        ; Indicates whether more than one item in the container can be selected at one time.
+        CanSelectMultiple {
+            get {
+                local retVal
+                return (ComCall(4, this, "int*", &retVal := 0), retVal)
+            }
+        }
+
+        ; Indicates whether at least one item must be selected at all times.
+        IsSelectionRequired {
+            get {
+                local retVal
+                return (ComCall(5, this, "int*", &retVal := 0), retVal)
+            }
+        }
+
+        GetCachedSelection() {
+            local retVal
+            return (ComCall(6, this, "ptr*", &retVal := 0), retVal ? UIA.IUIAutomationElementArray(retVal).ToArray() : [])
+        }
+
+        CachedCanSelectMultiple {
+            get {
+                local retVal
+                return (ComCall(7, this, "int*", &retVal := 0), retVal)
+            }
+        }
+
+        CachedIsSelectionRequired {
+            get {
+                local retVal
+                return (ComCall(8, this, "int*", &retVal := 0), retVal)
+            }
+        }
+
+        ; --------------- SelectionPattern2 ---------------
+
+        ; Gets an IUIAutomationElement object representing the first item in a group of selected items.
+        FirstSelectedItem {
+            get {
+                local retVal
+                return (ComCall(9, this, "int*", &retVal := 0), retVal)
+            }
+        }
+
+        ; Gets an IUIAutomationElement object representing the last item in a group of selected items.
+        LastSelectedItem {
+            get {
+                local retVal
+                return (ComCall(10, this, "int*", &retVal := 0), retVal)
+            }
+        }
+
+        ; Gets an IUIAutomationElement object representing the currently selected item.
+        SelectedItem {
+            get {
+                local retVal
+                return (ComCall(11, this, "int*", &retVal := 0), retVal)
+            }
+        }
+
+        ; Gets an integer value indicating the number of selected items.
+        ItemCount {
+            get {
+                local retVal
+                return (ComCall(12, this, "int*", &retVal := 0), retVal)
+            }
+        }
+
+        ; Gets a cached IUIAutomationElement object representing the first item in a group of selected items.
+        CachedFirstSelectedItem {
+            get {
+                local retVal
+                return (ComCall(13, this, "int*", &retVal := 0), retVal)
+            }
+        }
+
+        ; Gets a cached IUIAutomationElement object representing the last item in a group of selected items.
+        CachedLastSelectedItem {
+            get {
+                local retVal
+                return (ComCall(14, this, "int*", &retVal := 0), retVal)
+            }
+        }
+
+        ; Gets a cached IUIAutomationElement object representing the currently selected item.
+        CachedSelectedItem {
+            get {
+                local retVal
+                return (ComCall(15, this, "int*", &retVal := 0), retVal)
+            }
+        }
+
+        ; Gets a cached integer value indicating the number of selected items.
+        CachedItemCount {
+            get {
+                local retVal
+                return (ComCall(16, this, "int*", &retVal := 0), retVal)
+            }
+        }
+    }
+
+    class IUIAutomationSpreadsheetPattern extends UIA.IUIAutomationBase {
+        GetItemByName(name) {
+            local element
+            if (ComCall(3, this, "wstr", name, "ptr*", &element := 0), element)
+                return UIA.IUIAutomationElement(element)
+            throw UnsetError("No element returned by " A_ThisFunc, -1)
+        }
+    }
+
+    class IUIAutomationSpreadsheetItemPattern extends UIA.IUIAutomationBase {
+        Formula {
+            get {
+                local retVal
+                return (ComCall(3, this, "ptr*", &retVal := 0), UIA.BSTR(retVal))
+            }
+        }
+        GetAnnotationObjects() {
+            local retVal
+            return (ComCall(4, this, "ptr*", &retVal := 0), retVal ? UIA.IUIAutomationElementArray(retVal).ToArray() : [])
+        }
+        GetAnnotationTypes() {
+            local retVal
+            return (ComCall(5, this, "ptr*", &retVal := 0), ComValue(0x2003, retVal))
+        }
+        CachedFormul {
+            get {
+                local retVal
+                return (ComCall(6, this, "ptr*", &retVal := 0), UIA.BSTR(retVal))
+            }
+        }
+        GetCachedAnnotationObjects() {
+            local retVal
+            return (ComCall(7, this, "ptr*", &retVal := 0), retVal ? UIA.IUIAutomationElementArray(retVal).ToArray() : [])
+        }
+        GetCachedAnnotationTypes() {
+            local retVal
+            return (ComCall(8, this, "ptr*", &retVal := 0), ComValue(0x2003, retVal))
+        }
+    }
+
+    class IUIAutomationStylesPattern extends UIA.IUIAutomationBase {
+        StyleId {
+            get {
+                local retVal
+                return (ComCall(3, this, "int*", &retVal := 0), retVal)
+            }
+        }
+        StyleName {
+            get {
+                local retVal
+                return (ComCall(4, this, "ptr*", &retVal := 0), UIA.BSTR(retVal))
+            }
+        }
+        FillColor {
+            get {
+                local retVal
+                return (ComCall(5, this, "int*", &retVal := 0), retVal)
+            }
+        }
+        FillPatternStyle {
+            get {
+                local retVal
+                return (ComCall(6, this, "ptr*", &retVal := 0), UIA.BSTR(retVal))
+            }
+        }
+        Shape {
+            get {
+                local retVal
+                return (ComCall(7, this, "ptr*", &retVal := 0), UIA.BSTR(retVal))
+            }
+        }
+        FillPatternColor {
+            get {
+                local retVal
+                return (ComCall(8, this, "int*", &retVal := 0), retVal)
+            }
+        }
+        ExtendedProperties {
+            get {
+                local retVal
+                return (ComCall(9, this, "ptr*", &retVal := 0), UIA.BSTR(retVal))
+            }
+        }
+        GetExtendedPropertiesAsArray() {
+            local arr := [], p, propertyArray, propertyCount
+            ComCall(10, this, "ptr*", &propertyArray := 0, "int*", &propertyCount := 0)
+            for p in UIA.NativeArray(propertyArray, propertyCount)
+                arr.Push({ PropertyName: UIA.BSTR(NumGet(p, "ptr")), PropertyValue: UIA.BSTR(NumGet(p, A_PtrSize, "ptr")) })
+            return arr
+        }
+        CachedStyleId {
+            get {
+                local retVal
+                return (ComCall(11, this, "int*", &retVal := 0), retVal)
+            }
+        }
+        CachedStyleName {
+            get {
+                local retVal
+                return (ComCall(12, this, "ptr*", &retVal := 0), UIA.BSTR(retVal))
+            }
+        }
+        CachedFillColor {
+            get {
+                local retVal
+                return (ComCall(13, this, "int*", &retVal := 0), retVal)
+            }
+        }
+        CachedFillPatternStyle {
+            get {
+                local retVal
+                return (ComCall(14, this, "ptr*", &retVal := 0), UIA.BSTR(retVal))
+            }
+        }
+        CachedShape {
+            get {
+                local retVal
+                return (ComCall(15, this, "ptr*", &retVal := 0), UIA.BSTR(retVal))
+            }
+        }
+        CachedFillPatternColor {
+            get {
+                local retVal
+                return (ComCall(16, this, "int*", &retVal := 0), retVal)
+            }
+        }
+        CachedExtendedProperties {
+            get {
+                local retVal
+                return (ComCall(17, this, "ptr*", &retVal := 0), UIA.BSTR(retVal))
+            }
+        }
+        GetCachedExtendedPropertiesAsArray() {
+            local arr := [], p, propertyArray, propertyCount
+            ComCall(18, this, "ptr*", &propertyArray := 0, "int*", &propertyCount := 0)
+            for p in UIA.NativeArray(propertyArray, propertyCount)
+                arr.Push({ PropertyName: UIA.BSTR(NumGet(p, "ptr")), PropertyValue: UIA.BSTR(NumGet(p, A_PtrSize, "ptr")) })
+            return arr
+        }
+    }
+
+    class IUIAutomationSynchronizedInputPattern extends UIA.IUIAutomationBase {
+        ; Causes the Microsoft UI Automation provider to start listening for mouse or keyboard input.
+        ; When matching input is found, the provider checks whether the target element matches the current element. If they match, the provider raises the UIA_InputReachedTargetEventId event; otherwise it raises the UIA_InputReachedOtherElementEventId or UIA_InputDiscardedEventId event.
+        ; After receiving input of the specified type, the provider stops checking for input and continues as normal.
+        ; If the provider is already listening for input, this method returns E_INVALIDOPERATION.
+        StartListening(inputType) => ComCall(3, this, "int", inputType)
+
+        ; Causes the Microsoft UI Automation provider to stop listening for mouse or keyboard input.
+        Cancel() => ComCall(4, this)
+    }
+
+    class IUIAutomationTableItemPattern extends UIA.IUIAutomationBase {
+        GetRowHeaderItems() {
+            local retVal
+            return (ComCall(3, this, "ptr*", &retVal := 0), retVal ? UIA.IUIAutomationElementArray(retVal).ToArray() : [])
+        }
+
+        GetColumnHeaderItems() {
+            local retVal
+            return (ComCall(4, this, "ptr*", &retVal := 0), retVal ? UIA.IUIAutomationElementArray(retVal).ToArray() : [])
+        }
+
+        GetCachedRowHeaderItems() {
+            local retVal
+            return (ComCall(5, this, "ptr*", &retVal := 0), retVal ? UIA.IUIAutomationElementArray(retVal).ToArray() : [])
+        }
+
+        GetCachedColumnHeaderItems() {
+            local retVal
+            return (ComCall(6, this, "ptr*", &retVal := 0), retVal ? UIA.IUIAutomationElementArray(retVal).ToArray() : [])
+        }
+    }
+
+    class IUIAutomationTablePattern extends UIA.IUIAutomationBase {
+        GetRowHeaders() {
+            local retVal
+            return (ComCall(3, this, "ptr*", &retVal := 0), retVal ? UIA.IUIAutomationElementArray(retVal).ToArray() : [])
+        }
+
+        GetColumnHeaders() {
+            local retVal
+            return (ComCall(4, this, "ptr*", &retVal := 0), retVal ? UIA.IUIAutomationElementArray(retVal).ToArray() : [])
+        }
+
+        RowOrColumnMajor {
+            get {
+                local retVal
+                return (ComCall(5, this, "int*", &retVal := 0), retVal)
+            }
+        }
+
+        GetCachedRowHeaders() {
+            local retVal
+            return (ComCall(6, this, "ptr*", &retVal := 0), retVal ? UIA.IUIAutomationElementArray(retVal).ToArray() : [])
+        }
+
+        GetCachedColumnHeaders() {
+            local retVal
+            return (ComCall(7, this, "ptr*", &retVal := 0), retVal ? UIA.IUIAutomationElementArray(retVal).ToArray() : [])
+        }
+
+        CachedRowOrColumnMajor {
+            get {
+                local retVal
+                return (ComCall(8, this, "int*", &retVal := 0), retVal)
+            }
+        }
+    }
+
+    class IUIAutomationTextChildPattern extends UIA.IUIAutomationBase {
+        TextContainer {
+            get {
+                local container
+                if (ComCall(3, this, "ptr*", &container := 0), container)
+                    return UIA.IUIAutomationElement(container)
+                throw UnsetError("No element returned by " A_ThisFunc, -1)
+            }
+        }
+        TextRange {
+            get {
+                local range
+                if (ComCall(4, this, "ptr*", &range := 0), range)
+                    return UIA.IUIAutomationTextRange(range)
+                throw UnsetError("No TextRange returned by " A_ThisFunc, -1)
+            }
+        }
+    }
+
+    class IUIAutomationTextEditPattern extends UIA.IUIAutomationBase {
+        GetActiveComposition() {
+            local range
+            if (ComCall(3, this, "ptr*", &range := 0), range)
+                return UIA.IUIAutomationTextRange(range)
+            throw UnsetError("No TextRange returned by " A_ThisFunc, -1)
+        }
+        GetConversionTarget() {
+            local range
+            if (ComCall(4, this, "ptr*", &range := 0), range)
+                return UIA.IUIAutomationTextRange(range)
+            throw UnsetError("No TextRange returned by " A_ThisFunc, -1)
+        }
+    }
+
+    class IUIAutomationTextPattern extends UIA.IUIAutomationBase {
+
+        RangeFromPoint(x, y?) {
+            local range
+            if (ComCall(3, this, "int64", IsSet(y) ? y << 32 | (x & 0xFFFFFFFF) : x, "ptr*", &range := 0), range)
+                return UIA.IUIAutomationTextRange(range)
+            throw UnsetError("No TextRange returned by " A_ThisFunc, -1)
+        }
+
+        ; If there is no text in the range that encloses the child element, a degenerate (empty) range is returned.
+        ; The child parameter is either a child of the element associated with a IUIAutomationTextPattern or from the array of children of a IUIAutomationTextRange.
+        RangeFromChild(child) {
+            local range
+            if (ComCall(4, this, "ptr", child, "ptr*", &range := 0), range)
+                return UIA.IUIAutomationTextRange(range)
+            throw UnsetError("No TextRange returned by " A_ThisFunc, -1)
+        }
+
+        ; If the control supports the selection of multiple, non-contiguous spans of text, the ranges collection receives one text range for each selected span.
+        ; If the control contains only a single span of selected text, the ranges collection receives a single text range.
+        ; If the control contains a text insertion point but no text is selected, the ranges collection receives a degenerate (empty) text range at the position of the text insertion point.
+        ; If the control does not contain a text insertion point or does not support text selection, ranges is set to NULL.
+        ; Use the IUIAutomationTextPattern.SupportedTextSelection property to test whether a control supports text selection.
+        GetSelection() {
+            local ranges
+            return (ComCall(5, this, "ptr*", &ranges := 0), ranges ? UIA.IUIAutomationTextRangeArray(ranges).ToArray() : [])
+        }
+
+        SelectionRange {
+            get => this.GetSelection()[1]
+        }
+
+        ; If the visible text consists of one contiguous span of text, the ranges array will contain a single text range that represents all of the visible text.
+        ; If the visible text consists of multiple, disjoint spans of text, the ranges array will contain one text range for each visible span, beginning with the first visible span, and ending with the last visible span. Disjoint spans of visible text can occur when the content of a text-based control is partially obscured by an overlapping window or other object, or when a text-based control with multiple pages or columns has content that is partially scrolled out of view.
+        ; IUIAutomationTextPattern,,GetVisibleRanges retrieves a degenerate (empty) text range if no text is visible, if all text is scrolled out of view, or if the text-based control contains no text.
+        GetVisibleRanges() {
+            local ranges
+            return (ComCall(6, this, "ptr*", &ranges := 0), ranges ? UIA.IUIAutomationTextRangeArray(ranges).ToArray() : [])
+        }
+
+        ; Some auxiliary text such as headers, footnotes, or annotations might not be included.
+        DocumentRange {
+            get {
+                local range
+                if (ComCall(7, this, "ptr*", &range := 0), range)
+                    return UIA.IUIAutomationTextRange(range)
+                throw UnsetError("No TextRange returned by " A_ThisFunc, -1)
+            }
+        }
+
+        SupportedTextSelection {
+            get {
+                local supportedTextSelection
+                return (ComCall(8, this, "int*", &supportedTextSelection := 0), supportedTextSelection)
+            }
+        }
+
+        ; ------------- TextPattern2 ------------
+
+        RangeFromAnnotation(annotation) {
+            local out
+            if (ComCall(9, this, "ptr", annotation, "ptr*", &out := 0), out)
+                return UIA.IUIAutomationTextRange(out)
+            throw UnsetError("No TextRange returned by " A_ThisFunc, -1)
+        }
+        GetCaretRange(&isActive := 0) {
+            local out
+            if (ComCall(10, this, "ptr*", &isActive := 0, "ptr*", &out := 0), out)
+                return UIA.IUIAutomationTextRange(out)
+            throw UnsetError("No TextRange returned by " A_ThisFunc, -1)
+        }
+    }
+
+
+    class IUIAutomationTextRange extends UIA.IUIAutomationBase {
+        static __IID := "{A543CC6A-F4AE-494B-8239-C814481187A8}"
+        ; The range can be manipulated independently of the original.
+        Clone() {
+            local clonedRange
+            if (ComCall(3, this, "ptr*", &clonedRange := 0), clonedRange)
+                return UIA.IUIAutomationTextRange(clonedRange)
+            throw UnsetError("No TextRange returned by " A_ThisFunc, -1)
+        }
+
+        ; This method compares the endpoints of the two text ranges, not the text in the ranges. The ranges are identical if they share the same endpoints. If two text ranges have different endpoints, they are not identical even if the text in both ranges is exactly the same.
+        Compare(range) {
+            local areSame
+            return (ComCall(4, this, "ptr", range, "int*", &areSame := 0), areSame)
+        }
+
+        ; EndPoint must be one of UIA.TextPatternRangeEndpoint values: Start, End
+        CompareEndpoints(srcEndPoint, range, targetEndPoint) {
+            local compValue
+            return (ComCall(5, this, "int", UIA.TypeValidation.TextPatternRangeEndpoint(srcEndPoint), "ptr", range, "int", UIA.TypeValidation.TextPatternRangeEndpoint(targetEndPoint), "int*", &compValue := 0), compValue)
+        }
+
+        ; Normalizes the text range by the specified text unit. The range is expanded if it is smaller than the specified unit, or shortened if it is longer than the specified unit.
+        ; Client applications such as screen readers use this method to retrieve the full word, sentence, or paragraph that exists at the insertion point or caret position.
+        ; Despite its name, the ExpandToEnclosingUnit method does not necessarily expand a text range. Instead, it "normalizes" a text range by moving the endpoints so that the range encompasses the specified text unit. The range is expanded if it is smaller than the specified unit, or shortened if it is longer than the specified unit. If the range is already an exact quantity of the specified units, it remains unchanged. The following diagram shows how ExpandToEnclosingUnit normalizes a text range by moving the endpoints of the range.
+        ; ExpandToEnclosingUnit defaults to the next largest text unit supported if the specified text unit is not supported by the control. The order, from smallest unit to largest, is as follows, Character Format Word Line Paragraph Page Document
+        ; ExpandToEnclosingUnit respects both visible and hidden text.
+        ; TextUnit must be one of UIA.TextUnit values: Character, Format, Word, Line, Paragraph, Page, Document. Default is Document.
+        ExpandToEnclosingUnit(textUnit := 6) => ComCall(6, this, "int", textUnit)
+
+        ; The FindAttribute method retrieves matching text regardless of whether the text is hidden or visible. Use UIA_IsHiddenAttributeId to check text visibility.
+        FindAttribute(attr, val, backward := False) {
+            local found
+            if A_PtrSize = 4
+                val := UIA.ComVar(val, , true), ComCall(7, this, "int", attr, "int64", NumGet(val, "int64"), "int64", NumGet(val, 8, "int64"), "int", backward, "ptr*", &found := 0)
+            else
+                ComCall(7, this, "int", attr, "ptr", UIA.ComVar(val, , true), "int", backward, "ptr*", &found := 0)
+            return found ? UIA.IUIAutomationTextRange(found) : ""
+        }
+
+        FindText(text, backward := False, ignoreCase := False) {
+            local found
+            if (ComCall(8, this, "wstr", text, "int", backward, "int", ignoreCase, "ptr*", &found := 0), found)
+                return UIA.IUIAutomationTextRange(found)
+            throw UnsetError("No TextRange returned by " A_ThisFunc, -1)
+        }
+
+        ; The type of value retrieved by this method depends on the attr parameter. For example, calling GetAttributeValue with the attr parameter set to UIA_FontNameAttributeId returns a string that represents the font name of the text range, while calling GetAttributeValue with attr set to UIA_IsItalicAttributeId would return a boolean.
+        ; If the attribute specified by attr is not supported, the value parameter receives a value that is equivalent to the IUIAutomation,,ReservedNotSupportedValue property.
+        ; A text range can include more than one value for a particular attribute. For example, if a text range includes more than one font, the FontName attribute will have multiple values. An attribute with more than one value is called a mixed attribute. You can determine if a particular attribute is a mixed attribute by comparing the value retrieved from GetAttributeValue with the UIAutomation,,ReservedMixedAttributeValue property.
+        ; The GetAttributeValue method retrieves the attribute value regardless of whether the text is hidden or visible. Use UIA_ IsHiddenAttributeId to check text visibility.
+        GetAttributeValue(attr) {
+            local val
+            return (ComCall(9, this, "int", attr, "ptr", val := UIA.ComVar()), val[])
+        }
+
+        GetBoundingRectangles() {
+            ComCall(10, this, "ptr*", &boundingRects := 0)
+            DllCall("oleaut32\SafeArrayGetVartype", "ptr", boundingRects, "ushort*", &baseType := 0)
+            retArr := [], sa := ComValue(0x2000 | baseType, boundingRects)
+            Loop sa.MaxIndex() / 4 + 1
+                retArr.Push({ x: Floor(sa[4 * (A_Index - 1)]), y: Floor(sa[4 * (A_Index - 1) + 1]), w: Floor(sa[4 * (A_Index - 1) + 2]), h: Floor(sa[4 * (A_Index - 1) + 3]) })
+            return retArr
+        }
+
+        GetEnclosingElement() {
+            local enclosingElement
+            if (ComCall(11, this, "ptr*", &enclosingElement := 0), enclosingElement)
+                return UIA.IUIAutomationElement(enclosingElement)
+            throw UnsetError("No element returned by " A_ThisFunc, -1)
+        }
+
+        GetText(maxLength := -1) {
+            local text
+            return (ComCall(12, this, "int", maxLength, "ptr*", &text := 0), UIA.BSTR(text))
+        }
+
+        ; Moves the text range forward or backward by the specified number of text units.
+        ; unit must be one of UIA.TextUnit values: Character, Format, Word, Line, Paragraph, Page, Document.
+        Move(unit, count) {
+            local moved
+            return (ComCall(13, this, "int", UIA.TypeValidation.TextUnit(unit), "int", count, "int*", &moved := 0), moved)
+        }
+
+        ; Moves one endpoint of the text range the specified number of text units within the document range.
+        ; unit must be one of UIA.TextUnit values: Character, Format, Word, Line, Paragraph, Page, Document. Default is Document.
+        ; EndPoint must be one of UIA.TextPatternRangeEndpoint values: Start, End
+        MoveEndpointByUnit(endpoint, unit, count) {
+            local moved
+            return (ComCall(14, this, "int", UIA.TypeValidation.TextPatternRangeEndpoint(endpoint), "int", UIA.TypeValidation.TextUnit(unit), "int", count, "int*", &moved := 0), moved)
+        }
+
+        ; Moves one endpoint of the current text range to the specified endpoint of a second text range.
+        ; If the endpoint being moved crosses the other endpoint of the same text range, that other endpoint is moved also, resulting in a degenerate (empty) range and ensuring the correct ordering of the endpoints (that is, the start is always less than or equal to the end).
+        ; EndPoint must be one of UIA.TextPatternRangeEndpoint values: Start, End
+        MoveEndpointByRange(srcEndPoint, range, targetEndPoint) {	; TextPatternRangeEndpoint , IUIAutomationTextRange , TextPatternRangeEndpoint
+            ComCall(15, this, "int", UIA.TypeValidation.TextPatternRangeEndpoint(srcEndPoint), "ptr", range, "int", UIA.TypeValidation.TextPatternRangeEndpoint(targetEndPoint))
+        }
+
+        ; Selects the span of text that corresponds to this text range, and removes any previous selection.
+        ; If the Select method is called on a text range object that represents a degenerate (empty) text range, the text insertion point moves to the starting endpoint of the text range.
+        Select() => ComCall(16, this)
+
+        ; Adds the text range to the collection of selected text ranges in a control that supports multiple, disjoint spans of selected text.
+        ; The text insertion point moves to the newly selected text. If AddToSelection is called on a text range object that represents a degenerate (empty) text range, the text insertion point moves to the starting endpoint of the text range.
+        AddToSelection() => ComCall(17, this)
+
+        ; The text insertion point moves to the area of the removed highlight. Providing a degenerate text range also moves the insertion point.
+        RemoveFromSelection() => ComCall(18, this)
+
+        ; Causes the text control to scroll until the text range is visible in the viewport.
+        ; The method respects both hidden and visible text. If the text range is hidden, the text control will scroll only if the hidden text has an anchor in the viewport.
+        ; A Microsoft UI Automation client can check text visibility by calling IUIAutomationTextRange,,GetAttributeValue with the attr parameter set to UIA_IsHiddenAttributeId.
+        ScrollIntoView(alignToTop := 0) => ComCall(19, this, "int", alignToTop)
+
+        GetChildren() {
+            local children
+            return (ComCall(20, this, "ptr*", &children := 0), children ? UIA.IUIAutomationElementArray(children).ToArray() : "")
+        }
+        ShowContextMenu() => ComCall(21, this)
+
+        GetEnclosingElementBuildCache(cacheRequest) {
+            local out
+            if (ComCall(22, this, "ptr", UIA.TypeValidation.CacheRequest(cacheRequest), "ptr*", &out := 0), out)
+                return UIA.IUIAutomationElement(out)
+            throw UnsetError("No element returned by " A_ThisFunc, -1)
+        }
+        GetChildrenBuildCache(cacheRequest) {
+            local out
+            return (ComCall(23, this, "ptr", UIA.TypeValidation.CacheRequest(cacheRequest), "ptr*", &out := 0), out ? UIA.IUIAutomationElementArray(out).ToArray() : [])
+        }
+        GetAttributeValues(attributeIds, attributeIdCount) {
+            local out
+            ComCall(24, this, "ptr", ComObjValue(ComObjArray(8, attributeIds*)), "int", attributeIdCount, "ptr*", &out := UIA.ComVar())
+            return out[]
+        }
+    }
+
+    class IUIAutomationTextRangeArray extends UIA.IUIAutomationArray {
+        Length {
+            get {
+                local length
+                return (ComCall(3, this, "int*", &length := 0), length)
+            }
+        }
+
+        GetElement(index) {
+            local element
+            if (ComCall(4, this, "int", index, "ptr*", &element := 0), element)
+                return UIA.IUIAutomationTextRange(element)
+            throw UnsetError("No TextRange returned by " A_ThisFunc, -1)
+        }
+    }
+
+    class IUIAutomationTogglePattern extends UIA.IUIAutomationBase {
+        ; Cycles through the toggle states of the control.
+        ; A control cycles through its states in this order, ToggleState_On, ToggleState_Off and, if supported, ToggleState_Indeterminate.
+        Toggle() => ComCall(3, this)
+
+        ToggleState {
+            get {
+                local retVal
+                return (ComCall(4, this, "int*", &retVal := 0), retVal)
+            }
+            set {
+                if (this.ToggleState != value)
+                    this.Toggle()
+            }
+        }
+
+        CachedToggleState {
+            get {
+                local retVal
+                return (ComCall(5, this, "int*", &retVal := 0), retVal)
+            }
+        }
+    }
+
+
+    class IUIAutomationTransformPattern extends UIA.IUIAutomationBase {
+        ; An element cannot be moved, resized or rotated such that its resulting screen location would be completely outside the coordinates of its container and inaccessible to the keyboard or mouse. For example, when a top-level window is moved completely off-screen or a child object is moved outside the boundaries of the container's viewport, the object is placed as close to the requested screen coordinates as possible with the top or left coordinates overridden to be within the container boundaries.
+
+        ; Moves the UI Automation element.
+        Move(x, y) => ComCall(3, this, "double", x, "double", y)
+
+        ; Resizes the UI Automation element.
+        ; When called on a control that supports split panes, this method can have the side effect of resizing other contiguous panes.
+        Resize(width, height) => ComCall(4, this, "double", width, "double", height)
+
+        ; Rotates the UI Automation element.
+        Rotate(degrees) => ComCall(5, this, "double", degrees)
+
+        ; Indicates whether the element can be moved.
+        CanMove {
+            get {
+                local retVal
+                return (ComCall(6, this, "int*", &retVal := 0), retVal)
+            }
+        }
+
+        ; Indicates whether the element can be resized.
+        CanResize {
+            get {
+                local retVal
+                return (ComCall(7, this, "int*", &retVal := 0), retVal)
+            }
+        }
+
+        ; Indicates whether the element can be rotated.
+        CanRotate {
+            get {
+                local retVal
+                return (ComCall(8, this, "int*", &retVal := 0), retVal)
+            }
+        }
+
+        CachedCanMove {
+            get {
+                local retVal
+                return (ComCall(9, this, "int*", &retVal := 0), retVal)
+            }
+        }
+
+        CachedCanResize {
+            get {
+                local retVal
+                return (ComCall(10, this, "int*", &retVal := 0), retVal)
+            }
+        }
+
+        CachedCanRotate {
+            get {
+                local retVal
+                return (ComCall(11, this, "int*", &retVal := 0), retVal)
+            }
+        }
+
+        ; --------------- TransformPattern2 ---------------
+
+        CanZoom {
+            get {
+                local retVal
+                return (ComCall(14, this, "int*", &retVal := 0), retVal)
+            }
+        }
+        CachedCanZoom {
+            get {
+                local retVal
+                return (ComCall(15, this, "int*", &retVal := 0), retVal)
+            }
+        }
+        ZoomLevel {
+            get {
+                local retVal
+                return (ComCall(16, this, "double*", &retVal := 0), retVal)
+            }
+        }
+        CachedZoomLevel {
+            get {
+                local retVal
+                return (ComCall(17, this, "double*", &retVal := 0), retVal)
+            }
+        }
+        ZoomMinimum {
+            get {
+                local retVal
+                return (ComCall(18, this, "double*", &retVal := 0), retVal)
+            }
+        }
+        CachedZoomMinimum {
+            get {
+                local retVal
+                return (ComCall(19, this, "double*", &retVal := 0), retVal)
+            }
+        }
+        ZoomMaximum {
+            get {
+                local retVal
+                return (ComCall(20, this, "double*", &retVal := 0), retVal)
+            }
+        }
+        CachedZoomMaximum {
+            get {
+                local retVal
+                return (ComCall(21, this, "double*", &retVal := 0), retVal)
+            }
+        }
+        Zoom(zoomValue) => ComCall(12, this, "double", zoomValue)
+        ZoomByUnit(ZoomUnit) => ComCall(13, this, "uint", ZoomUnit)
+    }
+
+    class IUIAutomationValuePattern extends UIA.IUIAutomationBase {
+        ; Sets the value of the element.
+        ; The IsEnabled property must be TRUE, and the IUIAutomationValuePattern,,IsReadOnly property must be FALSE.
+        SetValue(val) => ComCall(3, this, "wstr", val)
+
+        ; Single-line edit controls support programmatic access to their contents through IUIAutomationValuePattern. However, multiline edit controls do not support this control pattern, and their contents must be retrieved by using IUIAutomationTextPattern.
+        ; This property does not support the retrieval of formatting information or substring values. IUIAutomationTextPattern must be used in these scenarios as well.
+        Value {
+            get {
+                local retVal
+                return (ComCall(4, this, "ptr*", &retVal := 0), UIA.BSTR(retVal))
+            }
+            set => ComCall(3, this, "wstr", value)
+        }
+
+        ; Indicates whether the value of the element is read-only.
+        IsReadOnly {
+            get {
+                local retVal
+                return (ComCall(5, this, "int*", &retVal := 0), retVal)
+            }
+        }
+
+        CachedValue {
+            get {
+                local retVal
+                return (ComCall(6, this, "ptr*", &retVal := 0), UIA.BSTR(retVal))
+            }
+        }
+
+        ; This property must be TRUE for IUIAutomationValuePattern,,SetValue to succeed.
+        CachedIsReadOnly {
+            get {
+                local retVal
+                return (ComCall(7, this, "int*", &retVal := 0), retVal)
+            }
+        }
+    }
+
+
+    class IUIAutomationVirtualizedItemPattern extends UIA.IUIAutomationBase {
+        ; A virtualized item is represented by a placeholder automation element in the UI Automation tree. The Realize method causes the provider to make full information available for the item so that a full UI Automation element can be created for the item.
+        Realize() => ComCall(3, this)
+    }
+
+
+    class IUIAutomationWindowPattern extends UIA.IUIAutomationBase {
+        ; Closes the window.
+        ; When called on a split pane control, this method closes the pane and removes the associated split. This method may also close all other panes, depending on implementation.
+        Close() => ComCall(3, this)
+
+        ; Causes the calling code to block for the specified time or until the associated process enters an idle state, whichever completes first.
+        WaitForInputIdle(milliseconds) {
+            local success
+            return (ComCall(4, this, "int", milliseconds, "int*", &success := 0), success)
+        }
+
+        ; Minimizes, maximizes, or restores the window.
+        SetWindowVisualState(state) => ComCall(5, this, "int", state)
+
+        ; Indicates whether the window can be maximized.
+        CanMaximize {
+            get {
+                local retVal
+                return (ComCall(6, this, "int*", &retVal := 0), retVal)
+            }
+        }
+
+        ; Indicates whether the window can be minimized.
+        CanMinimize {
+            get {
+                local retVal
+                return (ComCall(7, this, "int*", &retVal := 0), retVal)
+            }
+        }
+
+        ; Indicates whether the window is modal.
+        IsModal {
+            get {
+                local retVal
+                return (ComCall(8, this, "int*", &retVal := 0), retVal)
+            }
+        }
+
+        ; Indicates whether the window is the topmost element in the z-order.
+        IsTopmost {
+            get {
+                local retVal
+                return (ComCall(9, this, "int*", &retVal := 0), retVal)
+            }
+        }
+
+        WindowVisualState {
+            get {
+                local retVal
+                return (ComCall(10, this, "int*", &retVal := 0), retVal)
+            }
+        }
+
+        WindowInteractionState {
+            get {
+                local retVal
+                return (ComCall(11, this, "int*", &retVal := 0), retVal)
+            }
+        }
+
+        CachedCanMaximize {
+            get {
+                local retVal
+                return (ComCall(12, this, "int*", &retVal := 0), retVal)
+            }
+        }
+
+        CachedCanMinimize {
+            get {
+                local retVal
+                return (ComCall(13, this, "int*", &retVal := 0), retVal)
+            }
+        }
+
+        CachedIsModal {
+            get {
+                local retVal
+                return (ComCall(14, this, "int*", &retVal := 0), retVal)
+            }
+        }
+
+        CachedIsTopmost {
+            get {
+                local retVal
+                return (ComCall(15, this, "int*", &retVal := 0), retVal)
+            }
+        }
+
+        CachedWindowVisualState {
+            get {
+                local retVal
+                return (ComCall(16, this, "int*", &retVal := 0), retVal)
+            }
+        }
+
+        CachedWindowInteractionState {
+            get {
+                local retVal
+                return (ComCall(17, this, "int*", &retVal := 0), retVal)
+            }
+        }
+    }
+
+
+    ; Internal class: UIAViewer code
+    class Viewer {
+        static SettingsFolderPath := A_AppData "\UIAViewer"
+        static SettingsFilePath := A_AppData "\UIAViewer\settings.ini"
+        __New() {
+            local v, pattern, i
+            OnError this.ErrorHandler.Bind(this)
+            CoordMode "Mouse", "Screen"
+            DetectHiddenWindows "On"
+            this.Stored := { mwId: 0, FilteredTreeView: Map(), TreeView: Map(), HighlightedElement: 0 }
+            this.Capturing := False, this.MacroSidebarVisible := False, this.MacroSidebarWidth := 350, this.MacroSidebarMinWidth := 290, this.GuiMinWidth := 540, this.GuiMinHeight := 400, this.Focused := 1
+            this.LoadSettings()
+            this.cacheRequest := UIA.CreateCacheRequest()
+            ; Don't even get the live element, because we don't need it. Gives a significant speed improvement.
+            this.cacheRequest.AutomationElementMode := UIA.AutomationElementMode.None
+            ; Set TreeScope to include the starting element and all descendants as well
+            this.cacheRequest.TreeScope := 5
+
+            this.gViewer := Gui((this.AlwaysOnTop ? "AlwaysOnTop " : "") "Resize +MinSize" this.GuiMinWidth "x" this.GuiMinHeight, "UIAViewer")
+            this.gViewer.OnEvent("Close", this.gViewer_Close.Bind(this))
+            this.gViewer.OnEvent("Size", this.gViewer_Size.Bind(this))
+            (this.TextLVWin := this.gViewer.Add("Text", "w250", "Window Info")).SetFont("bold ce4e4e4 s9")
+            this.LVWin := this.gViewer.Add("ListView", "h135 w250", ["Property", "Value"])
+            this.LVWin.OnEvent("ContextMenu", LV_CopyTextMethod := this.LV_CopyText.Bind(this))
+            this.LVWin.ModifyCol(1, 60)
+            this.LVWin.ModifyCol(2, 180)
+            for v in ["Title", "Text", "Id", "Location", "Class(NN)", "Process", "PID"]
+                this.LVWin.Add(, v, "")
+            this.gViewer.Add("Text", "w100", "Properties").SetFont("bold ce4e4e4 s9")
+            this.LVProps := this.gViewer.Add("ListView", "h200 w250", ["Property", "Value"])
+            this.LVProps.OnEvent("ContextMenu", LV_CopyTextMethod)
+            this.LVProps.ModifyCol(1, 100)
+            this.LVProps.ModifyCol(2, 140)
+            this.DisplayedProps := ["Type", "LocalizedType", "Name", "Value", "AutomationId", "BoundingRectangle", "ClassName", "FullDescription", "HelpText", "AccessKey", "AcceleratorKey", "HasKeyboardFocus", "IsKeyboardFocusable", "ItemType", "ProcessId", "IsEnabled", "IsPassword", "IsOffscreen", "FrameworkId", "IsRequiredForForm", "ItemStatus", "RuntimeId"]
+            Loop DisplayedPropsLength := this.DisplayedProps.Length {
+                v := this.DisplayedProps[i := DisplayedPropsLength - A_Index + 1]
+                try this.cacheRequest.AddProperty(v) ; Throws if not available,
+                catch
+                    this.DisplayedProps.RemoveAt(i) ; Remove property if it is not available
+            }
+            for v in this.DisplayedProps
+                this.LVProps.Add(, v = "BoundingRectangle" ? "Location" : v, "")
+            for pattern in [UIA.Property.OwnProps()*] {
+                if pattern ~= "Is([\w]+Pattern.?)Available"
+                    try this.cacheRequest.AddProperty(UIA.Property.%pattern%)
+                    catch
+                        UIA.Property.DeleteProp(pattern) ; Remove pattern if it is not available
+            }
+
+            (this.TextTVPatterns := this.gViewer.Add("Text", "w100 r1", "Patterns")).SetFont("bold ce4e4e4 s9")
+            this.TVPatterns := this.gViewer.Add("TreeView", "h85 w250")
+            this.TVPatterns.OnEvent("DoubleClick", this.TVPatterns_DoubleClick.Bind(this))
+
+            this.ButCapture := this.gViewer.Add("Button", "xp+60 y+10 w130", "Start capturing (Alt+S)")
+            this.ButCapture.OnEvent("Click", this.CaptureHotkeyFunc := this.ButCapture_Click.Bind(this))
+            HotKey("!s", this.CaptureHotkeyFunc)
+            this.SBMain := this.gViewer.Add("StatusBar", , "  Start capturing, then hold cursor still to construct tree")
+            this.SBMain.OnEvent("Click", this.SBMain_Click.Bind(this))
+            this.SBMain.OnEvent("ContextMenu", this.SBMain_ContextMenu.Bind(this))
+            (this.TextTVUIA := this.gViewer.Add("Text", "x278 y10 w600 r1", "UIA Tree")).SetFont("bold ce4e4e4 s9")
+            this.TVUIA := this.gViewer.Add("TreeView", "x275 y25 w300 h465")
+            this.TVUIA.OnEvent("Click", this.TVUIA_Click.Bind(this))
+            this.TVUIA.OnEvent("ContextMenu", this.TVUIA_ContextMenu.Bind(this))
+            this.TVUIA.Add("Start capturing to show tree")
+            this.TextFilterTVUIA := this.gViewer.Add("Text", "x275 y503", "&Filter:")
+            this.EditFilterTVUIA := this.gViewer.Add("Edit", "x305 y500 w100")
+            this.EditFilterTVUIA.OnEvent("Change", this.EditFilterTVUIA_Change.Bind(this))
+            this.GroupBoxMacro := this.gViewer.Add("GroupBox", "ce4e4e4 x900 y20 w" (this.MacroSidebarWidth - 20), "Macro creator")
+            (this.TextMacroAction := this.gViewer.Add("Text", "x900 y40 w40", "Action:")).SetFont("bold ce4e4e4 s9")
+            this.DDLMacroAction := this.gViewer.Add("DDL", "Choose1 x900 y38 w120", ["No element selected"])
+            (this.ButMacroAddElement := this.gViewer.Add("Button", "x900 y37 w90 h20", "&Add element")).SetFont("bold ce4e4e4 s9")
+            this.ButMacroAddElement.OnEvent("Click", this.ButMacroAddElement_Click.Bind(this))
+            (this.EditMacroScript := this.gViewer.Add("Edit", "-Wrap HScroll x900 y65 h410 w" (this.MacroSidebarWidth - 40), "#include UIA.ahk`n`n")).SetFont("s10") ; Setting a font here disables UTF-8-BOM
+            (this.ButMacroScriptRun := this.gViewer.Add("Button", "x880 y120 w70", "&Test script")).SetFont("bold ce4e4e4 s9")
+            this.ButMacroScriptRun.OnEvent("Click", this.ButMacroScriptRun_Click.Bind(this))
+            this.ButMacroScriptCopy := this.gViewer.Add("Button", "x920 y120 w70", "&Copy")
+            this.ButMacroScriptCopy.OnEvent("Click", (*) => (A_Clipboard := this.EditMacroScript.Text, ToolTip("Macro code copied to Clipboard!"), SetTimer(ToolTip, -3000)))
+            this.ButToggleMacroSidebar := this.gViewer.Add("Button", "x490 y500 w120", "Show macro &sidebar =>")
+            this.ButToggleMacroSidebar.OnEvent("Click", this.ButToggleMacroSidebar_Click.Bind(this))
+            xy := ""
+            if this.RememberGuiPosition {
+                xy := StrSplit(this.RememberGuiPosition, ","), monitor := 0
+                Loop MonitorGetCount() {
+                    MonitorGetWorkArea(A_Index, &Left, &Top, &Right, &Bottom)
+                    if xy[1] > (Left - 50) && xy[2] > (Top - 50) && xy[1] < (Right - 50) && xy[2] < (Bottom - 30) {
+                        monitor := A_Index
+                        break
+                    }
+                }
+                xy := monitor ? "x" xy[1] " y" xy[2] " " : ""
+            }
+            this.setupDarkMode(this.gViewer)
+            this.gViewer.Show(xy "w600 h550")
+            this.gViewer_Size(this.gViewer, 0, 600, 550)
+            this.FocusHook := DllCall("SetWinEventHook", "UInt", 0x8005, "UInt", 0x8005, "Ptr", 0, "Ptr", CallbackCreate(this.HandleFocusChangedEvent.Bind(this), "C", 7), "UInt", 0, "UInt", 0, "UInt", 0)
+        }
+        __Delete() {
+            DllCall("UnhookWinEvent", "Ptr", this.FocusHook)
+        }
+        setupDarkMode(guiObj) {
+            for ctrl in guiObj {
+                DllCall("uxtheme\SetWindowTheme", "ptr", ctrl.hwnd, "ptr", StrPtr("DarkMode_Explorer"), "ptr", 0)
+            }
+            if VerCompare(A_OSVersion, "10.0.17763") >= 0 {
+                attr := VerCompare(A_OSVersion, "10.0.18985") >= 0 ? 20 : 19
+                DllCall("dwmapi\DwmSetWindowAttribute", "ptr", guiObj.hwnd, "int", attr, "int*", true, "int", 4)
+            }
+            for v in [135, 136] {
+                DllCall(DllCall("GetProcAddress", "ptr", DllCall("GetModuleHandle", "str", "uxtheme", "ptr"), "ptr", v, "ptr"), "int", 2)
+            }
+        }
+        HandleFocusChangedEvent(hWinEventHook, Event, hWnd, idObject, idChild, dwEventThread, dwmsEventTime) => SetTimer(this._HandleFocusChangedEvent.Bind(this, hWnd), -1)
+        _HandleFocusChangedEvent(hWnd) {
+            winHwnd := DllCall("GetAncestor", "Ptr", hWnd, "UInt", 2, "Ptr")
+            if winHwnd = this.gViewer.Hwnd {
+                if !this.Focused {
+                    this.Focused := 1
+                    if IsObject(this.Stored.HighlightedElement)
+                        this.Stored.HighlightedElement.Highlight(0, "Blue", 4)
+                }
+            } else {
+                if this.Focused {
+                    this.Focused := 0
+                    if IsObject(this.Stored.HighlightedElement)
+                        this.Stored.HighlightedElement.Highlight("clear")
+                }
+            }
+            if this.Capturing && this.Stored.HasOwnProp("CapturedWindowBuildUpdatedCache")
+                SetTimer(this.Stored.CapturedWindowBuildUpdatedCache, -2000)
+            return 0
+        }
+        SaveSettings() {
+            if !FileExist(A_AppData "\UIAViewer")
+                DirCreate(A_AppData "\UIAViewer")
+            IniWrite(this.PathIgnoreNames, UIA.Viewer.SettingsFilePath, "Path", "IgnoreNames")
+            IniWrite(this.PathType, UIA.Viewer.SettingsFilePath, "Path", "Type")
+            IniWrite(this.AlwaysOnTop, UIA.Viewer.SettingsFilePath, "General", "AlwaysOnTop")
+            IniWrite(this.DPIAwareness, UIA.Viewer.SettingsFilePath, "General", "DPIAwareness")
+            IniWrite(this.RememberGuiPosition, UIA.Viewer.SettingsFilePath, "General", "RememberGuiPosition")
+        }
+        LoadSettings() {
+            this.PathIgnoreNames := IniRead(UIA.Viewer.SettingsFilePath, "Path", "IgnoreNames", 1)
+            this.PathType := IniRead(UIA.Viewer.SettingsFilePath, "Path", "Type", "")
+            this.AlwaysOnTop := IniRead(UIA.Viewer.SettingsFilePath, "General", "AlwaysOnTop", 1)
+            this.DPIAwareness := IniRead(UIA.Viewer.SettingsFilePath, "General", "DPIAwareness", 0)
+            this.RememberGuiPosition := IniRead(UIA.Viewer.SettingsFilePath, "General", "RememberGuiPosition", "")
+        }
+        ErrorHandler(Exception, Mode) => (OutputDebug(Format("{1} ({2}) : ({3}) {4}`n", Exception.File, Exception.Line, Exception.What, Exception.Message) (HasProp(Exception, "Extra") ? "    Specifically: " Exception.Extra "`n" : "") "Stack:`n" Exception.Stack "`n`n"), 1)
+        gViewer_Close(GuiObj, *) {
+            local X, Y
+            if this.RememberGuiPosition {
+                WinGetPos(&X, &Y, , , GuiObj.Hwnd), this.RememberGuiPosition := X "," Y, this.SaveSettings()
+            }
+            ExitApp()
+        }
+        ; Resizes window controls when window is resized
+        gViewer_Size(GuiObj, MinMax, Width, Height) {
+            static RedrawFunc := WinRedraw.Bind(GuiObj.Hwnd)
+            this.TVUIA.GetPos(&TV_Pos_X, &TV_Pos_Y, &TV_Pos_W, &TV_Pos_H)
+            this.MoveControls(this.MacroSidebarVisible ? { Control: this.TVUIA, h: (TV_Pos_H := Height - TV_Pos_Y - 60) } : { Control: this.TVUIA, w: (TV_Pos_W := Width - TV_Pos_X - 10), h: (TV_Pos_H := Height - TV_Pos_Y - 60) })
+            TV_Pos_R := TV_Pos_X + TV_Pos_W
+            this.LVProps.GetPos(&LVPropsX, &LVPropsY, &LVPropsWidth, &LVPropsHeight)
+            this.ButToggleMacroSidebar.GetPos(, , &ButToggleMacroSidebarW)
+            this.MoveControls({ Control: this.TextFilterTVUIA, x: TV_Pos_X, y: Height - 47 }, { Control: this.ButToggleMacroSidebar, x: TV_Pos_X + TV_Pos_W - ButToggleMacroSidebarW, y: Height - 50 }, { Control: this.EditFilterTVUIA, x: TV_Pos_X + 30, y: Height - 50 }, { Control: this.LVProps, h: Height - LVPropsY - 170 }, { Control: this.TextTVPatterns, y: Height - 165 }, { Control: this.TVPatterns, y: Height - 145 }, { Control: this.ButCapture, y: Height - 50 })
+            if this.MacroSidebarVisible
+                this.MacroSidebarWidth := Width - (TV_Pos_X + TV_Pos_W) - 10
+            this.MoveControls({ Control: this.GroupBoxMacro, x: TV_Pos_R + 15, w: Width - TV_Pos_R - 30, h: TV_Pos_H + 35 }, { Control: this.TextMacroAction, x: TV_Pos_R + 25 }, { Control: this.DDLMacroAction, x: TV_Pos_R + 70 }, { Control: this.ButMacroAddElement, x: TV_Pos_R + this.MacroSidebarWidth - 105 }, { Control: this.EditMacroScript, x: TV_Pos_R + 25, w: Width - TV_Pos_R - 50, h: TV_Pos_H - 50 }, { Control: this.ButMacroScriptRun, x: TV_Pos_R + 85, y: TV_Pos_Y + TV_Pos_H - 2 }, { Control: this.ButMacroScriptCopy, x: TV_Pos_R + this.MacroSidebarWidth - 145, y: TV_Pos_Y + TV_Pos_H - 2 })
+            DllCall("RedrawWindow", "ptr", GuiObj.Hwnd, "ptr", 0, "ptr", 0, "uint", 0x0081) ; Reduces flicker compared to RedrawFunc
+        }
+        MoveControls(ctrls*) {
+            local ctrl
+            for ctrl in ctrls
+                ctrl.Control.Move(ctrl.HasOwnProp("x") ? ctrl.x : unset, ctrl.HasOwnProp("y") ? ctrl.y : unset, ctrl.HasOwnProp("w") ? ctrl.w : unset, ctrl.HasOwnProp("h") ? ctrl.h : unset)
+        }
+        ; Show/hide macros sidebar
+        ButToggleMacroSidebar_Click(GuiCtrlObj?, Info?) {
+            local w
+            this.MacroSidebarVisible := !this.MacroSidebarVisible
+            GuiCtrlObj.Text := this.MacroSidebarVisible ? "Hide macro &sidebar <=" : "Show macro &sidebar =>"
+            this.gViewer.GetPos(, , &w)
+            this.gViewer.Opt("+MinSize" (this.MacroSidebarVisible ? w + this.MacroSidebarMinWidth : this.GuiMinWidth) "x" this.GuiMinHeight)
+            this.gViewer.Move(, , w + (this.MacroSidebarVisible ? this.MacroSidebarWidth : -this.MacroSidebarWidth))
+        }
+        ; Handles adding elements with actions to the macro Edit
+        ButMacroAddElement_Click(GuiCtrlObj?, Info?) {
+            local match, selectedElPath, winElVariable, winElText, processName
+            if !this.Stored.HasOwnProp("CapturedElement")
+                return
+            processName := WinGetProcessName(this.Stored.mwId)
+            winElVariable := RegExMatch(processName, "^[^ .\d]+", &match := "") ? RegExReplace(match[], "[^\p{L}0-9_#@$]") "El" : "winEl" ; Leaves only letters, numbers, and symbols _#@$ (allowed AHK characters)
+            winElText := winElVariable " := UIA.ElementFrom" (InStr(this.TextTVUIA.Text, "Chromium") ? "Chromium" : "Handle") "(`"" WinGetTitle(this.Stored.mwId) " ahk_exe " processName "`")"
+            if !InStr(this.EditMacroScript.Text, winElText) || RegExMatch(this.EditMacroScript.Text, "\Q" winElText "\E(?=[\w\W]*\QwinEl := UIA.ElementFromHandle(`"ahk_exe\E)")
+                this.EditMacroScript.Text := RTrim(this.EditMacroScript.Text, "`r`n`t ") "`r`n`r`n" winElText
+            else
+                this.EditMacroScript.Text := RTrim(this.EditMacroScript.Text, "`r`n`t ")
+            selectedElPath := SubStr(this.SBMain.Text, 9)
+            winElVariable := winElVariable (selectedElPath && StrLen(selectedElPath) > 2 ? ".ElementFromPath(" selectedElPath ")" : "") (this.DDLMacroAction.Text ? "." this.DDLMacroAction.Text : "")
+            if InStr(this.DDLMacroAction.Text, "Dump")
+                winElVariable := "MsgBox(" winElVariable ")"
+            this.EditMacroScript.Text := this.EditMacroScript.Text "`r`n" RegExReplace(winElVariable, "(?<!``)`"", "`"") "`r`n"
+        }
+        ; Tries to run the code in the macro Edit
+        ButMacroScriptRun_Click(GuiCtrlObj?, Info?) {
+            static tempFileName := "~UIAViewerMacro.tmp"
+            local pid
+            if IsObject(this.Stored.HighlightedElement)
+                this.Stored.HighlightedElement.Highlight("clear"), this.Stored.HighlightedElement := 0
+            DetectHiddenWindows 1
+            WinHide(this.gViewer)
+            try FileDelete(tempFileName)
+            try {
+                FileAppend(StrReplace(this.EditMacroScript.Text, "`r"), tempFileName, "UTF-8")
+                Run(A_AhkPath " /force /cp65001 `"" A_ScriptDir "\" tempFileName "`"", , , &pid)
+                if WinWait("ahk_pid " pid, , 3)
+                    WinWaitClose(, , 30)
+            }
+            if IsSet(pid) && WinExist("ahk_pid " pid)
+                WinKill
+            try FileDelete(tempFileName)
+            WinShow(this.gViewer)
+            DetectHiddenWindows 0
+        }
+        ; Starts showing the element under the cursor with 200ms intervals with CaptureCallback
+        ButCapture_Click(GuiCtrlObj?, Info?) {
+            if this.Capturing {
+                this.StopCapture()
+                return
+            }
+            this.Capturing := True
+            this.TVUIA_Click("", "") ; Clear highlighting from before
+            this.TVUIA.Delete()
+            this.TVUIA.Add("Hold cursor still to construct tree")
+            if IsObject(this.Stored.HighlightedElement)
+                this.Stored.HighlightedElement.Highlight("clear")
+            this.Stored := { mwId: 0, FilteredTreeView: Map(), TreeView: Map(), HighlightedElement: 0, CapturedWindowBuildUpdatedCache: this.UpdateCapturedWindowCache.Bind(this) }
+            this.ButCapture.Text := "Stop capturing (Alt+S)"
+            this.CaptureCallback := this.CaptureCycle.Bind(this)
+            SetTimer(this.CaptureCallback, 200)
+        }
+        ; Handles right-clicking a listview (copies to clipboard)
+        LV_CopyText(GuiCtrlObj, Info, *) {
+            local LVData, out := "", Property
+            LVData := Info > GuiCtrlObj.GetCount()
+                ? ListViewGetContent("", GuiCtrlObj)
+                : ListViewGetContent("Selected", GuiCtrlObj)
+            for LVData in StrSplit(LVData, "`n") {
+                LVData := StrSplit(LVData, "`t", , 2)
+                if LVData.Length < 2
+                    continue
+                switch LVData[1], 0 {
+                    case "Type":
+                        LVData[2] := "`"" RTrim(SubStr(LVData[2], 8), ")") "`""
+                    case "Location":
+                        LVData[2] := "{" RegExReplace(LVData[2], "(\w:) (\d+)(?= )", "$1$2,") "}"
+                    case "RuntimeId":
+                        LVData[2] := "`"" LVData[2] "`""
+                }
+                Property := -1
+                try Property := UIA.Property.%LVData[1]%
+                out .= ", " (GuiCtrlObj.Hwnd = this.LVWin.Hwnd ? "" : LVData[1] ":") (UIA.PropertyVariantTypeBSTR.Has(Property) ? "`"" StrReplace(StrReplace(LVData[2], "``", "````"), "`"", "```"") "`"" : LVData[2])
+            }
+            ToolTip("Copied: " (A_Clipboard := SubStr(out, 3)))
+            SetTimer(ToolTip, -3000)
+        }
+        ; Handles running pattern methods, first trying to find the live element by RuntimeId
+        TVPatterns_DoubleClick(GuiCtrlObj, Info) {
+            if !Info
+                return
+            Item := GuiCtrlObj.GetText(Info)
+            if !InStr(Item, "()")
+                return
+            Item := SubStr(Item, 1, -2)
+            if !WinExist(this.Stored.mwId) || !(WinEl := UIA.ElementFromHandle(this.Stored.mwId))
+                return MsgBox("Target window not found!", , "4096")
+            if !(CurrentEl := WinEl.ElementExist({ RuntimeId: this.Stored.CapturedElement.CachedRuntimeId }, 5))
+                && !(CurrentEl := WinEl.ElementFromPathExist(Trim(this.Stored.CapturedElement.Path, "```"")))
+                return MsgBox("Live element not found!", , "4096")
+            if Item ~= "Value|Scroll(?!Into)" {
+                this.gViewer.Opt("-AlwaysOnTop")
+                Ret := InputBox("Insert value", Item, "W200 H120")
+                this.gViewer.Opt("+AlwaysOnTop")
+                if Ret.Result != "OK"
+                    return
+            }
+            WinActivate(this.Stored.mwId)
+            WinWaitActive(this.Stored.mwId)
+            try CurrentEl.%GuiCtrlObj.GetText(GuiCtrlObj.GetParent(Info)) "Pattern"%.%Item%(IsSet(Ret) ? Ret.Value : unset)
+        }
+        ; Copies the UIA path to clipboard when statusbar is clicked
+        SBMain_Click(GuiCtrlObj, Info, *) {
+            if InStr(this.SBMain.Text, "Path:") {
+                ToolTip("Copied: " (A_Clipboard := SubStr(this.SBMain.Text, 9)))
+                SetTimer(ToolTip, -3000)
+            }
+        }
+        ; StatusBar context menu creation
+        SBMain_ContextMenu(GuiCtrlObj, Item, IsRightClick, X, Y) {
+            SBMain_Menu := Menu()
+            if InStr(this.SBMain.Text, "Path:") {
+                SBMain_Menu.Add("Copy UIA path", (*) => (ToolTip("Copied: " (A_Clipboard := this.Stored.CapturedElement.Path)), SetTimer(ToolTip, -3000)))
+                SBMain_Menu.Add("Copy condition path", (*) => (ToolTip("Copied: " (A_Clipboard := this.Stored.CapturedElement.ConditionPath)), SetTimer(ToolTip, -3000)))
+                SBMain_Menu.Add("Copy numeric path", (*) => (ToolTip("Copied: " (A_Clipboard := this.Stored.CapturedElement.NumericPath)), SetTimer(ToolTip, -3000)))
+                SBMain_Menu.Add()
+            }
+            SBMain_Menu.Add("Display UIA path (relatively reliable, shortest)", (*) => (this.PathType := this.PathType = "" ? "" : "", this.Stored.HasOwnProp("CapturedElement") && this.Stored.CapturedElement.HasOwnProp("Path") ? this.SBMain.SetText("  Path: " (this.PathType = "Numeric" ? this.Stored.CapturedElement.NumericPath : this.Stored.CapturedElement.Path)) : 1))
+            SBMain_Menu.Add("Display numeric path (least reliable, short)", (*) => (this.PathType := this.PathType = "Numeric" ? "" : "Numeric", this.Stored.HasOwnProp("CapturedElement") && this.Stored.CapturedElement.HasOwnProp("Path") ? this.SBMain.SetText("  Path: " (this.PathType = "Numeric" ? this.Stored.CapturedElement.NumericPath : this.Stored.CapturedElement.Path)) : 1))
+            SBMain_Menu.Add("Display condition path (most reliable, longest)", (*) => (this.PathType := this.PathType = "Condition" ? "" : "Condition", this.Stored.HasOwnProp("CapturedElement") && this.Stored.CapturedElement.HasOwnProp("Path") ? this.SBMain.SetText("  Path: " (this.PathType = "Condition" ? this.Stored.CapturedElement.ConditionPath : this.Stored.CapturedElement.Path)) : 1))
+            SBMain_Menu.Add("Ignore Name properties in condition path", (*) => (this.PathIgnoreNames := !this.PathIgnoreNames))
+            if this.PathIgnoreNames
+                SBMain_Menu.Check("Ignore Name properties in condition path")
+            if this.PathType = ""
+                SBMain_Menu.Check("Display UIA path (relatively reliable, shortest)")
+            if this.PathType = "Numeric"
+                SBMain_Menu.Check("Display numeric path (least reliable, short)")
+            if this.PathType = "Condition"
+                SBMain_Menu.Check("Display condition path (most reliable, longest)")
+            SBMain_Menu.Add()
+            SBMain_Menu.Add("UIAViewer always on top", (*) => (this.AlwaysOnTop := !this.AlwaysOnTop, this.gViewer.Opt((this.AlwaysOnTop ? "+" : "-") "AlwaysOnTop")))
+            if this.AlwaysOnTop
+                SBMain_Menu.Check("UIAViewer always on top")
+            SBMain_Menu.Add("Remember UIAViewer position", (*) => (this.RememberGuiPosition := !this.RememberGuiPosition, this.SaveSettings()))
+            if this.RememberGuiPosition
+                SBMain_Menu.Check("Remember UIAViewer position")
+            SBMain_Menu.Add("Enable DPI awareness", (*) => (this.DPIAwareness := !this.DPIAwareness, this.DPIAwareness ? UIA.SetMaximumDPIAwareness() : UIA.DPIAwareness := -2))
+            if this.DPIAwareness
+                SBMain_Menu.Check("Enable DPI awareness")
+            SBMain_Menu.Add()
+            SBMain_Menu.Add("Save settings", (*) => (this.SaveSettings(), ToolTip("Settings saved!"), SetTimer(ToolTip, -2000)))
+            SBMain_Menu.Show()
+        }
+        ; Stops capturing elements under mouse, unhooks CaptureCallback
+        StopCapture(GuiCtrlObj := 0, Info := 0) {
+            if this.Capturing {
+                this.Capturing := False
+                SetTimer(this.CaptureCallback, 0)
+                SetTimer(this.Stored.CapturedWindowBuildUpdatedCache, 0)
+                this.ButCapture.Text := "Start capturing (Alt+S)"
+                if IsObject(this.Stored.HighlightedElement)
+                    this.Stored.HighlightedElement.Highlight("clear")
+            }
+        }
+        ; Gets UIA element under mouse, updates the GUI.
+        ; If the mouse is not moved for 1 second then constructs the UIA tree.
+        CaptureCycle() {
+            local clientX := 0, clientY := 0, clientW := 0, clientH := 0, mX, mY, mwId, mwCtrl, elBr, same, propsOrder
+                , mwX, mwY, mwW, mwH
+            SetTimer(this.CaptureCallback, -3000) ; In case of an error try again in 3 seconds
+            CoordMode "Mouse", "Screen"
+            MouseGetPos(&mX, &mY, &mwId := 0, &mwCtrl := 0, 2)
+            ; If is a Chromium window then also get the control, because some Chromium windows don't show content from main window
+            ; Also activate accessibility, afterwards don't activate anymore
+            try {
+                mwCtrl := ControlGetHwnd("Chrome_RenderWidgetHostHWND1", mwId)
+                UIA.ActivateChromiumAccessibility(mwId)
+            }
+            ; If the control was considered the window, assume that this is still needed
+            if mwCtrl && mwCtrl = this.Stored.mwId
+                mwId := mwCtrl
+            CapturedElement := this.TryUpdateElementVariables(mwId, mX, mY)
+            ; If ctrl and main window aren't the same, then compare their sizes. If sizes are the same
+            ; then instead try to get the element from the control under the mouse (eg Chromium content)
+            if mwCtrl && mwId != mwCtrl && this.Stored.mwId != mwCtrl && CapturedElement {
+                try WinGetClientPos(&clientX, &clientY, &clientW, &clientH, mwId)
+                elBr := CapturedElement.CachedBoundingRectangle, winBr := this.Stored.CapturedWindow.CachedBoundingRectangle
+                ; If element size is equal to window/client size, then probably it's not accessible through the window
+                ; Instead try to get the content through the control under the cursor
+                if Abs(elBr.l - winBr.l + elbr.t - winBr.t + elBr.r - winBr.r + elBr.b - winBr.b) < 4
+                    || Abs(elBr.l - clientX + elBr.t - clientY + elBr.r - (clientX + clientW) + elBr.b - (clientY + clientH)) < 4 {
+                    CapturedElementCtrl := this.TryUpdateElementVariables(mwCtrl, mX, mY)
+                    if CapturedElementCtrl {
+                        clsNN := ControlGetClassNN(mwCtrl, mwId), CapturedElement := CapturedElementCtrl, mwId := mwCtrl
+                        this.TextLVWin.Text := "Control Info for " (clsNN = "Chrome_RenderWidgetHostHWND1" ? "Chromium" : clsNN " Control")
+                        this.TextTVUIA.Text := "UIA Tree for " (clsNN = "Chrome_RenderWidgetHostHWND1" ? "Chromium (" clsNN ")" : clsNN)
+                    }
+                }
+            }
+            if this.Capturing
+                SetTimer(this.CaptureCallback, 200)
+            if !CapturedElement
+                return
+            if this.Stored.HasOwnProp("CapturedElement") && IsObject(CapturedElement) {
+                try same := UIA.CompareElementsEx(CapturedElement, this.Stored.CapturedElement) ; UIA.CompareElements(CapturedElement, this.Stored.CapturedElement) ; Cached element RuntimeIds sometimes cause an error here
+                if same ?? 0 {
+                    if this.FoundTime != 0 && ((A_TickCount - this.FoundTime) > 500) {
+                        if (mX == this.Stored.mX) && (mY == this.Stored.mY) {
+                            if !(this.Stored.HasOwnProp("TreeViewWindow") && UIA.CompareElementsEx(this.Stored.CapturedWindow, this.Stored.TreeViewWindow))
+                                || !this.TreeViewSelectCapturedElement()
+                                this.ConstructTreeView()
+                            this.FoundTime := 0
+                        } else
+                            this.FoundTime := A_TickCount
+                    }
+                    this.Stored.mX := mX, this.Stored.mY := mY
+                    return
+                }
+            }
+            this.LVWin.Delete()
+            try WinGetPos(&mwX, &mwY, &mwW, &mwH, mwId)
+            catch
+                return
+            this.Stored.mwId := mwId, this.Stored.CapturedElement := CapturedElement, this.Stored.mX := mX, this.Stored.mY := mY, this.FoundTime := A_TickCount
+            propsOrder := ["Title", "Text", "Id", "Location", "Class(NN)", "Process", "PID"]
+            props := Map("Title", WinGetTitle(mwId), "Text", WinGetText(mwId), "Id", mwId, "Location", "x: " mwX " y: " mwY " w: " mwW " h: " mwH, "Class(NN)", WinGetClass(mwId), "Process", WinGetProcessName(mwId), "PID", WinGetPID(mwId))
+            for propName in propsOrder
+                this.LVWin.Add(, propName, props[propName])
+            this.PopulatePropsPatterns(CapturedElement)
+        }
+
+        ; Updates this.Stored.CapturedWindowLive, this.Stored.CapturedWindow, this.Stored.CapturedWindowBuildUpdatedCache, returns CapturedElement
+        ; Also removes and adds back the StructureChangedEventHandler
+        TryUpdateElementVariables(mwId, mX, mY) {
+            if mwId != this.Stored.mwId {
+                if UIA.ProcessIsElevated(WinGetPID(mwId)) > 0 && !A_IsAdmin {
+                    if MsgBox("The inspected window is running with elevated privileges.`nUIAViewer must be running in UIAccess mode or as administrator to inspect it.`n`nRun UIAViewer as administrator to inspect it?", , 0x1000 | 0x30 | 0x4) = "Yes" {
+                        try {
+                            Run('*RunAs "' (A_IsCompiled ? A_ScriptFullPath '" /restart' : A_AhkPath '" /restart "' A_ScriptFullPath '"'))
+                            ExitApp
+                        }
+                    }
+                }
+                this.TextLVWin.Text := "Window Info", this.TextTVUIA.Text := "UIA Tree"
+                this.UpdateCapturedWindowCache(mwId)
+            }
+            try return CapturedElement := UIA.CachedSmallestElementInElementContainingPoint(mX, mY, this.Stored.CapturedWindow)
+        }
+        UpdateCapturedWindowCache(mwId?) {
+            SetTimer(this.Stored.CapturedWindowBuildUpdatedCache, 0)
+            if !WinExist(mwId ?? this.Stored.mwId)
+                return
+            this.Stored.CapturedWindowLive := UIA.ElementFromHandle(mwId ?? this.Stored.mwId, , false)
+            this.Stored.CapturedWindow := this.Stored.CapturedWindowLive.BuildUpdatedCache(this.CacheRequest)
+        }
+        ; Populates the listview with UIA element properties
+        PopulatePropsPatterns(Element) {
+            local v, value, pattern, parent, proto, match, X, Y, W, H, name, prop
+            if IsObject(this.Stored.HighlightedElement)
+                this.Stored.HighlightedElement.Highlight("clear")
+            this.Stored.HighlightedElement := Element
+            try { ; Show the Highlight only if the window is visible and
+                WinGetPos(&X, &Y, &W, &H, this.Stored.mwId)
+                if IsObject(this.Stored.HighlightedElement) && (elBR := this.Stored.HighlightedElement.CachedBoundingRectangle) && UIA.IntersectRect(X, Y, X + W, Y + H, elBR.l, elBR.t, elBR.r, elBR.b)
+                    Element.Highlight(0, "Blue", 4) ; Indefinite show
+            }
+            this.LVProps.Delete()
+            this.TVPatterns.Delete()
+            for v in this.DisplayedProps {
+                try prop := Element.Cached%v%
+                switch v, 0 {
+                    case "Type":
+                        try name := UIA.Type[prop]
+                        catch
+                            name := "Unknown"
+                        try this.LVProps.Add(, v, prop " (" name ")")
+                    case "BoundingRectangle":
+                        prop := prop ? prop : { l: 0, t: 0, r: 0, b: 0 }
+                        try this.LVProps.Add(, "Location", "x: " prop.l " y: " prop.t " w: " (prop.r - prop.l) " h: " (prop.b - prop.t))
+                    case "RuntimeId":
+                        try this.LVProps.Add(, v, prop)
+                    default:
+                        try this.LVProps.Add(, v, prop)
+                }
+                prop := ""
+            }
+            lastAction := this.DDLMacroAction.Text
+            this.DDLMacroAction.Delete()
+            this.DDLMacroAction.Add(['', 'Click()', 'Click("left")', 'ControlClick()', 'SetFocus()', 'ShowContextMenu()', 'Highlight()', 'Dump()', 'DumpAll()'])
+            for pattern, value in UIA.Property.OwnProps() {
+                if RegExMatch(pattern, "Is([\w]+)Pattern(\d?)Available", &match := 0) && Element.GetCachedPropertyValue(value) {
+                    parent := this.TVPatterns.Add(match[1] (match.Count > 1 ? match[2] : ""))
+                    if !IsObject(UIA.IUIAutomation%match[1]%Pattern)
+                        continue
+                    proto := UIA.IUIAutomation%match[1]%Pattern.Prototype
+                    switch match[1], 0 {
+                        case "Invoke":
+                            this.DDLMacroAction.Add(['Invoke()'])
+                        case "ExpandCollapse":
+                            this.DDLMacroAction.Add(['Expand()', 'Collapse()'])
+                        case "Value":
+                            this.DDLMacroAction.Add(['Value := "value"'])
+                        case "Toggle":
+                            this.DDLMacroAction.Add(['Toggle()'])
+                        case "SelectionItem":
+                            this.DDLMacroAction.Add(['Select()', 'AddToSelection()', 'RemoveFromSelection()'])
+                        case "ScrollItem":
+                            this.DDLMacroAction.Add(['ScrollIntoView()'])
+                    }
+                    for name in proto.OwnProps() {
+                        if name ~= "i)^(_|Cached)"
+                            continue
+                        this.TVPatterns.Add(name (proto.GetOwnPropDesc(name).HasOwnProp("call") ? "()" : ""), parent)
+                    }
+                }
+            }
+            try this.DDLMacroAction.Choose(lastAction)
+            catch
+                this.DDLMacroAction.Choose(7)
+        }
+        ; Handles selecting elements in the UIA tree, highlights the selected element
+        TVUIA_Click(GuiCtrlObj, Info) {
+            if this.Capturing
+                return
+            try Element := this.EditFilterTVUIA.Value ? this.Stored.FilteredTreeView[Info] : this.Stored.TreeView[Info]
+            if IsSet(Element) && Element {
+                if IsObject(this.Stored.HighlightedElement) {
+                    if UIA.CompareElementsEx(Element, this.Stored.HighlightedElement)
+                        return (this.Stored.HighlightedElement.Highlight("clear"), this.Stored.HighlightedElement := 0)
+                }
+                this.Stored.CapturedElement := Element
+                try this.SBMain.SetText("  Path: " (this.PathType = "Numeric" ? Element.NumericPath : this.PathType = "Condition" ? Element.ConditionPath : Element.Path))
+                this.PopulatePropsPatterns(Element)
+            }
+        }
+        ; Permits copying the Dump of UIA element(s) to clipboard
+        TVUIA_ContextMenu(GuiCtrlObj, Item, IsRightClick, X, Y) {
+            this.TVUIA.Modify(Item, "Select")
+            this.TVUIA_Click(GuiCtrlObj, Item)
+            TVUIA_Menu := Menu()
+            try Element := this.EditFilterTVUIA.Value ? this.Stored.FilteredTreeView[Item] : this.Stored.TreeView[Item]
+            if IsSet(Element)
+                TVUIA_Menu.Add("Copy to Clipboard", (*) => (ToolTip("Copied Dump() output to Clipboard!"), A_Clipboard := Element.CachedDump(), SetTimer((*) => ToolTip(), -3000)))
+            TVUIA_Menu.Add("Copy Tree to Clipboard", (*) => (ToolTip("Copied DumpAll() output to Clipboard!"), A_Clipboard := UIA.ElementFromHandle(this.Stored.mwId, this.cacheRequest).DumpAll(), SetTimer((*) => ToolTip(), -3000)))
+            if IsSet(Element) {
+                TVUIA_Menu.Add("")
+                TVUIA_Menu.Add("Expand/Collapse All", this.TVUIA_ExpandCollapseAll.bind(this))
+                TVUIA_Menu.Add("Focus Element", this.TVUIA_FocusElement.bind(this))
+            }
+            TVUIA_Menu.Show()
+        }
+        TVUIA_ExpandCollapseAll(GuiCtrlObj, Item, *) {
+            FocusId := this.TVUIA.GetSelection()
+            expandCollapse := this.TVUIA.IsCollapsed ? "Expand" : "-Expand"
+            this.TVUIA.Opt("-Redraw")
+            ItemID := 0
+            while ItemID := this.TVUIA.GetNext(ItemID, "Full")
+                this.TVUIA.Modify(ItemID, expandCollapse)
+            FocusId := this.TVUIA.isCollapsed ? FocusId : this.TVUIA.GetNext()
+            this.TVUIA.Modify(FocusId, "Select Vis")
+            this.TVUIA.Opt("+Redraw")
+            this.TVUIA.IsCollapsed := !this.TVUIA.IsCollapsed
+        }
+        TVUIA_FocusElement(GuiCtrlObj, *) {
+            FocusId := this.TVUIA.GetSelection()
+            ItemId := 0
+            this.TVUIA.Opt("-Redraw")
+            while ItemID := this.TVUIA.GetNext(ItemID, "Full") ; Collapse all elements.
+                this.TVUIA.Modify(ItemID, "-Expand")
+            this.TVUIA.Modify(FocusId, "Select Vis") ; Reselect the item, which also expands the parents
+            this.TVUIA.Opt("+Redraw")
+            this.TVUIA.IsCollapsed := true
+        }
+        EditFilterTVUIA_Change(GuiCtrlObj, Info, *) {
+            static TimeoutFunc := "", ChangeActive := False
+            local index, prop
+            if !this.Stored.TreeView.Count
+                return
+            if (Info != "DoAction") || ChangeActive {
+                if !TimeoutFunc
+                    TimeoutFunc := this.EditFilterTVUIA_Change.Bind(this, GuiCtrlObj, "DoAction")
+                SetTimer(TimeoutFunc, -500)
+                return
+            }
+            ChangeActive := True
+            this.Stored.FilteredTreeView := Map(), parents := Map()
+            if !(searchPhrase := this.EditFilterTVUIA.Value) {
+                this.ConstructTreeView()
+                ChangeActive := False
+                return
+            }
+            this.TVUIA.Delete()
+            temp := this.TVUIA.Add("Searching...")
+            Sleep -1
+            this.TVUIA.Opt("-Redraw")
+            this.TVUIA.Delete()
+            for index, Element in this.Stored.TreeView {
+                for prop in this.DisplayedProps {
+                    try {
+                        if InStr(Element.Cached%Prop%, searchPhrase) {
+                            if !parents.Has(prop)
+                                parents[prop] := this.TVUIA.Add(prop, , "Expand")
+                            this.Stored.FilteredTreeView[this.TVUIA.Add(this.GetShortDescription(Element), parents[prop], "Expand")] := Element
+                        }
+                    }
+                }
+            }
+            if !this.Stored.FilteredTreeView.Count
+                this.TVUIA.Add("No results found matching `"" searchPhrase "`"")
+            this.TVUIA.Opt("+Redraw")
+            TimeoutFunc := "", ChangeActive := False
+        }
+        ; Populates the TreeView with the UIA tree when capturing and the mouse is held still
+        ConstructTreeView() {
+            this.TVUIA.Delete()
+            this.TVUIA.Add("Constructing Tree, please wait...")
+            this.TVUIA.IsCollapsed := false
+            Sleep -1
+            this.TVUIA.Opt("-Redraw")
+            this.TVUIA.Delete()
+            this.Stored.TreeView := Map()
+            this.Stored.TreeViewWindow := this.Stored.CapturedWindow
+            try this.RecurseTreeView(this.Stored.CapturedWindow)
+            catch {
+                this.Stored.TreeView := []
+                this.TVUIA.Add("Error: unspecified error (window not found?)")
+            }
+
+            this.TVUIA.Opt("+Redraw")
+            this.SBMain.SetText("  Path: ")
+            this.TreeViewSelectCapturedElement()
+        }
+        TreeViewSelectCapturedElement() {
+            local k, v
+            if !this.Stored.CapturedElement.HasOwnProp("Path") {
+                this.Stored.CapturedElement.DefineProp("Path", { Value: "" })
+                this.Stored.CapturedElement.DefineProp("NumericPath", { Value: "" })
+                this.Stored.CapturedElement.DefineProp("ConditionPath", { Value: "" })
+            }
+            for k, v in this.Stored.TreeView {
+                if UIA.CompareElementsEx(this.Stored.CapturedElement, v) {
+                    this.TVUIA.Modify(k, "Vis Select"), this.SBMain.SetText("  Path: " (this.PathType = "Numeric" ? v.NumericPath : this.PathType = "Condition" ? v.ConditionPath : v.Path))
+                        , this.Stored.CapturedElement.Path := v.Path
+                        , this.Stored.CapturedElement.NumericPath := v.NumericPath
+                        , this.Stored.CapturedElement.ConditionPath := v.ConditionPath
+                    return 1
+                }
+            }
+            return 0
+        }
+        ; Stores the UIA tree with corresponding path values for each element
+        RecurseTreeView(Element, parent := 0, path := "", conditionpath := "", numpath := "") {
+            local info, child, type, k, paths := Map(), childInfo := [], children := Element.CachedChildren
+            Element.DefineProp("Path", { value: "`"" path "`"" })
+            Element.DefineProp("ConditionPath", { value: conditionpath })
+            Element.DefineProp("NumericPath", { value: numpath })
+            this.Stored.TreeView[TWEl := this.TVUIA.Add(this.GetShortDescription(Element), parent, "Expand")] := Element
+            ; First count up all multiple-condition-index conditions and type-index conditions
+            ; This is to know whether the condition is the last of the matching ones, so we can use index -1
+            ; This gives an important speed difference over regular indexing
+            for child in children {
+                compactCondition := this.GetCompactCondition(child, &paths, &typeCondition := "", &type := "")
+                childInfo.Push([compactCondition, paths[compactCondition], typeCondition, paths[typeCondition], type])
+            }
+            ; Now create the final conditions and recurse the tree
+            for k, child in children {
+                info := childInfo[k], compactCondition := info[1], conditionIndex := info[2]
+                if conditionIndex > 1 && conditionIndex = paths[compactCondition]
+                    conditionIndex := -1
+                compactCondition .= conditionIndex = 1 ? "}" : ", i:" conditionIndex "}"
+                typeIndex := info[4]
+                if typeIndex > 1 && typeIndex = paths[info[3]]
+                    typeIndex := -1
+                this.RecurseTreeView(child, TWEl, path UIA.EncodePath([typeIndex = 1 ? { Type: info[5] } : { Type: info[5], i: typeIndex }]), conditionpath (conditionpath ? ", " : "") compactCondition, numpath (numpath ? "," : "") k)
+            }
+        }
+        GetShortDescription(Element) {
+            local elDesc := " `"`""
+            try elDesc := " `"" Element.CachedName "`""
+            try elDesc := Element.CachedLocalizedType elDesc
+            catch
+                elDesc := "`"`"" elDesc
+            return elDesc
+        }
+        GetCompactCondition(Element, &pathsMap, &t := "", &type := "", &automationId := "", &className := "", &name := "") {
+            local n := "", c := "", a := ""
+            type := Element.CachedType
+            t := "{T:" (type - 50000)
+            pathsMap[t] := pathsMap.Has(t) ? pathsMap[t] + 1 : 1
+            try a := StrReplace(automationId := Element.CachedAutomationId, "`"", "```"")
+            if a != "" && !IsInteger(a) { ; Ignore Integer AutomationIds, since they seem to be auto-generated in Chromium apps
+                a := t ",A:`"" a "`""
+                pathsMap[a] := pathsMap.Has(a) ? pathsMap[a] + 1 : 1 ; This actually shouldn't be needed, if AutomationId's are unique
+            }
+            try c := StrReplace(className := Element.CachedClassName, "`"", "```"")
+            if c != "" {
+                c := t ",CN:`"" c "`""
+                pathsMap[c] := pathsMap.Has(c) ? pathsMap[c] + 1 : 1
+            }
+            try n := StrReplace(name := Element.CachedName, "`"", "```"")
+            if !this.PathIgnoreNames && n != "" { ; Consider Name last, because it can change (eg. window title)
+                n := t ",N:`"" n "`""
+                pathsMap[n] := pathsMap.Has(n) ? pathsMap[n] + 1 : 1
+            }
+            if pathsMap[t] = 1
+                return t
+            if a != "" && !IsInteger(a) {
+                return c != "" ? (pathsMap[a] <= pathsMap[c] ? a : c) : a
+            } else if c != ""
+                return c
+            else if !this.PathIgnoreNames && n != "" && (pathsMap[n] < pathsMap[t])
+                return n
+            return t
+        }
+    }
+
+}

@@ -168,7 +168,7 @@ export class AhkSettingsTool {
           return {
             content: [{
               type: 'text',
-              text: '✅ File editing tools have been enabled:\n• AHK_File_Edit\n• AHK_File_Edit_Diff\n• AHK_File_Edit_Advanced\n• AHK_File_Edit_Small\n• AHK_File_View\n• AHK_File_Detect\n• AHK_File_Active\n• AHK_Active_File\n• AHK_Process_Request'
+              text: '✅ File editing tools have been enabled:\n• AHK_File_Edit\n• AHK_File_Edit_Diff\n• AHK_File_Edit_Advanced\n• AHK_File_Edit_Small\n• AHK_File_Create\n• AHK_File_View\n• AHK_File_Detect\n• AHK_File_Active\n• AHK_Active_File\n• AHK_Process_Request'
             }]
           };
         }
@@ -178,7 +178,7 @@ export class AhkSettingsTool {
           return {
             content: [{
               type: 'text',
-              text: '❌ File editing tools have been disabled:\n• AHK_File_Edit\n• AHK_File_Edit_Diff\n• AHK_File_Edit_Advanced\n• AHK_File_Edit_Small\n• AHK_File_View\n• AHK_File_Detect\n• AHK_File_Active\n• AHK_Active_File\n• AHK_Process_Request\n\nCore analysis and diagnostic tools remain enabled.'
+              text: '❌ File editing tools have been disabled:\n• AHK_File_Edit\n• AHK_File_Edit_Diff\n• AHK_File_Edit_Advanced\n• AHK_File_Edit_Small\n• AHK_File_Create\n• AHK_File_View\n• AHK_File_Detect\n• AHK_File_Active\n• AHK_Active_File\n• AHK_Process_Request\n\nCore analysis and diagnostic tools remain enabled.'
             }]
           };
         }

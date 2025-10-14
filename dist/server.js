@@ -4,6 +4,7 @@ import { SSEServerTransport } from '@modelcontextprotocol/sdk/server/sse.js';
 import { CallToolRequestSchema, ListToolsRequestSchema, ListPromptsRequestSchema, GetPromptRequestSchema, ListResourcesRequestSchema, ReadResourceRequestSchema, } from '@modelcontextprotocol/sdk/types.js';
 import { initializeDataLoader, getAhkIndex } from './core/loader.js';
 import logger from './logger.js';
+import { ToolRegistry } from './core/tool-registry.js';
 import { logDebugEvent, logDebugError } from './debug-journal.js';
 // Import tool classes and definitions
 import { AhkDiagnosticsTool, ahkDiagnosticsToolDefinition } from './tools/ahk-analyze-diagnostics.js';
@@ -30,8 +31,17 @@ import { AhkSettingsTool, ahkSettingsToolDefinition } from './tools/ahk-system-s
 import { AhkAlphaTool, ahkAlphaToolDefinition } from './tools/ahk-system-alpha.js';
 import { AhkFileEditorTool, ahkFileEditorToolDefinition } from './tools/ahk-file-edit-advanced.js';
 import { AhkSmallEditTool, ahkSmallEditToolDefinition } from './tools/ahk-file-edit-small.js';
+import { AhkSmartOrchestratorTool, ahkSmartOrchestratorToolDefinition } from './tools/ahk-smart-orchestrator.js';
+import { AhkFileCreateTool, ahkFileCreateToolDefinition } from './tools/ahk-file-create.js';
+import { AHK_Library_List_Definition } from './tools/ahk-library-list.js';
+import { AHK_Library_Info_Definition } from './tools/ahk-library-info.js';
+import { AHK_Library_Import_Definition } from './tools/ahk-library-import.js';
+import { ToolFactory } from './core/tool-factory.js';
 import { autoDetect } from './core/active-file.js';
 import { toolSettings } from './core/tool-settings.js';
+import { configManager } from './core/path-converter-config.js';
+import { pathConverter } from './utils/path-converter.js';
+import { pathInterceptor } from './core/path-interceptor.js';
 export class AutoHotkeyMcpServer {
     constructor() {
         this.server = new Server({
@@ -70,6 +80,13 @@ export class AutoHotkeyMcpServer {
         this.ahkAlphaToolInstance = new AhkAlphaTool();
         this.ahkFileEditorToolInstance = new AhkFileEditorTool();
         this.ahkSmallEditToolInstance = new AhkSmallEditTool();
+        this.ahkFileCreateToolInstance = new AhkFileCreateTool();
+        this.toolRegistry = new ToolRegistry(this);
+        // Initialize Smart Orchestrator after toolRegistry is created
+        const toolFactory = new ToolFactory();
+        this.ahkSmartOrchestratorToolInstance = new AhkSmartOrchestratorTool(toolFactory, this.toolRegistry);
+        // Initialize path conversion system
+        this.initializePathConversion();
         this.setupToolHandlers();
         this.setupPromptHandlers();
         this.setupResourceHandlers();
@@ -88,6 +105,7 @@ export class AutoHotkeyMcpServer {
                 ahkFileEditorToolDefinition, // PRIMARY FILE EDITING TOOL - Listed first for priority
                 ahkEditToolDefinition,
                 ahkFileToolDefinition,
+                ahkFileCreateToolDefinition,
                 ahkDiffEditToolDefinition,
                 ahkDiagnosticsToolDefinition,
                 ahkRunToolDefinition,
@@ -109,6 +127,10 @@ export class AutoHotkeyMcpServer {
                 ahkSettingsToolDefinition,
                 ahkSmallEditToolDefinition,
                 ahkAlphaToolDefinition,
+                ahkSmartOrchestratorToolDefinition,
+                AHK_Library_List_Definition,
+                AHK_Library_Info_Definition,
+                AHK_Library_Import_Definition,
             ];
             // Add ChatGPT-compatible tools when in SSE mode
             const chatGPTTools = useSSE ? [
@@ -168,137 +190,7 @@ export class AutoHotkeyMcpServer {
                 }
             }
             try {
-                let result;
-                switch (name) {
-                    case 'ahk_file_edit_advanced':
-                        result = await this.ahkFileEditorToolInstance.execute(args);
-                        break;
-                    case 'ahk_diagnostics':
-                        result = await this.ahkDiagnosticsToolInstance.execute(args);
-                        break;
-                    case 'ahk_summary':
-                        result = await this.ahkSummaryToolInstance.execute();
-                        break;
-                    case 'ahk_prompts':
-                        result = await this.ahkPromptsToolInstance.execute();
-                        break;
-                    case 'ahk_analyze':
-                        result = await this.ahkAnalyzeToolInstance.execute(args);
-                        break;
-                    case 'ahk_context_injector':
-                        result = await this.ahkContextInjectorToolInstance.execute(args);
-                        break;
-                    case 'ahk_sampling_enhancer':
-                        result = await this.ahkSamplingEnhancerToolInstance.execute(args);
-                        break;
-                    case 'ahk_debug_agent':
-                        result = await this.ahkDebugAgentToolInstance.execute(args);
-                        break;
-                    case 'ahk_doc_search':
-                        result = await this.ahkDocSearchToolInstance.execute(args);
-                        break;
-                    case 'ahk_run':
-                        result = await this.ahkRunToolInstance.execute(args);
-                        break;
-                    case 'ahk_vscode_problems':
-                        result = await this.ahkVSCodeProblemsToolInstance.execute(args);
-                        break;
-                    case 'ahk_file_recent':
-                        result = await this.ahkRecentToolInstance.execute(args);
-                        break;
-                    case 'ahk_config':
-                        result = await this.ahkConfigToolInstance.execute(args);
-                        break;
-                    case 'ahk_active_file':
-                        result = await this.ahkActiveFileToolInstance.execute(args);
-                        break;
-                    case 'ahk_lsp':
-                        result = await this.ahkLspToolInstance.execute(args);
-                        break;
-                    case 'ahk_file_view':
-                        result = await this.ahkFileViewToolInstance.execute(args);
-                        break;
-                    case 'ahk_file_detect':
-                        result = await this.ahkAutoFileToolInstance.execute(args);
-                        break;
-                    case 'ahk_process_request':
-                        result = await this.ahkProcessRequestToolInstance.execute(args);
-                        break;
-                    case 'ahk_file_active':
-                        result = await this.ahkFileToolInstance.execute(args);
-                        break;
-                    case 'ahk_file_edit':
-                        result = await this.ahkEditToolInstance.execute(args);
-                        break;
-                    case 'ahk_file_edit_diff':
-                        result = await this.ahkDiffEditToolInstance.execute(args);
-                        break;
-                    case 'ahk_settings':
-                        result = await this.ahkSettingsToolInstance.execute(args);
-                        break;
-                    case 'ahk_file_edit_small':
-                        result = await this.ahkSmallEditToolInstance.execute(args);
-                        break;
-                    case 'ahk_alpha':
-                        result = await this.ahkAlphaToolInstance.execute(args);
-                        break;
-                    // ChatGPT-compatible tools (SSE mode only)
-                    case 'search':
-                        result = await this.ahkDocSearchToolInstance.execute({
-                            query: args.query,
-                            category: 'auto',
-                            limit: 10
-                        });
-                        break;
-                    case 'fetch': {
-                        const fetchResult = await this.ahkDocSearchToolInstance.execute({
-                            query: args.id,
-                            category: 'auto',
-                            limit: 5
-                        });
-                        if (fetchResult.content && fetchResult.content.length > 0) {
-                            const searchData = JSON.parse(fetchResult.content[0].text);
-                            const results = searchData.results || [];
-                            const firstResult = results.find((r) => r.id === args.id) || results[0];
-                            if (firstResult) {
-                                const docResponse = {
-                                    id: firstResult.id,
-                                    title: firstResult.title,
-                                    text: firstResult.description || firstResult.summary || 'AutoHotkey documentation item',
-                                    url: firstResult.url,
-                                    metadata: { source: 'autohotkey_docs', version: 'v2' }
-                                };
-                                result = {
-                                    content: [
-                                        {
-                                            type: 'text',
-                                            text: JSON.stringify(docResponse)
-                                        }
-                                    ]
-                                };
-                                break;
-                            }
-                        }
-                        result = {
-                            content: [
-                                {
-                                    type: 'text',
-                                    text: JSON.stringify({
-                                        id: args.id,
-                                        title: 'AutoHotkey Documentation Item',
-                                        text: 'Documentation not found for this item. Try searching for related terms.',
-                                        url: `https://www.autohotkey.com/docs/v2/search.htm?q=${args.id}`,
-                                        metadata: { source: 'autohotkey_docs', version: 'v2' }
-                                    })
-                                }
-                            ]
-                        };
-                        break;
-                    }
-                    default:
-                        logger.error(`Unknown tool: ${name}`);
-                        throw new Error(`Unknown tool: ${name}`);
-                }
+                const result = await this.toolRegistry.executeTool(name, args);
                 logDebugEvent('tools.call', { status: 'success', message: name, details: {
                         duration: Date.now() - startTime,
                         hasResult: Boolean(result && result.content && result.content.length > 0)
@@ -487,7 +379,7 @@ export class AutoHotkeyMcpServer {
                         {
                             uri,
                             mimeType: 'text/markdown',
-                            text: '## 🎯 AutoHotkey Context Available\n\nUse the `ahk_context_injector` tool to analyze your prompts and get relevant AutoHotkey documentation automatically injected.'
+                            text: '## 🎯 AutoHotkey Context Available\n\nUse the `AHK_Context_Injector` tool to analyze your prompts and get relevant AutoHotkey documentation automatically injected.'
                         }
                     ]
                 };
@@ -887,6 +779,420 @@ F12::hkManager.ToggleHotkey("F1", (*) => MsgBox("F1 pressed!"), "Example hotkey"
             logDebugEvent('resources.read', { status: 'error', message: `Resource not found: ${uri}` });
             throw new Error(`Resource not found: ${uri}`);
         });
+    }
+    /**
+     * Handle resource requests by delegating to appropriate handlers
+     */
+    async handleResourceRequest(normalizedUri, originalUri, _mergeDetails) {
+        const ahkIndex = getAhkIndex();
+        // Documentation resources
+        if (normalizedUri === 'ahk://docs/functions') {
+            return {
+                contents: [{
+                        uri: originalUri,
+                        mimeType: 'application/json',
+                        text: JSON.stringify(ahkIndex?.functions || [], null, 2)
+                    }]
+            };
+        }
+        if (normalizedUri === 'ahk://docs/variables') {
+            return {
+                contents: [{
+                        uri: originalUri,
+                        mimeType: 'application/json',
+                        text: JSON.stringify(ahkIndex?.variables || [], null, 2)
+                    }]
+            };
+        }
+        if (normalizedUri === 'ahk://docs/classes') {
+            return {
+                contents: [{
+                        uri: originalUri,
+                        mimeType: 'application/json',
+                        text: JSON.stringify(ahkIndex?.classes || [], null, 2)
+                    }]
+            };
+        }
+        if (normalizedUri === 'ahk://docs/methods') {
+            return {
+                contents: [{
+                        uri: originalUri,
+                        mimeType: 'application/json',
+                        text: JSON.stringify(ahkIndex?.methods || [], null, 2)
+                    }]
+            };
+        }
+        // Context resources
+        if (normalizedUri === 'ahk://context/auto') {
+            return {
+                contents: [{
+                        uri: originalUri,
+                        mimeType: 'text/markdown',
+                        text: '## 🎯 AutoHotkey Context Available\n\nUse the `AHK_Context_Injector` tool to analyze your prompts and get relevant AutoHotkey documentation automatically injected.'
+                    }]
+            };
+        }
+        // System resources
+        if (normalizedUri === 'ahk://system/info') {
+            const systemInfo = {
+                autohotkeyVersion: "v2.0+",
+                operatingSystem: "Windows",
+                computerName: "Unknown",
+                userName: "Unknown",
+                timestamp: new Date().toISOString(),
+                processId: process.pid,
+                workingDirectory: process.cwd(),
+                nodeVersion: process.version,
+                platform: process.platform,
+                arch: process.arch,
+                memoryUsage: process.memoryUsage(),
+                uptime: process.uptime()
+            };
+            return {
+                contents: [{
+                        uri: originalUri,
+                        mimeType: 'application/json',
+                        text: JSON.stringify(systemInfo, null, 2)
+                    }]
+            };
+        }
+        if (normalizedUri === 'ahk://system/clipboard') {
+            return {
+                contents: [{
+                        uri: originalUri,
+                        mimeType: 'text/plain',
+                        text: "(Live clipboard access not available in MCP server context)\nUse AutoHotkey scripts with A_Clipboard variable to access clipboard content."
+                    }]
+            };
+        }
+        // Template resources
+        const templates = {
+            'file-system-watcher': this.getFileSystemWatcherTemplate(),
+            'clipboard-manager': this.getClipboardManagerTemplate(),
+            'cpu-monitor': this.getCpuMonitorTemplate(),
+            'hotkey-toggle': this.getHotkeyToggleTemplate()
+        };
+        for (const [name, content] of Object.entries(templates)) {
+            if (normalizedUri === `ahk://templates/${name}`) {
+                return {
+                    contents: [{
+                            uri: originalUri,
+                            mimeType: 'text/plain',
+                            text: content
+                        }]
+                };
+            }
+        }
+        throw new Error(`Resource not found: ${originalUri}`);
+    }
+    /**
+     * Get file system watcher template
+     */
+    getFileSystemWatcherTemplate() {
+        return `; AutoHotkey v2 File System Watcher Template
+; Monitors a directory for file changes and triggers callbacks
+
+class FileSystemWatcher {
+    __New(directory, callback) {
+        this.directory := directory
+        this.callback := callback
+        this.timer := ObjBindMethod(this, "CheckChanges")
+        this.lastModified := Map()
+        this.Initialize()
+    }
+    
+    Initialize() {
+        ; Store initial state
+        Loop Files, this.directory "\\*.*", "R" {
+            this.lastModified[A_LoopFileFullPath] := A_LoopFileTimeModified
+        }
+        ; Start monitoring
+        SetTimer(this.timer, 1000)
+    }
+    
+    CheckChanges() {
+        currentFiles := Map()
+        
+        ; Check all files in directory
+        Loop Files, this.directory "\\*.*", "R" {
+            currentFiles[A_LoopFileFullPath] := A_LoopFileTimeModified
+            
+            ; Check if file is new or modified
+            if (!this.lastModified.Has(A_LoopFileFullPath)) {
+                this.callback.Call("created", A_LoopFileFullPath)
+            } else if (this.lastModified[A_LoopFileFullPath] != A_LoopFileTimeModified) {
+                this.callback.Call("modified", A_LoopFileFullPath)
+            }
+        }
+        
+        ; Check for deleted files
+        for file, _ in this.lastModified {
+            if (!currentFiles.Has(file)) {
+                this.callback.Call("deleted", file)
+            }
+        }
+        
+        this.lastModified := currentFiles
+    }
+    
+    Stop() {
+        SetTimer(this.timer, 0)
+    }
+}
+
+; Example usage:
+; watcher := FileSystemWatcher("C:\\MyFolder", (action, file) => {
+;     ToolTip(action ": " file)
+;     SetTimer(() => ToolTip(), -2000)
+; })
+`;
+    }
+    /**
+     * Get clipboard manager template
+     */
+    getClipboardManagerTemplate() {
+        return `; AutoHotkey v2 Clipboard Manager Template
+; Opens GUI with clipboard content and text transformation options
+
+class ClipboardManager {
+    __New() {
+        this.CreateGUI()
+        this.LoadClipboard()
+    }
+    
+    CreateGUI() {
+        this.gui := Gui("+Resize", "Clipboard Manager")
+        this.gui.SetFont("s10", "Consolas")
+        
+        ; Main edit control
+        this.editControl := this.gui.Add("Edit", "x10 y10 w400 h300 VScroll")
+        
+        ; Buttons
+        this.gui.Add("Button", "x10 y320 w80 h30 gUpperCase", "UPPER").OnEvent("Click", (*) => this.UpperCase())
+        this.gui.Add("Button", "x100 y320 w80 h30 gLowerCase", "lower").OnEvent("Click", (*) => this.LowerCase())
+        this.gui.Add("Button", "x190 y320 w80 h30 gTitleCase", "Title Case").OnEvent("Click", (*) => this.TitleCase())
+        this.gui.Add("Button", "x280 y320 w80 h30 gSaveClip", "Save to Clipboard").OnEvent("Click", (*) => this.SaveToClipboard())
+        this.gui.Add("Button", "x370 y320 w50 h30 gReload", "Reload").OnEvent("Click", (*) => this.LoadClipboard())
+        
+        ; Status bar
+        this.statusBar := this.gui.Add("StatusBar")
+        this.statusBar.SetText("Ready")
+        
+        this.gui.OnEvent("Close", (*) => ExitApp())
+        this.gui.Show()
+    }
+    
+    LoadClipboard() {
+        this.editControl.Text := A_Clipboard
+        this.statusBar.SetText("Clipboard loaded - " StrLen(A_Clipboard) " characters")
+    }
+    
+    UpperCase() {
+        this.editControl.Text := StrUpper(this.editControl.Text)
+        this.statusBar.SetText("Converted to UPPERCASE")
+    }
+    
+    LowerCase() {
+        this.editControl.Text := StrLower(this.editControl.Text)
+        this.statusBar.SetText("Converted to lowercase")
+    }
+    
+    TitleCase() {
+        this.editControl.Text := StrTitle(this.editControl.Text)
+        this.statusBar.SetText("Converted to Title Case")
+    }
+    
+    SaveToClipboard() {
+        A_Clipboard := this.editControl.Text
+        this.statusBar.SetText("Saved to clipboard - " StrLen(A_Clipboard) " characters")
+    }
+}
+
+; Create and show clipboard manager
+clipManager := ClipboardManager()
+`;
+    }
+    /**
+     * Get CPU monitor template
+     */
+    getCpuMonitorTemplate() {
+        return `; AutoHotkey v2 CPU Monitor Template
+; Displays current CPU usage as an updating tooltip
+
+class CPUMonitor {
+    __New() {
+        this.Initialize()
+    }
+    
+    Initialize() {
+        ; Start monitoring timer
+        this.timer := ObjBindMethod(this, "UpdateCPU")
+        SetTimer(this.timer, 1000)
+        
+        ; Initial update
+        this.UpdateCPU()
+    }
+    
+    UpdateCPU() {
+        try {
+            ; Get CPU usage using WMI
+            cpuUsage := this.GetCPUUsage()
+            
+            ; Display as tooltip
+            ToolTip("CPU Usage: " cpuUsage "%\\nPress Ctrl+Alt+Q to quit", 10, 10)
+        } catch Error as e {
+            ToolTip("Error reading CPU: " e.Message, 10, 10)
+        }
+    }
+    
+    GetCPUUsage() {
+        ; Use WMI to get CPU usage
+        for objItem in ComObjGet("winmgmts:").ExecQuery("SELECT * FROM Win32_Processor") {
+            return Round(objItem.LoadPercentage, 1)
+        }
+        return 0
+    }
+    
+    Stop() {
+        SetTimer(this.timer, 0)
+        ToolTip()
+    }
+}
+
+; Hotkey to quit
+^!q::ExitApp()
+
+; Start CPU monitor
+cpuMonitor := CPUMonitor()
+`;
+    }
+    /**
+     * Get hotkey toggle template
+     */
+    getHotkeyToggleTemplate() {
+        return `; AutoHotkey v2 Hotkey Toggle Template
+; Function to toggle any hotkey on/off with visual feedback
+
+class HotkeyManager {
+    __New() {
+        this.hotkeyStates := Map()
+    }
+    
+    ; Toggle a hotkey on/off
+    ToggleHotkey(hotkey, callback, description := "") {
+        if (this.hotkeyStates.Has(hotkey)) {
+            ; Hotkey exists, toggle it
+            if (this.hotkeyStates[hotkey].enabled) {
+                this.DisableHotkey(hotkey)
+            } else {
+                this.EnableHotkey(hotkey)
+            }
+        } else {
+            ; New hotkey, register it
+            this.RegisterHotkey(hotkey, callback, description)
+        }
+    }
+    
+    RegisterHotkey(hotkey, callback, description := "") {
+        try {
+            Hotkey(hotkey, callback)
+            this.hotkeyStates[hotkey] := {
+                enabled: true,
+                callback: callback,
+                description: description
+            }
+            this.ShowStatus(hotkey, "ENABLED", description)
+        } catch Error as e {
+            this.ShowStatus(hotkey, "ERROR: " e.Message)
+        }
+    }
+    
+    EnableHotkey(hotkey) {
+        if (this.hotkeyStates.Has(hotkey)) {
+            try {
+                Hotkey(hotkey, "On")
+                this.hotkeyStates[hotkey].enabled := true
+                this.ShowStatus(hotkey, "ENABLED", this.hotkeyStates[hotkey].description)
+            } catch Error as e {
+                this.ShowStatus(hotkey, "ERROR: " e.Message)
+            }
+        }
+    }
+    
+    DisableHotkey(hotkey) {
+        if (this.hotkeyStates.Has(hotkey)) {
+            try {
+                Hotkey(hotkey, "Off")
+                this.hotkeyStates[hotkey].enabled := false
+                this.ShowStatus(hotkey, "DISABLED", this.hotkeyStates[hotkey].description)
+            } catch Error as e {
+                this.ShowStatus(hotkey, "ERROR: " e.Message)
+            }
+        }
+    }
+    
+    ShowStatus(hotkey, status, description := "") {
+        message := "Hotkey: " hotkey "\\nStatus: " status
+        if (description) {
+            message .= "\\nDescription: " description
+        }
+        ToolTip(message)
+        SetTimer(() => ToolTip(), -2000)
+    }
+    
+    ListHotkeys() {
+        message := "Registered Hotkeys:\\n"
+        for hotkey, state in this.hotkeyStates {
+            status := state.enabled ? "ON" : "OFF"
+            desc := state.description ? " - " state.description : ""
+            message .= hotkey " [" status "]" desc "\\n"
+        }
+        MsgBox(message, "Hotkey Manager")
+    }
+}
+
+; Create hotkey manager
+hkManager := HotkeyManager()
+
+; Example usage:
+; Toggle F1 key
+F12::hkManager.ToggleHotkey("F1", (*) => MsgBox("F1 pressed!"), "Example hotkey")
+
+; List all hotkeys
+^F12::hkManager.ListHotkeys()
+`;
+    }
+    /**
+     * Initialize path conversion system
+     */
+    initializePathConversion() {
+        try {
+            logger.debug('Initializing path conversion system...');
+            // Load configuration
+            const config = configManager.getConfig();
+            // Configure path converter with drive mappings
+            if (config.driveMappings.length > 0) {
+                config.driveMappings.forEach(mapping => {
+                    pathConverter.addDriveMapping(mapping.windowsDrive, mapping.wslMountPoint);
+                });
+                logger.debug(`Loaded ${config.driveMappings.length} drive mappings`);
+            }
+            // Configure path interceptor with tool configurations
+            if (config.toolConfigs.length > 0) {
+                config.toolConfigs.forEach(toolConfig => {
+                    pathInterceptor.addToolConfig(toolConfig);
+                });
+                logger.debug(`Loaded ${config.toolConfigs.length} tool configurations`);
+            }
+            // Enable/disable path interception based on configuration
+            pathInterceptor.setEnabled(config.enabled);
+            logger.info('Path conversion system initialized successfully');
+            logger.debug(`Path conversion enabled: ${config.enabled}, target format: ${config.defaultTargetFormat}`);
+        }
+        catch (error) {
+            logger.error('Failed to initialize path conversion system:', error);
+            // Continue without path conversion rather than failing the entire server
+        }
     }
     /**
      * Initialize the server and load data

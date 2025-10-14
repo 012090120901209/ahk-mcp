@@ -2,12 +2,16 @@ import { z } from 'zod';
 import logger from '../logger.js';
 import { AhkEditTool } from './ahk-file-edit.js';
 import { AhkFileTool } from './ahk-file-active.js';
+import { resolveWithTracking, addDeprecationWarning } from '../core/parameter-aliases.js';
 
 export const AhkFileEditorArgsSchema = z.object({
   filePath: z.string().describe('Path to the AutoHotkey file to edit'),
   changes: z.string().describe('Description of changes to make to the file'),
-  action: z.enum(['edit', 'view', 'create']).optional().default('edit').describe('Action to perform on the file')
+  action: z.enum(['edit', 'view', 'create']).optional().default('edit').describe('Action to perform on the file'),
+  dryRun: z.boolean().optional().default(false).describe('Preview changes without modifying file. Shows affected lines and change count.')
 });
+
+export type AhkFileEditorArgs = z.infer<typeof AhkFileEditorArgsSchema>;
 
 export const ahkFileEditorToolDefinition = {
   name: 'AHK_File_Edit_Advanced',
@@ -29,6 +33,11 @@ export const ahkFileEditorToolDefinition = {
         enum: ['edit', 'view', 'create'],
         default: 'edit',
         description: 'Action to perform: edit (modify existing), view (read only), create (new file)'
+      },
+      dryRun: {
+        type: 'boolean',
+        default: false,
+        description: 'Preview changes without modifying file. Shows affected lines and change count.'
       }
     },
     required: ['filePath', 'changes']
@@ -46,9 +55,12 @@ export class AhkFileEditorTool {
 
   async execute(args: z.infer<typeof AhkFileEditorArgsSchema>): Promise<any> {
     try {
-      const { filePath, changes, action } = AhkFileEditorArgsSchema.parse(args);
+      const { filePath, changes, action, dryRun } = AhkFileEditorArgsSchema.parse(args);
 
       logger.info(`File editor triggered for: ${filePath}`);
+      
+      // Apply parameter aliases for backward compatibility
+      const { deprecatedUsed } = resolveWithTracking(args);
 
       // Step 1: Set the active file
       const fileResult = await this.fileTool.execute({
@@ -73,17 +85,33 @@ export class AhkFileEditorTool {
       let response = `🎯 **File Editor Active**\n\n`;
       response += `📁 **File:** ${filePath}\n`;
       response += `⚙️ **Action:** ${action}\n`;
-      response += `📝 **Changes:** ${changes}\n\n`;
+      response += `📝 **Changes:** ${changes}\n`;
+
+      if (dryRun) {
+        response += `\n🔬 **Mode:** Dry Run (Preview Only)\n\n`;
+        response += `**📋 Preview Summary:**\n`;
+        response += `This tool provides guidance for editing but doesn't directly modify files.\n`;
+        response += `Use the recommended tools below with dryRun: true to preview changes.\n\n`;
+      } else {
+        response += `\n`;
+      }
 
       if (action === 'view') {
         // Just show file status
         const statusResult = await this.fileTool.execute({ action: 'get' });
-        return {
+        let result = {
           content: [{
             type: 'text',
             text: response + statusResult.content[0]?.text
           }]
         };
+        
+        // Add deprecation warnings if any
+        if (deprecatedUsed.length > 0) {
+          result = addDeprecationWarning(result, deprecatedUsed);
+        }
+        
+        return result;
       }
 
       // Step 3: Provide editing guidance
@@ -95,13 +123,24 @@ export class AhkFileEditorTool {
       response += `• \`AHK_File_Edit\` - For direct text replacements, insertions, deletions (set 'runAfter': true to run immediately)\n`;
       response += `• \`AHK_File_Edit_Diff\` - For complex multi-location changes\n`;
       response += `• \`AHK_Run\` - To test the changes after editing\n`;
+      
+      if (dryRun) {
+        response += `\n**💡 Dry Run Tip:** Add \`"dryRun": true\` to any of the above tools to preview changes before applying them.`;
+      }
 
-      return {
+      let result = {
         content: [{
           type: 'text',
           text: response
         }]
       };
+      
+      // Add deprecation warnings if any
+      if (deprecatedUsed.length > 0) {
+        result = addDeprecationWarning(result, deprecatedUsed);
+      }
+      
+      return result;
 
     } catch (error) {
       logger.error('Error in AHK_File_Edit_Advanced:', error);

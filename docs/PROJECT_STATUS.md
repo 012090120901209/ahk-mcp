@@ -7,7 +7,7 @@ Current implementation status and feature completion tracking.
 ### ✅ PRODUCTION READY (95% Complete)
 
 **Core MCP Server** - All tools functional
-- 15 MCP Tools implemented and tested
+- 16 MCP Tools implemented and tested
 - JSON-RPC 2.0 communication layer
 - Error handling and validation
 - Resource management system
@@ -58,7 +58,7 @@ Current implementation status and feature completion tracking.
 ## 📊 Feature Statistics
 
 - **32 TypeScript Files** → **32 JavaScript Files**
-- **15 MCP Tools** fully functional
+- **16 MCP Tools** fully functional
 - **10 MCP Resources** providing live data
 - **20+ Prompt Templates** for various use cases
 - **4 Script Templates** ready to use
@@ -77,6 +77,7 @@ Current implementation status and feature completion tracking.
 - 🚀 **Enhanced Error Handling** - User-friendly messages
 - ⚡ **Auto-Detection** - AutoHotkey path discovery
 - 🔧 **Process Management** - Advanced lifecycle handling
+- 🛠️ **Dedicated File Creation Tool** - `AHK_File_Create` adds safe script creation with automatic path conversion
 
 ## 🔧 Available MCP Tools
 
@@ -99,8 +100,12 @@ Current implementation status and feature completion tracking.
 13. `AHK_File_Recent` - Recent files tracking
 14. `AHK_VSCode_Problems` - VS Code integration
 
+### File Operations
+- `AHK_File_Create` - Create new AutoHotkey v2 scripts with automatic Windows/WSL path handling and safety checks
+- `AHK_File_Edit` - Modify existing scripts with replace, insert, delete, and create modes
+
 ### System Integration
-15. Various MCP resources for live data and templates
+- Various MCP resources for live data and templates
 
 ## 🚀 Deployment Status
 

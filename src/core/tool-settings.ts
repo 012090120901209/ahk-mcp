@@ -17,6 +17,7 @@ export interface ToolSettings {
     AHK_File_View: boolean;
     AHK_File_Detect: boolean;
     AHK_File_Active: boolean;
+    AHK_File_Create: boolean;
     AHK_Active_File: boolean;
     AHK_Process_Request: boolean;
     AHK_Alpha: boolean;
@@ -85,6 +86,7 @@ class ToolSettingsManager {
         AHK_File_View: true,
         AHK_File_Detect: true,
         AHK_File_Active: true,
+        AHK_File_Create: true,
         AHK_Active_File: true,
         AHK_Process_Request: true,
         AHK_Alpha: true,
@@ -230,6 +232,7 @@ class ToolSettingsManager {
       'AHK_File_View',
       'AHK_File_Detect',
       'AHK_File_Active',
+      'AHK_File_Create',
       'AHK_Process_Request',
       'AHK_Alpha'
     ];
@@ -262,7 +265,7 @@ class ToolSettingsManager {
     
     if (
       !this.settings.allowFileEditing &&
-      ['AHK_File_Edit', 'AHK_File_Edit_Diff', 'AHK_File_Edit_Small', 'AHK_File_Edit_Advanced'].includes(toolName)
+      ['AHK_File_Edit', 'AHK_File_Edit_Diff', 'AHK_File_Edit_Small', 'AHK_File_Edit_Advanced', 'AHK_File_Create'].includes(toolName)
     ) {
       return `⚠️ File editing is currently disabled.\n\nTo enable it, use the 'AHK_Settings' tool:\n\`\`\`json\n{\n  "tool": "AHK_Settings",\n  "arguments": {\n    "action": "enable_editing"\n  }\n}\n\`\`\``;
     }

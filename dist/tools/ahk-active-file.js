@@ -7,7 +7,7 @@ export const AhkActiveFileArgsSchema = z.object({
     filePath: z.string().optional()
 });
 export const ahkActiveFileToolDefinition = {
-    name: 'ahk_active_file',
+    name: 'AHK_Active_File',
     description: `Ahk active file
 Get or set the active AHK file path used as a default when invoking tools.`,
     inputSchema: {
@@ -38,7 +38,7 @@ export class AhkActiveFileTool {
             return { content: [{ type: 'text', text: 'Active file updated.' }, { type: 'text', text: JSON.stringify({ activeFile: updated.activeFile || null }, null, 2) }] };
         }
         catch (error) {
-            logger.error('Error in ahk_active_file tool:', error);
+            logger.error('Error in AHK_Active_File tool:', error);
             return { content: [{ type: 'text', text: `❌ Error: ${error instanceof Error ? error.message : String(error)}` }] };
         }
     }

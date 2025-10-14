@@ -1,0 +1,394 @@
+name: Release and Version Management
+
+on:
+  push:
+    branches: [ main ]
+    tags: [ 'v*' ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+    inputs:
+      release_type:
+        description: 'Release type'
+        required: true
+        default: 'patch'
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+
+jobs:
+  version-check:
+    name: Check Version
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      should_release: ${{ steps.version.outputs.should_release }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Get current version
+        id: version
+        run: |
+          CURRENT_VERSION=$(node -p "require('./package.json').version")
+          echo "current_version=$CURRENT_VERSION" >> $GITHUB_OUTPUT
+          
+          # Check if this is a tag push
+          if [[ $GITHUB_REF == refs/tags/* ]]; then
+            TAG_VERSION=${GITHUB_REF#refs/tags/v}
+            echo "tag_version=$TAG_VERSION" >> $GITHUB_OUTPUT
+            
+            if [[ "$TAG_VERSION" == "$CURRENT_VERSION" ]]; then
+              echo "should_release=true" >> $GITHUB_OUTPUT
+              echo "version=$TAG_VERSION" >> $GITHUB_OUTPUT
+            else
+              echo "should_release=false" >> $GITHUB_OUTPUT
+              echo "version=$CURRENT_VERSION" >> $GITHUB_OUTPUT
+            fi
+          else
+            echo "should_release=false" >> $GITHUB_OUTPUT
+            echo "version=$CURRENT_VERSION" >> $GITHUB_OUTPUT
+          fi
+
+  test-and-build:
+    name: Test and Build
+    runs-on: ubuntu-latest
+    needs: version-check
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run tests
+        run: npm run test:all
+
+      - name: Build project
+        run: npm run build
+
+      - name: Run integration tests
+        run: npm run test:integration
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
+          retention-days: 7
+
+  security-scan:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    needs: version-check
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run security audit
+        run: npm audit --audit-level=moderate
+
+      - name: Run Snyk security scan
+        uses: snyk/actions/node@master
+        continue-on-error: true
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+
+  update-version:
+    name: Update Version
+    runs-on: ubuntu-latest
+    needs: [version-check, test-and-build]
+    if: github.event_name == 'workflow_dispatch' && needs.version-check.outputs.should_release == 'false'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Configure Git
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+
+      - name: Update version
+        run: |
+          npm version ${{ github.event.inputs.release_type }} --no-git-tag-version
+          
+          # Update version in other files if needed
+          NEW_VERSION=$(node -p "require('./package.json').version")
+          echo "new_version=$NEW_VERSION" >> $GITHUB_ENV
+
+      - name: Commit version change
+        run: |
+          git add package.json package-lock.json
+          git commit -m "chore: bump version to v$NEW_VERSION"
+          git push origin main
+
+      - name: Create tag
+        run: |
+          git tag "v$NEW_VERSION"
+          git push origin "v$NEW_VERSION"
+
+  create-release:
+    name: Create Release
+    runs-on: ubuntu-latest
+    needs: [version-check, test-and-build, security-scan]
+    if: needs.version-check.outputs.should_release == 'true'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+      - name: Generate changelog
+        id: changelog
+        run: |
+          VERSION="${{ needs.version-check.outputs.version }}"
+          
+          # Generate changelog from git commits since last tag
+          PREV_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
+          
+          if [[ -n "$PREV_TAG" ]]; then
+            CHANGELOG=$(git log --pretty=format:"- %s (%h)" $PREV_TAG..HEAD)
+          else
+            CHANGELOG=$(git log --pretty=format:"- %s (%h)")
+          fi
+          
+          # Save changelog to file
+          echo "$CHANGELOG" > CHANGELOG_RELEASE.md
+          
+          # Set output for GitHub Release
+          {
+            echo 'changelog<<EOF'
+            echo "$CHANGELOG"
+            echo EOF
+          } >> $GITHUB_OUTPUT
+
+      - name: Create GitHub Release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: v${{ needs.version-check.outputs.version }}
+          release_name: Release v${{ needs.version-check.outputs.version }}
+          body: |
+            ## Changes in v${{ needs.version-check.outputs.version }}
+            
+            ${{ steps.changelog.outputs.changelog }}
+            
+            ### Installation
+            
+            ```bash
+            npm install ahk-server-v2@${{ needs.version-check.outputs.version }}
+            ```
+            
+            ### Docker
+            
+            ```bash
+            docker pull ghcr.io/your-org/ahk-mcp:v${{ needs.version-check.outputs.version }}
+            ```
+            
+            ### Verification
+            
+            - ✅ All tests passing
+            - ✅ Security scan passed
+            - ✅ Build successful
+          draft: false
+          prerelease: false
+
+      - name: Upload Release Assets
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./dist/index.js
+          asset_name: index.js
+          asset_content_type: application/javascript
+
+  publish-npm:
+    name: Publish to NPM
+    runs-on: ubuntu-latest
+    needs: [version-check, test-and-build, security-scan, create-release]
+    if: needs.version-check.outputs.should_release == 'true'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Publish to NPM
+        run: npm publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+  publish-docker:
+    name: Publish Docker Image
+    runs-on: ubuntu-latest
+    needs: [version-check, test-and-build, security-scan, create-release]
+    if: needs.version-check.outputs.should_release == 'true'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: |
+            your-org/ahk-mcp
+            ghcr.io/${{ github.repository }}
+          tags: |
+            type=ref,event=tag
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=semver,pattern={{major}}
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  notify-release:
+    name: Notify Release
+    runs-on: ubuntu-latest
+    needs: [version-check, create-release, publish-npm, publish-docker]
+    if: always() && needs.version-check.outputs.should_release == 'true'
+    
+    steps:
+      - name: Notify Slack
+        if: success()
+        uses: 8398a7/action-slack@v3
+        with:
+          status: success
+          channel: '#releases'
+          text: |
+            🚀 AutoHotkey v2 MCP Server v${{ needs.version-check.outputs.version }} has been released!
+            
+            📦 NPM: https://www.npmjs.com/package/ahk-server-v2
+            🐳 Docker: ghcr.io/${{ github.repository }}:v${{ needs.version-check.outputs.version }}
+            📋 Release: https://github.com/${{ github.repository }}/releases/tag/v${{ needs.version-check.outputs.version }}
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+
+      - name: Notify Discord
+        if: success()
+        run: |
+          curl -X POST -H "Content-Type: application/json" \
+            -d '{
+              "content": "🚀 **AutoHotkey v2 MCP Server v${{ needs.version-check.outputs.version }} Released!**\n\n📦 [NPM](https://www.npmjs.com/package/ahk-server-v2)\n🐳 [Docker](https://github.com/${{ github.repository }}/pkgs/container/ahk-mcp)\n📋 [Release Notes](https://github.com/${{ github.repository }}/releases/tag/v${{ needs.version-check.outputs.version }})"
+            }' \
+            ${{ secrets.DISCORD_WEBHOOK_URL }}
+        continue-on-error: true
+
+  update-docs:
+    name: Update Documentation
+    runs-on: ubuntu-latest
+    needs: [version-check, create-release]
+    if: needs.version-check.outputs.should_release == 'true'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build documentation
+        run: npm run docs:build
+
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./docs/build
+          destination_dir: v${{ needs.version-check.outputs.version }}

@@ -6,6 +6,8 @@ import { activeFile } from '../core/active-file.js';
 import { checkToolAvailability, toolSettings } from '../core/tool-settings.js';
 import { createUnifiedDiff } from './ahk-file-edit-diff.js';
 import { AhkRunTool } from './ahk-run-script.js';
+import { resolveWithTracking, addDeprecationWarning } from '../core/parameter-aliases.js';
+import { createPreviewGenerator } from '../utils/dry-run-preview.js';
 
 type EditAction =
   | 'replace_regex'
@@ -33,16 +35,56 @@ export const AhkSmallEditArgsSchema = z.object({
   line: z.number().optional().describe('Line number for line-based actions (1-based).'),
   startLine: z.number().optional().describe('Start line for range operations (1-based).'),
   endLine: z.number().optional().describe('End line for range delete or replace (1-based, inclusive).'),
-  content: z.string().optional().describe('Content to insert or replace when using line actions.'),
+  content: z.string().optional().describe('⚠️ Deprecated alias for newContent.'),
+  newContent: z.string().optional().describe('Primary text to insert or replace during line actions. Example: "MsgBox(\\"Updated\\")".'),
   preview: z.boolean().optional().default(false).describe('Show a unified diff instead of writing to disk.'),
+  dryRun: z.boolean().optional().default(false).describe('Preview changes without modifying file. Shows affected lines and change count.'),
   backup: z.boolean().optional().default(false).describe('Create a .bak backup before writing changes.'),
   runAfter: z.boolean().optional().describe('Run the script after edits complete (single file only).'),
 });
 
 export const ahkSmallEditToolDefinition = {
   name: 'AHK_File_Edit_Small',
-  description: `AHK Small Edit
-Token-efficient file editing for simple replacements and line edits. Supports regex or literal replacements and line targeting with optional preview.`,
+  description: `Token-efficient editor for small, targeted changes. Ideal when you need a lightweight replace or line edit without loading the full diff engine. Supports regex and literal replacements, multi-file batches, optional diff previews, and dry-run mode.
+
+**Common Replace**
+\`\`\`json
+{
+  "action": "replace_literal",
+  "file": "C:\\\\Scripts\\\\MyScript.ahk",
+  "find": "Sleep(500)",
+  "replace": "Sleep(100)"
+}
+\`\`\`
+
+**Insert Before a Line (Preview)**
+\`\`\`json
+{
+  "action": "line_insert_before",
+  "file": "C:\\\\Scripts\\\\TrayMenu.ahk",
+  "line": 42,
+  "newContent": "    TrayTip(\\"Menu refreshed\\")",
+  "dryRun": true
+}
+\`\`\`
+
+**Multi-File Regex Replace**
+\`\`\`json
+{
+  "action": "replace_regex",
+  "files": ["core.ahk", "ui.ahk"],
+  "find": "SetTimer\\\\((\\\\w+), 5000\\\\)",
+  "replace": "SetTimer($1, 10000)",
+  "all": true
+}
+\`\`\`
+
+**What to Avoid**
+- ❌ Mixing deprecated "content" parameter with newContent → prefer newContent
+- ❌ Running multi-file edits without \`dryRun: true\` to preview
+- ❌ Forgetting \`backup: true\` when touching critical scripts
+
+**See also:** AHK_File_Edit (full-featured editor), AHK_File_Edit_Diff (complex diffs), AHK_File_Edit_Advanced`,
   inputSchema: {
     type: 'object',
     properties: {
@@ -99,12 +141,21 @@ Token-efficient file editing for simple replacements and line edits. Supports re
       },
       content: {
         type: 'string',
-        description: 'Content to insert or replace when using line actions.',
+        description: '⚠️ Deprecated alias for newContent. Prefer newContent for new text.'
+      },
+      newContent: {
+        type: 'string',
+        description: 'Content to insert or replace when using line actions. Example: "MsgBox(\\"Done\\")".'
       },
       preview: {
         type: 'boolean',
         default: false,
         description: 'Show a unified diff instead of writing to disk.',
+      },
+      dryRun: {
+        type: 'boolean',
+        default: false,
+        description: 'Preview changes without modifying file. Shows affected lines and change count.',
       },
       backup: {
         type: 'boolean',
@@ -153,43 +204,136 @@ export class AhkSmallEditTool {
 
       const args = AhkSmallEditArgsSchema.parse(rawArgs || {});
       const runAfter = typeof args.runAfter === 'boolean' ? args.runAfter : toolSettings.shouldAutoRunAfterEdit();
-      const targets = await this.resolveTargets(args.file, args.files);
+      
+      // Apply parameter aliases for backward compatibility
+      const { content: resolvedContent, deprecatedUsed } = resolveWithTracking(args);
+      
+      // Use resolved content if available, otherwise use the original content parameter
+      const normalizedArgs = {
+        ...args,
+        content: resolvedContent !== undefined ? resolvedContent : args.content
+      };
+      
+      const targets = await this.resolveTargets(normalizedArgs.file, normalizedArgs.files);
 
       if (targets.length === 0) {
         throw new Error('No target file provided and no active file set.');
       }
 
-      const reports: string[] = [];
-      const runMessages: string[] = [];
-      let runHandled = false;
+     const reports: string[] = [];
+     const runMessages: string[] = [];
+     let runHandled = false;
 
-      for (const target of targets) {
-        const absolutePath = path.resolve(target);
+     for (const target of targets) {
+       const absolutePath = path.resolve(target);
 
-        let original: string;
-        try {
-          original = await fs.readFile(absolutePath, 'utf-8');
-        } catch (error) {
-          reports.push(`❌ ${absolutePath}: failed to read file (${error instanceof Error ? error.message : String(error)})`);
-          continue;
-        }
+       let original: string;
+       try {
+         original = await fs.readFile(absolutePath, 'utf-8');
+       } catch (error) {
+         reports.push(`❌ ${absolutePath}: failed to read file (${error instanceof Error ? error.message : String(error)})`);
+         continue;
+       }
 
-        const result = this.applyEdit(absolutePath, original, args);
+       const result = this.applyEdit(absolutePath, original, normalizedArgs);
 
-        if (!result.changed) {
-          reports.push(`⚠️ ${absolutePath}: no changes detected`);
-          continue;
-        }
+       if (!result.changed) {
+         reports.push(`⚠️ ${absolutePath}: no changes detected`);
+         continue;
+       }
 
-        if (args.preview) {
-          const diff = createUnifiedDiff(original, result.newContent, `${absolutePath}.orig`, `${absolutePath}.preview`);
-          reports.push(`📝 ${absolutePath}: preview diff:\n${diff}`);
-          if (runAfter && !runHandled) {
-            runMessages.push('⚠️ Run skipped during preview mode. Apply changes without preview to execute the script.');
-            runHandled = true;
-          }
-          continue;
-        }
+       if (args.preview || args.dryRun) {
+         if (args.dryRun) {
+           // Use the new dry-run preview generator
+           const previewGenerator = createPreviewGenerator();
+           let preview;
+           
+           switch (args.action as EditAction) {
+             case 'replace_regex':
+               if (!args.find) {
+                 reports.push(`❌ ${absolutePath}: Missing "find" pattern for regex replace.`);
+                 continue;
+               }
+               preview = previewGenerator.generatePreview(original, args.find, args.replace ?? '', {
+                 regex: true,
+                 all: args.all
+               });
+               break;
+             case 'replace_literal':
+               if (!args.find) {
+                 reports.push(`❌ ${absolutePath}: Missing "find" text for literal replace.`);
+                 continue;
+               }
+               preview = previewGenerator.generatePreview(original, args.find, args.replace ?? '', {
+                 regex: false,
+                 all: args.all
+               });
+               break;
+             case 'line_replace': {
+               if (!normalizedArgs.content) {
+                 reports.push(`❌ ${absolutePath}: Line replace requires "content" to provide new text.`);
+                 continue;
+               }
+               const { line, startLine, endLine } = normalizedArgs;
+               const start = this.resolveLineIndex(line ?? startLine, original.split('\n').length);
+               const end = this.resolveLineIndex(endLine ?? line ?? startLine, original.split('\n').length);
+               preview = previewGenerator.generateDeletePreview(original, start + 1, end + 1);
+               // For replace, we need to show both delete and insert
+               const lines = original.split('\n');
+               const beforeContent = lines.slice(0, start).join('\n');
+               const afterContent = lines.slice(end + 1).join('\n');
+               const insertPreview = previewGenerator.generateInsertPreview(
+                 beforeContent + '\n' + afterContent,
+                 start + 1,
+                 normalizedArgs.content
+               );
+               // Combine the previews
+               preview.summary.totalChanges += insertPreview.summary.totalChanges;
+               if (preview.summary.characterDiff && insertPreview.summary.characterDiff) {
+                 preview.summary.characterDiff.added += insertPreview.summary.characterDiff.added;
+               }
+               preview.samples.push(...insertPreview.samples);
+               break;
+             }
+             case 'line_delete': {
+               const { line: delLine, startLine: delStartLine, endLine: delEndLine } = normalizedArgs;
+               const delStart = this.resolveLineIndex(delLine ?? delStartLine, original.split('\n').length);
+               const delEnd = this.resolveLineIndex(delEndLine ?? delLine ?? delStartLine, original.split('\n').length);
+               preview = previewGenerator.generateDeletePreview(original, delStart + 1, delEnd + 1);
+               break;
+             }
+             case 'line_insert_before':
+             case 'line_insert_after': {
+               if (!normalizedArgs.line) {
+                 reports.push(`❌ ${absolutePath}: Line insert actions require a specific line number.`);
+                 continue;
+               }
+               if (!normalizedArgs.content) {
+                 reports.push(`❌ ${absolutePath}: Line insert actions require "content".`);
+                 continue;
+               }
+               const insertLine = args.action === 'line_insert_before' ? normalizedArgs.line : normalizedArgs.line + 1;
+               preview = previewGenerator.generateInsertPreview(original, insertLine, normalizedArgs.content);
+               break;
+             }
+             default:
+               reports.push(`❌ ${absolutePath}: Unsupported action: ${args.action}`);
+               continue;
+           }
+           
+           reports.push(`🔬 ${absolutePath}: Dry run preview:\n${previewGenerator.formatPreview(preview, absolutePath)}`);
+         } else {
+           // Use the existing preview functionality
+           const diff = createUnifiedDiff(original, result.newContent, `${absolutePath}.orig`, `${absolutePath}.preview`);
+           reports.push(`📝 ${absolutePath}: preview diff:\n${diff}`);
+         }
+         
+         if (runAfter && !runHandled) {
+           runMessages.push('⚠️ Run skipped during preview/dry-run mode. Apply changes without preview to execute the script.');
+           runHandled = true;
+         }
+         continue;
+       }
 
         if (args.backup) {
           try {
@@ -248,9 +392,16 @@ export class AhkSmallEditTool {
         reports.push(runMessages.join('\n'));
       }
 
-      return {
-        content: [{ type: 'text', text: reports.join('\n\n') }],
+      let response: ToolResponse = {
+        content: [{ type: 'text' as const, text: reports.join('\n\n') }],
       };
+      
+      // Add deprecation warnings if any
+      if (deprecatedUsed.length > 0) {
+        response = addDeprecationWarning(response, deprecatedUsed);
+      }
+      
+      return response;
     } catch (error) {
       logger.error('Error in AHK_File_Edit_Small tool:', error);
       return {
