@@ -145,4 +145,4 @@ Use AHK_Doc_Search to find information about MsgBox
 
 ---
 
-**Your AutoHotkey v2 MCP Server should now be running!** 🎉
+**Your AutoHotkey v2 MCP Server should now be running!** 
