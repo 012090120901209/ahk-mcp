@@ -29,17 +29,17 @@ await initializeLibraryCatalog(scriptsDir);
 ### What Actually Happened
 
 When Claude Desktop launches the MCP server:
-- **Server script location**: `C:\Users\uphol\Documents\Design\Coding\ahk-mcp\dist\index.js`
-- **Process working directory**: `C:\Users\uphol\AppData\Local\AnthropicClaude\app-0.13.37\`
+- **Server script location**: `C:\path\to\ahk-mcp\dist\index.js`
+- **Process working directory**: `C:\Users\YourUsername\AppData\Local\AnthropicClaude\app-0.13.37\`
 
 So the code tried to find:
 ```
-C:\Users\uphol\AppData\Local\AnthropicClaude\app-0.13.37\scripts
+C:\Users\YourUsername\AppData\Local\AnthropicClaude\app-0.13.37\scripts
 ```
 
 But the actual scripts directory is at:
 ```
-C:\Users\uphol\Documents\Design\Coding\ahk-mcp\scripts
+C:\path\to\ahk-mcp\scripts
 ```
 
 **Result**: Directory not found → LibraryScanner threw error → Server initialization failed → Crash
@@ -52,7 +52,7 @@ From production logs:
 
 ```
 01:42:08.320Z [LibraryCatalog] Initializing catalog for
-              C:\Users\uphol\AppData\Local\AnthropicClaude\app-0.13.37\scripts
+              C:\Users\YourUsername\AppData\Local\AnthropicClaude\app-0.13.37\scripts
                                                           ^^^^^^^^
                                                           Wrong directory!
 ```
@@ -75,10 +75,10 @@ function getProjectRoot(): string {
 ```
 
 **How it works**:
-- `import.meta.url` → `file:///C:/Users/uphol/.../ahk-mcp/dist/server.js`
-- `fileURLToPath()` → `C:\Users\uphol\...\ahk-mcp\dist\server.js`
-- `dirname()` → `C:\Users\uphol\...\ahk-mcp\dist`
-- `dirname()` again → `C:\Users\uphol\...\ahk-mcp` ✅
+- `import.meta.url` → `file:///C:/path/to/ahk-mcp/dist/server.js`
+- `fileURLToPath()` → `C:\path\to\ahk-mcp\dist\server.js`
+- `dirname()` → `C:\path\to\ahk-mcp\dist`
+- `dirname()` again → `C:\path\to\ahk-mcp` ✅
 
 ### 2. Environment Variable Support
 

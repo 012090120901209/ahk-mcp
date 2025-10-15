@@ -4,7 +4,7 @@ function nextId() { return Math.random().toString(36).slice(2); }
 
 async function main() {
   const ahkExe = 'C\\\\Program Files\\\\AutoHotkey\\\\v2\\\\AutoHotkey64.exe';
-  const script = 'C:\\\\Users\\\\uphol\\\\Documents\\\\Design\\\\Coding\\\\AHK\\\\!Running\\\\__Test.ahk';
+  const script = 'C:\\\\path\\\\to\\\\your\\\\test-script.ahk';
 
   const child = spawn('node', ['dist/index.js'], { stdio: ['pipe', 'pipe', 'inherit'] });
 

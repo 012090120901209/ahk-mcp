@@ -203,7 +203,7 @@ Add the server to your Claude Desktop configuration file (`claude_desktop_config
       "timeout": 60,
       "command": "C:\\Program Files\\nodejs\\node.exe",
       "args": [
-        "C:\\Users\\uphol\\Documents\\Design\\Coding\\ahk-mcp\\dist\\index.js"
+        "C:\\path\\to\\ahk-mcp\\dist\\index.js"
       ],
       "transportType": "stdio",
       "env": {

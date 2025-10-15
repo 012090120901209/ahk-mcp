@@ -3,7 +3,7 @@
     "ahk": {
       "command": "C:\\Program Files\\nodejs\\node.exe",
       "args": [
-        "C:\\Users\\uphol\\Documents\\Design\\Coding\\ahk-mcp\\dist\\index.js"
+        "C:\\path\\to\\ahk-mcp\\dist\\index.js"
       ],
       "env": {
         "NODE_ENV": "production",

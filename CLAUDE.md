@@ -100,6 +100,33 @@ const paths = [
 - File existence: Check with `fs.access()` before operations
 - Extension validation: Case-insensitive `.toLowerCase().endsWith('.ahk')`
 
+## MCP Tool Usage Guidelines
+
+### Parameter Naming
+- **Use `newContent`** for replacement/insertion text in edit tools
+- **Backward compatible**: `content` parameter still works but is deprecated
+- Priority: `newContent` takes precedence when both are provided
+- Tools with `newContent`: `AHK_File_Edit`, `AHK_File_Edit_Small`, `AHK_File_Edit_Diff`
+
+### Debug Mode
+- **Enable debug visibility**: Set `debugMode: true` on orchestration tools
+- Shows orchestration decision log with timing and cache status
+- Includes: tool calls, reasons, durations, cache hits/misses
+- Output is truncated at 5,000 characters for verbose operations
+- Available on: `AHK_Smart_Orchestrator`
+
+### Dry-Run Mode
+- **Preview changes safely**: Set `dryRun: true` to preview destructive operations
+- Shows affected files, line numbers, and change counts
+- Displays first 3 sample changes (configurable)
+- File is NOT modified when dry-run is enabled
+- Available on: All edit tools (`AHK_File_Edit`, `AHK_File_Edit_Small`, `AHK_File_Edit_Diff`, `AHK_File_Edit_Advanced`, `AHK_File_Create`)
+
+### Enhanced Tool Descriptions
+- All tool descriptions include concrete usage examples
+- Examples show common use cases, advanced features, and what to avoid
+- Related tools are cross-referenced with "See also" sections
+
 ---
 
 *For project status and implementation details, see docs/PROJECT_STATUS.md*

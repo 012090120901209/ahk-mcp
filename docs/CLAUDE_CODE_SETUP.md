@@ -15,7 +15,7 @@ This guide will help you configure your AutoHotkey v2 MCP Server to work with Cl
 
 ```bash
 # Navigate to your project directory
-cd "C:\Users\uphol\Documents\Design\Coding\ahk-mcp"
+cd "C:\path\to\ahk-mcp"
 
 # Add the MCP server to Claude Code
 claude mcp add autohotkey-v2 \
@@ -104,7 +104,7 @@ Once configured, Claude Code will have access to these AutoHotkey tools:
   "tool": "AHK_Run",
   "args": {
     "mode": "run",
-    "filePath": "C:\\Users\\uphol\\Documents\\Design\\Coding\\AHK\\!Running\\__Test-MCP.ahk",
+    "filePath": "C:\\path\\to\\your\\script.ahk",
     "wait": false,
     "detectWindow": true,
     "windowDetectTimeout": 5000
@@ -133,7 +133,7 @@ Once configured, Claude Code will have access to these AutoHotkey tools:
 ### Debug Mode
 ```bash
 # Run server manually to see debug output
-cd "C:\Users\uphol\Documents\Design\Coding\ahk-mcp"
+cd "C:\path\to\ahk-mcp"
 NODE_ENV=development node dist/index.js
 ```
 

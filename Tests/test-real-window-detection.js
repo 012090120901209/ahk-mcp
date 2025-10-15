@@ -1,10 +1,10 @@
 import { AhkRunTool } from '../dist/tools/ahk-run.js';
 
 console.log('🚀 Testing Window Detection with Real AutoHotkey Script');
-console.log('Script: C:\\Users\\uphol\\Documents\\Design\\Coding\\AHK\\!Running\\__Test-MCP.ahk\n');
+console.log('Script: C:\\path\\to\\your\\test-script.ahk\n');
 
 const tool = new AhkRunTool();
-const scriptPath = 'C:\\Users\\uphol\\Documents\\Design\\Coding\\AHK\\!Running\\__Test-MCP.ahk';
+const scriptPath = 'C:\\path\\to\\your\\test-script.ahk';
 
 async function runTest() {
   try {

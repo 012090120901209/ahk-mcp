@@ -2,7 +2,7 @@
 
 ## Your AutoHotkey Test Script Analysis
 
-**Script:** `C:\Users\uphol\Documents\Design\Coding\AHK\!Running\__Test-MCP.ahk`
+**Script:** `C:\path\to\your\test-script.ahk`
 
 **What the script does:**
 - Creates a GUI window with title (default: no custom title, so it would be the script name)
@@ -17,16 +17,16 @@
 Request: { mode: "run", wait: false, detectWindow: false, filePath: "C:\\...\\__Test-MCP.ahk" }
 
 Response:
-AHK launched: C:\Users\uphol\Documents\Design\Coding\AHK\!Running\__Test-MCP.ahk
+AHK launched: C:\path\to\your\test-script.ahk
 
 {
-  "command": "\"C:\\Program Files\\AutoHotkey\\v2\\AutoHotkey64.exe\" \"C:\\Users\\uphol\\Documents\\Design\\Coding\\AHK\\!Running\\__Test-MCP.ahk\"",
+  "command": "\"C:\\Program Files\\AutoHotkey\\v2\\AutoHotkey64.exe\" \"C:\\path\\to\\your\\test-script.ahk\"",
   "runner": "native",
   "waited": false,
   "exitCode": null,
   "pid": 15432,
   "started": true,
-  "filePath": "C:\\Users\\uphol\\Documents\\Design\\Coding\\AHK\\!Running\\__Test-MCP.ahk",
+  "filePath": "C:\\path\\to\\your\\test-script.ahk",
   "ahkPath": "C:\\Program Files\\AutoHotkey\\v2\\AutoHotkey64.exe"
 }
 ```
@@ -36,23 +36,23 @@ AHK launched: C:\Users\uphol\Documents\Design\Coding\AHK\!Running\__Test-MCP.ahk
 Request: { mode: "run", wait: false, detectWindow: true, windowDetectTimeout: 5000, filePath: "C:\\...\\__Test-MCP.ahk" }
 
 Response:
-AHK launched: C:\Users\uphol\Documents\Design\Coding\AHK\!Running\__Test-MCP.ahk
-✅ Window detected: __Test-MCP.ahk
+AHK launched: C:\path\to\your\test-script.ahk
+✅ Window detected: test-script.ahk
 
 {
-  "command": "\"C:\\Program Files\\AutoHotkey\\v2\\AutoHotkey64.exe\" \"C:\\Users\\uphol\\Documents\\Design\\Coding\\AHK\\!Running\\__Test-MCP.ahk\"",
-  "runner": "native", 
+  "command": "\"C:\\Program Files\\AutoHotkey\\v2\\AutoHotkey64.exe\" \"C:\\path\\to\\your\\test-script.ahk\"",
+  "runner": "native",
   "waited": false,
   "exitCode": null,
   "pid": 15487,
   "started": true,
   "windowDetected": true,
   "windowInfo": {
-    "title": "__Test-MCP.ahk",
+    "title": "test-script.ahk",
     "pid": 15487,
     "detectionTime": 320
   },
-  "filePath": "C:\\Users\\uphol\\Documents\\Design\\Coding\\AHK\\!Running\\__Test-MCP.ahk",
+  "filePath": "C:\\path\\to\\your\\test-script.ahk",
   "ahkPath": "C:\\Program Files\\AutoHotkey\\v2\\AutoHotkey64.exe"
 }
 ```

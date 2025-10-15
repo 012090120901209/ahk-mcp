@@ -27,7 +27,7 @@ Copy the contents of `.mcp.windows.json` to your Claude Code config:
 
 ```powershell
 # PowerShell command
-Copy-Item "C:\Users\uphol\Documents\Design\Coding\ahk-mcp\.mcp.windows.json" `
+Copy-Item "C:\path\to\ahk-mcp\.mcp.windows.json" `
           "$env:APPDATA\Code\User\claude\mcp.json"
 ```
 
@@ -36,7 +36,7 @@ Copy the contents of `.mcp.json` to your Claude Code config:
 
 ```bash
 # Bash command
-cp /mnt/c/Users/uphol/Documents/Design/Coding/ahk-mcp/.mcp.json \
+cp /path/to/ahk-mcp/.mcp.json \
    ~/.config/Code/User/claude/mcp.json
 ```
 
@@ -66,7 +66,7 @@ If you need to manually configure, add this to your `mcp.json`:
   "mcpServers": {
     "autohotkey-v2": {
       "command": "node",
-      "args": ["C:\\Users\\uphol\\Documents\\Design\\Coding\\ahk-mcp\\dist\\index.js"],
+      "args": ["C:\\path\\to\\ahk-mcp\\dist\\index.js"],
       "env": {
         "NODE_ENV": "production",
         "AHK_MCP_DATA_MODE": "full",

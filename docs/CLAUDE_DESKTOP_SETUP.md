@@ -189,7 +189,7 @@ To test the server directly:
 
 ```bash
 # Navigate to the project directory
-cd "C:\Users\uphol\Documents\Design\Coding\ahk-mcp"
+cd "C:\path\to\ahk-mcp"
 
 # Run server manually to see output
 set AHK_MCP_LOG_LEVEL=debug && node dist/index.js

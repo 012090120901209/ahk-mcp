@@ -116,8 +116,8 @@
 
 ### 2. Server Crash on Startup (discovered in production)
 - **Issue**: `process.cwd()` returns Claude Desktop's directory, not MCP server project directory
-  - Expected: `C:\Users\uphol\Documents\Design\Coding\ahk-mcp\scripts`
-  - Actual: `C:\Users\uphol\AppData\Local\AnthropicClaude\app-0.13.37\scripts` ❌
+  - Expected: `C:\path\to\ahk-mcp\scripts`
+  - Actual: `C:\Users\YourUsername\AppData\Local\AnthropicClaude\app-0.13.37\scripts` ❌
   - Result: Directory not found → server initialization failed
 - **Fix**: Added `getProjectRoot()` helper using `import.meta.url` to detect actual project location
 - **File**: `src/server.ts:23-28, 1297, 399, 408, 417`

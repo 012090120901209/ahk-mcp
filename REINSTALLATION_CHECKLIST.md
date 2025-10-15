@@ -134,7 +134,7 @@ Use AHK_Doc_Search to find information about MsgBox
 | "No result received" | Add debug logging and restart Claude Desktop |
 | "Path not found" | Use double backslashes and absolute paths |
 | "Build failed" | Run `npm run clean` before `npm install` |
-
+A
 ## 📝 Important Reminders
 
 - Replace ALL placeholders: `[YourUsername]` and `path\to\ahk-mcp`
