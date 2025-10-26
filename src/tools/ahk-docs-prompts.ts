@@ -1,5 +1,6 @@
 import { z } from "zod";
 import logger from "../logger.js";
+import { safeParse } from "../core/validation-middleware.js";
 import {
   getPromptSlug,
   insertPromptIntoModule,
@@ -557,7 +558,10 @@ export { insertPromptIntoModule, loadPromptsFromModules, getPromptSlug };
 export type { ModulePrompt };
 
 export class AhkPromptsTool {
-  async execute() {
+  async execute(args: unknown): Promise<any> {
+    const parsed = safeParse(args, AhkPromptsArgsSchema, 'AHK_Prompts');
+    if (!parsed.success) return parsed.error;
+
     logger.info("Returning AutoHotkey prompt templates");
     const prompts = await getPromptCatalog();
 

@@ -2,6 +2,7 @@ import { z } from 'zod';
 import FlexSearch from 'flexsearch';
 import { getAhkIndex, getAhkDocumentationFull } from '../core/loader.js';
 import logger from '../logger.js';
+import { safeParse } from '../core/validation-middleware.js';
 
 export const AhkDocSearchArgsSchema = z.object({
   query: z.string().min(1, 'Search query is required'),
@@ -91,9 +92,12 @@ export class AhkDocSearchTool {
     }
   }
 
-  async execute(args: z.infer<typeof AhkDocSearchArgsSchema>): Promise<any> {
+  async execute(args: unknown): Promise<any> {
+    const parsed = safeParse(args, AhkDocSearchArgsSchema, 'AHK_Doc_Search');
+    if (!parsed.success) return parsed.error;
+
     try {
-      const { query, category, limit } = AhkDocSearchArgsSchema.parse(args);
+      const { query, category, limit } = parsed.data;
       this.ensureIndex();
 
       const filterType = (t: string) => {

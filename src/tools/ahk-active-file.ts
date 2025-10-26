@@ -2,6 +2,7 @@ import { z } from 'zod';
 import logger from '../logger.js';
 import { loadConfig } from '../core/config.js';
 import { getActiveFilePath, setActiveFilePath } from '../core/active-file.js';
+import { safeParse } from '../core/validation-middleware.js';
 
 export const AhkActiveFileArgsSchema = z.object({
   action: z.enum(['get', 'set']).default('get'),
@@ -22,9 +23,13 @@ Get or set the active AHK file path used as a default when invoking tools.`,
 };
 
 export class AhkActiveFileTool {
-  async execute(args: z.infer<typeof AhkActiveFileArgsSchema>): Promise<any> {
+  async execute(args: unknown): Promise<any> {
+    const parsed = safeParse(args, AhkActiveFileArgsSchema, 'AHK_Active_File');
+    if (!parsed.success) return parsed.error;
+
+    const { action, filePath } = parsed.data;
+
     try {
-      const { action, filePath } = AhkActiveFileArgsSchema.parse(args || {});
       if (action === 'get') {
         const cfg = loadConfig();
         const current = getActiveFilePath();

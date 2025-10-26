@@ -201,7 +201,6 @@ export class AhkParser {
             throw new Error(`Invalid hotkey syntax at line ${lineNumber + 1}`);
         }
         const keyPart = match[1];
-        // const action = match[2];
         // Parse modifiers and key
         const modifiers = [];
         let key = keyPart;

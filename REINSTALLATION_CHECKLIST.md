@@ -145,4 +145,7 @@ A
 
 ---
 
-**Your AutoHotkey v2 MCP Server should now be running!** 
+**Your AutoHotkey v2 MCP Server should now be running!**
+
+
+npm install -g @anthropic-ai/claude-code@latest

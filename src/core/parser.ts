@@ -254,13 +254,12 @@ export class AhkParser {
 
   private parseHotkey(line: string, lineNumber: number): AhkHotkey {
     const match = line.match(/^([^:]+)::\s*(.*)$/);
-    
+
     if (!match) {
       throw new Error(`Invalid hotkey syntax at line ${lineNumber + 1}`);
     }
 
     const keyPart = match[1];
-    // const action = match[2];
     
     // Parse modifiers and key
     const modifiers: string[] = [];

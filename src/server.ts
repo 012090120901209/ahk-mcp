@@ -12,6 +12,7 @@ import {
 import { initializeDataLoader, getAhkIndex } from './core/loader.js';
 import logger from './logger.js';
 import { ToolRegistry } from './core/tool-registry.js';
+import { envConfig } from './core/env-config.js';
 
 import { logDebugEvent, logDebugError } from './debug-journal.js';
 // Import tool classes and definitions
@@ -54,32 +55,32 @@ import { pathInterceptor } from './core/path-interceptor.js';
 export class AutoHotkeyMcpServer {
   private server: Server;
   private toolRegistry: ToolRegistry;
-  private ahkDiagnosticsToolInstance: AhkDiagnosticsTool;
-  private ahkSummaryToolInstance: AhkSummaryTool;
-  private ahkPromptsToolInstance: AhkPromptsTool;
-  private ahkAnalyzeToolInstance: AhkAnalyzeTool;
-  private ahkContextInjectorToolInstance: AhkContextInjectorTool;
-  private ahkSamplingEnhancerToolInstance: AhkSamplingEnhancer;
-  private ahkDebugAgentToolInstance: AhkDebugAgentTool;
-  private ahkDocSearchToolInstance: AhkDocSearchTool;
-  private ahkRunToolInstance: AhkRunTool;
-  private ahkVSCodeProblemsToolInstance: AhkVSCodeProblemsTool;
-  private ahkRecentToolInstance: AhkRecentTool;
-  private ahkConfigToolInstance: AhkConfigTool;
-  private ahkActiveFileToolInstance: AhkActiveFileTool;
-  private ahkLspToolInstance: AhkLspTool;
-  private ahkFileViewToolInstance: AhkFileViewTool;
-  private ahkAutoFileToolInstance: AhkAutoFileTool;
-  private ahkProcessRequestToolInstance: AhkProcessRequestTool;
-  private ahkFileToolInstance: AhkFileTool;
-  private ahkEditToolInstance: AhkEditTool;
-  private ahkDiffEditToolInstance: AhkDiffEditTool;
-  private ahkSettingsToolInstance: AhkSettingsTool;
-  private ahkAlphaToolInstance: AhkAlphaTool;
-  private ahkFileEditorToolInstance: AhkFileEditorTool;
-  private ahkSmallEditToolInstance: AhkSmallEditTool;
-  private ahkFileCreateToolInstance: AhkFileCreateTool;
-  private ahkSmartOrchestratorToolInstance: AhkSmartOrchestratorTool;
+  public ahkDiagnosticsToolInstance: AhkDiagnosticsTool;
+  public ahkSummaryToolInstance: AhkSummaryTool;
+  public ahkPromptsToolInstance: AhkPromptsTool;
+  public ahkAnalyzeToolInstance: AhkAnalyzeTool;
+  public ahkContextInjectorToolInstance: AhkContextInjectorTool;
+  public ahkSamplingEnhancerToolInstance: AhkSamplingEnhancer;
+  public ahkDebugAgentToolInstance: AhkDebugAgentTool;
+  public ahkDocSearchToolInstance: AhkDocSearchTool;
+  public ahkRunToolInstance: AhkRunTool;
+  public ahkVSCodeProblemsToolInstance: AhkVSCodeProblemsTool;
+  public ahkRecentToolInstance: AhkRecentTool;
+  public ahkConfigToolInstance: AhkConfigTool;
+  public ahkActiveFileToolInstance: AhkActiveFileTool;
+  public ahkLspToolInstance: AhkLspTool;
+  public ahkFileViewToolInstance: AhkFileViewTool;
+  public ahkAutoFileToolInstance: AhkAutoFileTool;
+  public ahkProcessRequestToolInstance: AhkProcessRequestTool;
+  public ahkFileToolInstance: AhkFileTool;
+  public ahkEditToolInstance: AhkEditTool;
+  public ahkDiffEditToolInstance: AhkDiffEditTool;
+  public ahkSettingsToolInstance: AhkSettingsTool;
+  public ahkAlphaToolInstance: AhkAlphaTool;
+  public ahkFileEditorToolInstance: AhkFileEditorTool;
+  public ahkSmallEditToolInstance: AhkSmallEditTool;
+  public ahkFileCreateToolInstance: AhkFileCreateTool;
+  public ahkSmartOrchestratorToolInstance: AhkSmartOrchestratorTool;
 
   constructor() {
     this.server = new Server(
@@ -147,7 +148,7 @@ export class AutoHotkeyMcpServer {
       logger.debug('Listing available AutoHotkey tools');
 
       // Check if we're in SSE mode (for ChatGPT compatibility)
-      const useSSE = process.argv.includes('--sse') || process.env.PORT;
+      const useSSE = envConfig.useSSEMode();
       logDebugEvent('tools.list', { status: 'start', message: useSSE ? 'Including SSE-specific tools' : 'Standard tool listing' });
 
       const standardTools = [
@@ -1339,10 +1340,10 @@ F12::hkManager.ToggleHotkey("F1", (*) => MsgBox("F1 pressed!"), "Example hotkey"
       await this.initialize();
 
       // Check if we should use SSE transport for ChatGPT (via --sse flag or PORT env var)
-      const useSSE = process.argv.includes('--sse') || process.env.PORT;
+      const useSSE = envConfig.useSSEMode();
 
       if (useSSE) {
-        const port = parseInt(process.env.PORT || '3000');
+        const port = envConfig.getPort();
 
         logDebugEvent('server.start', { status: 'start', message: `Launching SSE transport on port ${port}` });
 

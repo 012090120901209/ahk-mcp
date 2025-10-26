@@ -4,6 +4,7 @@ import logger from '../logger.js';
 import { activeFile } from '../core/active-file.js';
 import { checkToolAvailability, toolSettings } from '../core/tool-settings.js';
 import { AhkRunTool } from './ahk-run-script.js';
+import { safeParse } from '../core/validation-middleware.js';
 
 export const AhkDiffEditArgsSchema = z.object({
   diff: z.string().describe('Unified diff format patch to apply'),
@@ -229,7 +230,10 @@ export class AhkDiffEditTool {
   /**
    * Execute the diff edit tool
    */
-  async execute(args: z.infer<typeof AhkDiffEditArgsSchema>): Promise<any> {
+  async execute(args: unknown): Promise<any> {
+    const parsed = safeParse(args, AhkDiffEditArgsSchema, 'AHK_File_Edit_Diff');
+    if (!parsed.success) return parsed.error;
+
     try {
       // Check if tool is enabled
       const availability = checkToolAvailability('AHK_File_Edit_Diff');
@@ -238,8 +242,8 @@ export class AhkDiffEditTool {
           content: [{ type: 'text', text: availability.message || 'Tool is disabled' }]
         };
       }
-      
-      const { diff, filePath, dryRun, createBackup, runAfter } = AhkDiffEditArgsSchema.parse(args);
+
+      const { diff, filePath, dryRun, createBackup, runAfter } = parsed.data;
       const runAfterEdit = typeof runAfter === 'boolean' ? runAfter : toolSettings.shouldAutoRunAfterEdit();
       
       // Get the target file

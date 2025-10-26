@@ -4,6 +4,8 @@ import { AhkDiagnosticsTool } from './ahk-analyze-diagnostics.js';
 import { AhkLspTool } from './ahk-analyze-lsp.js';
 import { AhkVSCodeProblemsTool } from './ahk-analyze-vscode.js';
 import logger from '../logger.js';
+import { safeParse } from '../core/validation-middleware.js';
+import { createErrorResponse } from '../utils/response-helpers.js';
 
 export const AhkAnalyzeUnifiedArgsSchema = z.object({
   code: z.string().min(1, 'AutoHotkey code is required'),
@@ -166,11 +168,14 @@ export class AhkAnalyzeUnifiedTool {
     this.vscodeTool = new AhkVSCodeProblemsTool();
   }
 
-  async execute(args: z.infer<typeof AhkAnalyzeUnifiedArgsSchema>) {
+  async execute(args: unknown) {
+    const parsed = safeParse(args, AhkAnalyzeUnifiedArgsSchema, 'AHK_Analyze_Unified');
+    if (!parsed.success) return parsed.error;
+
     const startTime = performance.now();
 
     try {
-      const validatedArgs = AhkAnalyzeUnifiedArgsSchema.parse(args);
+      const validatedArgs = parsed.data;
       const { mode, code } = validatedArgs;
 
       logger.info(`Running unified AHK analysis in ${mode} mode`);

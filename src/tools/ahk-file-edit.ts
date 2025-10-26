@@ -10,6 +10,7 @@ import { resolveWithTracking, addDeprecationWarning } from '../core/parameter-al
 import { createPreviewGenerator } from '../utils/dry-run-preview.js';
 import { pathConverter, PathFormat } from '../utils/path-converter.js';
 import { pathInterceptor } from '../core/path-interceptor.js';
+import { safeParse } from '../core/validation-middleware.js';
 
 export const AhkEditArgsSchema = z.object({
   action: z.enum(['replace', 'insert', 'delete', 'append', 'prepend', 'create']).default('replace'),
@@ -233,10 +234,14 @@ export class AhkEditTool {
   /**
    * Execute the edit tool
    */
-  async execute(args: z.infer<typeof AhkEditArgsSchema>): Promise<any> {
-    let validatedArgs: z.infer<typeof AhkEditArgsSchema> | undefined;
-    
+  async execute(args: unknown): Promise<any> {
+    let validatedArgs: any;
     try {
+      const parsed = safeParse(args, AhkEditArgsSchema, 'AHK_File_Edit');
+      if (!parsed.success) return parsed.error;
+
+      validatedArgs = parsed.data;
+
       // Check if tool is enabled
       const availability = checkToolAvailability('AHK_File_Edit');
       if (!availability.enabled) {
@@ -244,15 +249,13 @@ export class AhkEditTool {
           content: [{ type: 'text', text: availability.message || 'Tool is disabled' }]
         };
       }
-      
-      validatedArgs = AhkEditArgsSchema.parse(args);
-      
+
       // Apply path interception for cross-platform compatibility
       const interceptionResult = pathInterceptor.interceptInput('AHK_File_Edit', validatedArgs);
       if (!interceptionResult.success) {
         logger.warn(`Path interception failed: ${interceptionResult.error}`);
       } else {
-        validatedArgs = interceptionResult.modifiedData as z.infer<typeof AhkEditArgsSchema>;
+        validatedArgs = AhkEditArgsSchema.parse(interceptionResult.modifiedData);
         if (interceptionResult.conversions.length > 0) {
           logger.debug(`Path conversions applied: ${interceptionResult.conversions.length} paths converted`);
         }
@@ -364,15 +367,7 @@ export class AhkEditTool {
               throw new Error('Content is required for create action');
             }
             // For create, we'll show what would be created
-            preview = {
-              changes: [{
-                type: 'create',
-                content: content,
-                lineNumbers: { start: 1, end: content.split('\n').length }
-              }],
-              totalLines: content.split('\n').length,
-              affectedLines: content.split('\n').length
-            };
+            preview = previewGenerator.generateInsertPreview('', 1, content);
             break;
             
           default:

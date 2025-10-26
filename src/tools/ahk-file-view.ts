@@ -5,6 +5,7 @@ import { getActiveFilePath } from '../core/active-file.js';
 import { resolveFilePath } from '../core/config.js';
 import { AhkCompiler } from '../compiler/ahk-compiler.js';
 import logger from '../logger.js';
+import { safeParse } from '../core/validation-middleware.js';
 
 export const AhkFileViewArgsSchema = z.object({
   file: z.string().optional().describe('Path to AutoHotkey file to view (defaults to active file)'),
@@ -127,9 +128,12 @@ interface ViewResult {
 }
 
 export class AhkFileViewTool {
-  async execute(args: z.infer<typeof AhkFileViewArgsSchema>) {
+  async execute(args: unknown) {
+    const parsed = safeParse(args, AhkFileViewArgsSchema, 'AHK_File_View');
+    if (!parsed.success) return parsed.error;
+
     try {
-      const validatedArgs = AhkFileViewArgsSchema.parse(args);
+      const validatedArgs = parsed.data;
       const { file, mode } = validatedArgs;
 
       logger.info(`Viewing AutoHotkey file in ${mode} mode`);
@@ -185,7 +189,7 @@ export class AhkFileViewTool {
     }
   }
 
-  private async generateView(filePath: string, args: z.infer<typeof AhkFileViewArgsSchema>): Promise<ViewResult> {
+  private async generateView(filePath: string, args: any): Promise<ViewResult> {
     // Read file content
     const content = await fs.readFile(filePath, 'utf-8');
     const lines = content.split('\n');
@@ -390,7 +394,7 @@ export class AhkFileViewTool {
     };
   }
 
-  private formatOutput(result: ViewResult, args: z.infer<typeof AhkFileViewArgsSchema>): string {
+  private formatOutput(result: ViewResult, args: any): string {
     const { metadata, structure, content, displayInfo } = result;
 
     switch (args.mode) {
@@ -489,7 +493,7 @@ export class AhkFileViewTool {
     structure: CodeStructure | undefined,
     content: string,
     displayInfo: any,
-    args: z.infer<typeof AhkFileViewArgsSchema>
+    args: any
   ): string {
     let output = '';
 

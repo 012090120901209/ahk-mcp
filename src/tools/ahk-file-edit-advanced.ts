@@ -3,6 +3,7 @@ import logger from '../logger.js';
 import { AhkEditTool } from './ahk-file-edit.js';
 import { AhkFileTool } from './ahk-file-active.js';
 import { resolveWithTracking, addDeprecationWarning } from '../core/parameter-aliases.js';
+import { safeParse } from '../core/validation-middleware.js';
 
 export const AhkFileEditorArgsSchema = z.object({
   filePath: z.string().describe('Path to the AutoHotkey file to edit'),
@@ -53,9 +54,12 @@ export class AhkFileEditorTool {
     this.fileTool = new AhkFileTool();
   }
 
-  async execute(args: z.infer<typeof AhkFileEditorArgsSchema>): Promise<any> {
+  async execute(args: unknown): Promise<any> {
+    const parsed = safeParse(args, AhkFileEditorArgsSchema, 'AHK_File_Edit_Advanced');
+    if (!parsed.success) return parsed.error;
+
     try {
-      const { filePath, changes, action, dryRun } = AhkFileEditorArgsSchema.parse(args);
+      const { filePath, changes, action, dryRun } = parsed.data;
 
       logger.info(`File editor triggered for: ${filePath}`);
       

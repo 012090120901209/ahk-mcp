@@ -6,6 +6,8 @@ import { activeFile } from '../core/active-file.js';
 import { checkToolAvailability } from '../core/tool-settings.js';
 import { pathInterceptor } from '../core/path-interceptor.js';
 import { pathConverter, PathFormat } from '../utils/path-converter.js';
+import { createErrorResponse } from '../utils/response-helpers.js';
+import { safeParse } from '../core/validation-middleware.js';
 
 const UTF8_ENCODING = 'utf8';
 
@@ -73,21 +75,23 @@ async function pathExists(targetPath: string): Promise<boolean> {
 
 export class AhkFileCreateTool {
   async execute(rawArgs: unknown): Promise<any> {
+    const parsed = safeParse(rawArgs, AhkFileCreateArgsSchema, 'AHK_File_Create');
+    if (!parsed.success) return parsed.error;
+
+    let validatedArgs = parsed.data;
+
     // Check if the tool is enabled in settings
     const availability = checkToolAvailability('AHK_File_Create');
     if (!availability.enabled) {
-      return {
-        content: [{ type: 'text', text: availability.message || 'Error: AHK_File_Create tool is disabled.' }],
-        isError: true
-      };
+      return createErrorResponse(
+        availability.message || 'AHK_File_Create tool is disabled.'
+      );
     }
-
-    let validatedArgs = AhkFileCreateArgsSchema.parse(rawArgs ?? {});
 
     // Intercept incoming paths for cross-platform compatibility
     const interception = pathInterceptor.interceptInput('AHK_File_Create', validatedArgs);
     if (interception.success) {
-      validatedArgs = interception.modifiedData as z.infer<typeof AhkFileCreateArgsSchema>;
+      validatedArgs = AhkFileCreateArgsSchema.parse(interception.modifiedData);
       if (interception.conversions.length > 0) {
         logger.debug(`AHK_File_Create input conversions: ${interception.conversions.length} path(s) converted.`);
       }
@@ -207,10 +211,7 @@ export class AhkFileCreateTool {
       const message = error instanceof Error ? error.message : String(error);
       logger.error(`AHK_File_Create error: ${message}`);
 
-      return {
-        content: [{ type: 'text', text: `Error: ${message}` }],
-        isError: true
-      };
+      return createErrorResponse(message);
     }
   }
 }

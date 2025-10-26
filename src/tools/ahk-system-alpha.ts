@@ -2,6 +2,7 @@ import { z } from 'zod';
 import fs from 'fs/promises';
 import path from 'path';
 import logger from '../logger.js';
+import { safeParse } from '../core/validation-middleware.js';
 import { activeFile } from '../core/active-file.js';
 import { alphaVersions, createAlphaVersion, trackEditFailure, resetFailures } from '../core/alpha-version.js';
 import { checkToolAvailability } from '../core/tool-settings.js';
@@ -52,7 +53,10 @@ export class AhkAlphaTool {
   /**
    * Execute the alpha version tool
    */
-  async execute(args: z.infer<typeof AhkAlphaArgsSchema>): Promise<any> {
+  async execute(args: unknown): Promise<any> {
+    const parsed = safeParse(args, AhkAlphaArgsSchema, 'AHK_Alpha');
+    if (!parsed.success) return parsed.error;
+
     try {
       // Check if tool is enabled
       const availability = checkToolAvailability('AHK_Alpha');
@@ -61,8 +65,8 @@ export class AhkAlphaTool {
           content: [{ type: 'text', text: availability.message || 'Tool is disabled' }]
         };
       }
-      
-      const { action, filePath, content, reason, switchToAlpha } = AhkAlphaArgsSchema.parse(args || {});
+
+      const { action, filePath, content, reason, switchToAlpha } = parsed.data;
       
       // Get the target file
       const targetFile = filePath || activeFile.getActiveFile();

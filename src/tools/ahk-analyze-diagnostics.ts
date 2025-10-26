@@ -1,8 +1,8 @@
 import { z } from 'zod';
 import { AhkDiagnosticProvider } from '../lsp/diagnostics.js';
-import type { AhkDiagnosticsArgs } from '../types/index.js';
 import logger from '../logger.js';
 import { autoDetect } from '../core/active-file.js';
+import { safeParse } from '../core/validation-middleware.js';
 
 // Zod schema for tool arguments
 export const AhkDiagnosticsArgsSchema = z.object({
@@ -50,27 +50,30 @@ export class AhkDiagnosticsTool {
   /**
    * Execute the diagnostics tool
    */
-  async execute(args: AhkDiagnosticsArgs): Promise<any> {
+  async execute(args: unknown): Promise<any> {
+    // Validate arguments using middleware
+    const parsed = safeParse(args, AhkDiagnosticsArgsSchema, 'AHK_Diagnostics');
+    if (!parsed.success) return parsed.error;
+
+    const validatedArgs = parsed.data;
+
     try {
-      logger.info(`Running AutoHotkey diagnostics with Claude standards: ${args.enableClaudeStandards}, severity filter: ${args.severity}`);
-      
+      logger.info(`Running AutoHotkey diagnostics with Claude standards: ${validatedArgs.enableClaudeStandards}, severity filter: ${validatedArgs.severity}`);
+
       // Auto-detect any file paths in the code (in case user pasted a path)
-      if (args.code) {
-        autoDetect(args.code);
+      if (validatedArgs.code) {
+        autoDetect(validatedArgs.code);
       }
-      
-      // Validate arguments
-      const validatedArgs = AhkDiagnosticsArgsSchema.parse(args);
-      
+
       // Get diagnostics from provider
       const diagnostics = await this.diagnosticProvider.getDiagnostics(
         validatedArgs.code,
         validatedArgs.enableClaudeStandards,
         validatedArgs.severity
       );
-      
+
       logger.info(`Generated ${diagnostics.length} diagnostics`);
-      
+
       // Format response for MCP
       return {
         content: [
@@ -82,15 +85,15 @@ export class AhkDiagnosticsTool {
       };
     } catch (error) {
       logger.error('Error in AHK_Diagnostics tool:', error);
-      
+
       return {
         content: [
           {
             type: 'text',
-            text: `Error running diagnostics: ${error}`
+            text: `❌ Error running diagnostics: ${error instanceof Error ? error.message : String(error)}`
           }
         ],
-
+        isError: true
       };
     }
   }
@@ -119,9 +122,9 @@ export class AhkDiagnosticsTool {
     };
 
     for (const severity of severityOrder) {
-      const items = groupedDiagnostics[severity];
+      const items = groupedDiagnostics[severity as keyof typeof severityIcons];
       if (items && items.length > 0) {
-        response += `### ${severityIcons[severity]} ${severity}s (${items.length})\n\n`;
+        response += `### ${severityIcons[severity as keyof typeof severityIcons]} ${severity}s (${items.length})\n\n`;
         
         items.forEach((diagnostic: any, index: number) => {
           const line = diagnostic.range.start.line + 1;

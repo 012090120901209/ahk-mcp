@@ -2,6 +2,7 @@ import { z } from 'zod';
 import fs from 'node:fs';
 import path from 'node:path';
 import logger from '../logger.js';
+import { safeParse } from '../core/validation-middleware.js';
 
 export const AhkVSCodeProblemsArgsSchema = z.object({
   path: z.string().optional().describe('Path to a VS Code Problems JSON file (array of markers)'),
@@ -87,9 +88,12 @@ function includeBySeverity(name: MarkerSeverityName, filter: string): boolean {
 }
 
 export class AhkVSCodeProblemsTool {
-  async execute(args: z.infer<typeof AhkVSCodeProblemsArgsSchema>): Promise<any> {
+  async execute(args: unknown): Promise<any> {
+    const parsed = safeParse(args, AhkVSCodeProblemsArgsSchema, 'AHK_VSCode_Problems');
+    if (!parsed.success) return parsed.error;
+
     try {
-      const validated = AhkVSCodeProblemsArgsSchema.parse(args);
+      const validated = parsed.data;
       const { path: filePath, content, severity, fileIncludes, ownerIncludes, originIncludes, limit, format } = validated;
 
       const markers = this.loadMarkers(filePath, content);

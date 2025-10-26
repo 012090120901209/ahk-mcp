@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { getAhkIndex } from '../core/loader.js';
 import logger from '../logger.js';
+import { safeParse } from '../core/validation-middleware.js';
 
 export const AhkSamplingEnhancerArgsSchema = z.object({
   originalPrompt: z.string().min(1, 'Original prompt is required'),
@@ -135,11 +136,14 @@ export class AhkSamplingEnhancer {
     comprehensive: { maxFunctions: 6, maxVariables: 5, includeExamples: true }
   };
 
-  async execute(args: z.infer<typeof AhkSamplingEnhancerArgsSchema>): Promise<any> {
+  async execute(args: unknown): Promise<any> {
+    const parsed = safeParse(args, AhkSamplingEnhancerArgsSchema, 'AHK_Sampling_Enhancer');
+    if (!parsed.success) return parsed.error;
+
     try {
       logger.info('Analyzing prompt for AutoHotkey sampling enhancement');
-      
-      const validatedArgs = AhkSamplingEnhancerArgsSchema.parse(args);
+
+      const validatedArgs = parsed.data;
       const { originalPrompt, includeExamples, contextLevel, modelPreferences, maxTokens } = validatedArgs;
 
       // Check if prompt contains AutoHotkey-related content
