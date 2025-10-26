@@ -3,6 +3,7 @@ import { getAhkIndex, getAhkDocumentationFull } from '../core/loader.js';
 import logger from '../logger.js';
 import * as fs from 'fs/promises';
 import * as path from 'path';
+import { safeParse } from '../core/validation-middleware.js';
 
 export const AhkContextInjectorArgsSchema = z.object({
   userPrompt: z.string().min(1, 'User prompt is required'),
@@ -247,11 +248,14 @@ export class AhkContextInjectorTool {
     }
   }
 
-  async execute(args: z.infer<typeof AhkContextInjectorArgsSchema>): Promise<any> {
+  async execute(args: unknown): Promise<any> {
+    const parsed = safeParse(args, AhkContextInjectorArgsSchema, 'AHK_Context_Injector');
+    if (!parsed.success) return parsed.error;
+
     try {
       logger.info('Analyzing prompt for AutoHotkey context injection');
-      
-      const validatedArgs = AhkContextInjectorArgsSchema.parse(args);
+
+      const validatedArgs = parsed.data;
       const { userPrompt, llmThinking, contextType, maxItems, includeModuleInstructions } = validatedArgs;
 
       // Get both index and full documentation data

@@ -37,6 +37,7 @@ interface MemoryFile {
 export class AhkMemoryContextTool {
   async execute(args: MemoryContextArgs): Promise<McpToolResponse> {
     try {
+      const validatedArgs = MemoryContextArgsSchema.parse(args);
       const memoriesDir = path.join(process.cwd(), '.claude', 'memories');
       const memories: MemoryFile[] = [];
 
@@ -60,9 +61,9 @@ export class AhkMemoryContextTool {
       ];
 
       // Filter based on memory_type
-      const filesToLoad = args.memory_type === 'all'
+      const filesToLoad = validatedArgs.memory_type === 'all'
         ? memoryFiles
-        : memoryFiles.filter(m => m.name === args.memory_type);
+        : memoryFiles.filter(m => m.name === validatedArgs.memory_type);
 
       // Load memory files
       for (const memFile of filesToLoad) {
@@ -85,7 +86,7 @@ export class AhkMemoryContextTool {
           content: [
             {
               type: 'text',
-              text: `No memory files found for type: ${args.memory_type}`,
+              text: `No memory files found for type: ${validatedArgs.memory_type}`,
             },
           ],
         };

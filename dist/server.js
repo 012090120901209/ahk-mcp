@@ -5,6 +5,7 @@ import { CallToolRequestSchema, ListToolsRequestSchema, ListPromptsRequestSchema
 import { initializeDataLoader, getAhkIndex } from './core/loader.js';
 import logger from './logger.js';
 import { ToolRegistry } from './core/tool-registry.js';
+import { envConfig } from './core/env-config.js';
 import { logDebugEvent, logDebugError } from './debug-journal.js';
 // Import tool classes and definitions
 import { AhkDiagnosticsTool, ahkDiagnosticsToolDefinition } from './tools/ahk-analyze-diagnostics.js';
@@ -99,7 +100,7 @@ export class AutoHotkeyMcpServer {
         this.server.setRequestHandler(ListToolsRequestSchema, async () => {
             logger.debug('Listing available AutoHotkey tools');
             // Check if we're in SSE mode (for ChatGPT compatibility)
-            const useSSE = process.argv.includes('--sse') || process.env.PORT;
+            const useSSE = envConfig.useSSEMode();
             logDebugEvent('tools.list', { status: 'start', message: useSSE ? 'Including SSE-specific tools' : 'Standard tool listing' });
             const standardTools = [
                 ahkFileEditorToolDefinition, // PRIMARY FILE EDITING TOOL - Listed first for priority
@@ -1219,9 +1220,9 @@ F12::hkManager.ToggleHotkey("F1", (*) => MsgBox("F1 pressed!"), "Example hotkey"
         try {
             await this.initialize();
             // Check if we should use SSE transport for ChatGPT (via --sse flag or PORT env var)
-            const useSSE = process.argv.includes('--sse') || process.env.PORT;
+            const useSSE = envConfig.useSSEMode();
             if (useSSE) {
-                const port = parseInt(process.env.PORT || '3000');
+                const port = envConfig.getPort();
                 logDebugEvent('server.start', { status: 'start', message: `Launching SSE transport on port ${port}` });
                 // Import express for SSE transport
                 const express = await import('express');

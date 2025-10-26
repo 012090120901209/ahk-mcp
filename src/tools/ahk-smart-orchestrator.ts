@@ -3,6 +3,7 @@ import { OrchestrationEngine, OrchestrationRequest } from '../core/orchestration
 import { ToolFactory } from '../core/tool-factory.js';
 import { ToolRegistry } from '../core/tool-registry.js';
 import logger from '../logger.js';
+import { safeParse } from '../core/validation-middleware.js';
 
 /**
  * Zod schema for Smart Orchestrator tool arguments
@@ -99,9 +100,12 @@ export class AhkSmartOrchestratorTool {
   /**
    * Execute the smart orchestration request
    */
-  async execute(args: AhkSmartOrchestratorArgs) {
+  async execute(args: unknown) {
+    const parsed = safeParse(args, AhkSmartOrchestratorArgsSchema, 'AHK_Smart_Orchestrator');
+    if (!parsed.success) return parsed.error;
+
     try {
-      const validatedArgs = AhkSmartOrchestratorArgsSchema.parse(args);
+      const validatedArgs = parsed.data;
       
       logger.info(`Smart Orchestrator: ${validatedArgs.operation} operation - ${validatedArgs.intent.substring(0, 50)}...`);
 

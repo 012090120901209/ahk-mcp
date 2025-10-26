@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import net, { Server as NetServer, Socket } from 'net';
 import logger from '../logger.js';
+import { safeParse } from '../core/validation-middleware.js';
 
 type TrafficDirection = 'incoming' | 'outgoing';
 
@@ -430,9 +431,12 @@ export class AhkDebugAgentTool {
     return AhkDebugAgentTool.proxyInstance;
   }
 
-  async execute(args: z.infer<typeof AhkDebugAgentArgsSchema>): Promise<any> {
+  async execute(args: unknown): Promise<any> {
+    const parsed = safeParse(args, AhkDebugAgentArgsSchema, 'AHK_Debug_Agent');
+    if (!parsed.success) return parsed.error;
+
     try {
-      const validated = AhkDebugAgentArgsSchema.parse(args);
+      const validated = parsed.data;
       const { mode, listenHost, listenPort, listenPorts, portRange, scanTimeoutMs, forwardHost, forwardPort, maxEvents, eventLimit } = validated;
 
       const resolvePortList = (): number[] => {

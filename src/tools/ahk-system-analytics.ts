@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import logger from '../logger.js';
+import { safeParse } from '../core/validation-middleware.js';
 import { toolAnalytics } from '../core/tool-analytics.js';
 import { McpToolResponse, createTextResponse, createErrorResponse } from '../types/mcp-types.js';
 

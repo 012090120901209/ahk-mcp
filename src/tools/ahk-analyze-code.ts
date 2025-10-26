@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { AhkCompiler } from '../compiler/ahk-compiler.js';
 import logger from '../logger.js';
 import { autoDetect } from '../core/active-file.js';
+import { safeParse } from '../core/validation-middleware.js';
 
 export const AhkAnalyzeArgsSchema = z.object({
   code: z.string().min(1, 'AutoHotkey code is required'),
@@ -98,16 +99,18 @@ export interface AnalysisResult {
 }
 
 export class AhkAnalyzeTool {
-  async execute(args: z.infer<typeof AhkAnalyzeArgsSchema>): Promise<any> {
+  async execute(args: unknown): Promise<any> {
     try {
+      const parsed = safeParse(args, AhkAnalyzeArgsSchema, 'AHK_Analyze');
+      if (!parsed.success) return parsed.error;
+
+      const validatedArgs = parsed.data;
       logger.info('Analyzing AutoHotkey script using new compiler system');
 
       // Auto-detect any file paths in the code
-      if (args.code) {
-        autoDetect(args.code);
+      if (validatedArgs.code) {
+        autoDetect(validatedArgs.code);
       }
-
-      const validatedArgs = AhkAnalyzeArgsSchema.parse(args);
       const { code, includeDocumentation, includeUsageExamples, analyzeComplexity } = validatedArgs;
 
       // Use the new compiler system for comprehensive analysis

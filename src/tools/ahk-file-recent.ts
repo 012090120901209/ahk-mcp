@@ -1,7 +1,6 @@
 import { z } from 'zod';
 import fs from 'node:fs';
 import path from 'node:path';
-// import os from 'node:os';
 import logger from '../logger.js';
 import { resolveSearchDirs } from '../core/config.js';
 

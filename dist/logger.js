@@ -1,9 +1,9 @@
+import { envConfig } from './core/env-config.js';
 // Simple logger that writes only to stderr to prevent stdout pollution
 class StderrLogger {
     getThreshold() {
-        const raw = (process.env.AHK_MCP_LOG_LEVEL || process.env.LOG_LEVEL || 'warn').toLowerCase();
-        const normalized = ['error', 'warn', 'info', 'debug'].includes(raw) ? raw : 'warn';
-        return StderrLogger.levelOrder[normalized];
+        const level = envConfig.getLogLevel();
+        return StderrLogger.levelOrder[level];
     }
     shouldLog(level) {
         const threshold = this.getThreshold();
@@ -63,7 +63,6 @@ StderrLogger.levelOrder = {
 const logger = new StderrLogger();
 // Override console methods to prevent accidental stdout usage
 // This is a failsafe in case any dependency tries to use console.log
-// const originalConsoleLog = console.log;
 console.log = (...args) => {
     // Redirect to stderr instead of stdout
     process.stderr.write('[CONSOLE.LOG REDIRECTED] ' + args.join(' ') + '\n');

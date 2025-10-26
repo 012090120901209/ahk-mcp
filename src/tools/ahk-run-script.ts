@@ -6,8 +6,10 @@ import fs from 'fs/promises';
 import fsSync from 'fs';
 import os from 'os';
 import logger from '../logger.js';
-// import { loadConfig } from '../core/config.js';
 import { activeFile, autoDetect } from '../core/active-file.js';
+import { createErrorResponse, createSuccessResponse, createMultiPartResponse } from '../utils/response-helpers.js';
+import { processManager } from '../core/process-manager.js';
+import { safeParse } from '../core/validation-middleware.js';
 
 const execAsync = promisify(exec);
 
@@ -55,24 +57,15 @@ Run an AutoHotkey v2 script, or watch a file and auto-run it after edits.`,
   }
 };
 
-interface ProcessInfo {
-  pid: number;
-  startTime: number;
-  filePath: string;
-}
-
 interface WatchState {
   filePath?: string;
   watcher?: fsSync.FSWatcher;
   lastRun?: number;
-  runningProcesses: Map<number, ProcessInfo>;
   debounceTimer?: NodeJS.Timeout;
 }
 
 export class AhkRunTool {
-  private static state: WatchState = {
-    runningProcesses: new Map()
-  };
+  private static state: WatchState = {};
 
   private static readonly AHK_COMMON_PATHS = [
     'C:\\Program Files\\AutoHotkey\\v2\\AutoHotkey64.exe',
@@ -80,7 +73,7 @@ export class AhkRunTool {
     'C:\\Program Files\\AutoHotkey\\v2\\AutoHotkey.exe',
     'C:\\Program Files (x86)\\AutoHotkey\\v2\\AutoHotkey.exe'
   ];
-Get
+
   private async detectWindow(pid: number, options: { 
     timeout?: number; 
     windowTitle?: string; 
@@ -214,13 +207,8 @@ Get
             stdio: 'inherit'
           });
 
-          const processInfo: ProcessInfo = {
-            pid: child.pid!,
-            startTime: Date.now(),
-            filePath: scriptPath
-          };
-          
-          AhkRunTool.state.runningProcesses.set(child.pid!, processInfo);
+          // Register process with global manager
+          processManager.registerProcess(child.pid!, scriptPath);
 
           child.on('error', (err) => {
             cleanup();
@@ -244,12 +232,15 @@ Get
 
             child.on('exit', (code, signal) => {
               cleanup();
-              AhkRunTool.state.runningProcesses.delete(child.pid!);
               if (!isResolved) {
                 isResolved = true;
                 logger.info(`AHK exited with code ${code}, signal ${signal}`);
                 resolve({ exitCode: code ?? -1, command: directCmd, pid: child.pid });
               }
+            });
+
+            child.on('close', () => {
+              processManager.unregisterProcess(child.pid!);
             });
           } else {
             // For non-wait mode, give the process a moment to confirm it started
@@ -279,13 +270,8 @@ Get
           stdio: 'inherit'
         });
 
-        const processInfo: ProcessInfo = {
-          pid: child.pid!,
-          startTime: Date.now(),
-          filePath: scriptPath
-        };
-        
-        AhkRunTool.state.runningProcesses.set(child.pid!, processInfo);
+        // Register process with global manager
+        processManager.registerProcess(child.pid!, scriptPath);
 
         child.on('error', (err) => {
           cleanup();
@@ -309,12 +295,15 @@ Get
 
           child.on('exit', (code, signal) => {
             cleanup();
-            AhkRunTool.state.runningProcesses.delete(child.pid!);
             if (!isResolved) {
               isResolved = true;
               logger.info(`AHK (powershell) exited with code ${code}, signal ${signal}`);
               resolve({ exitCode: code ?? -1, command: spCmd, pid: child.pid });
             }
+          });
+
+          child.on('close', () => {
+            processManager.unregisterProcess(child.pid!);
           });
         } else {
           // For non-wait mode, give the process a moment to confirm it started
@@ -382,27 +371,16 @@ Get
   }
 
   private killRunningProcesses(): void {
-    for (const [pid, processInfo] of AhkRunTool.state.runningProcesses) {
-      try {
-        logger.info(`Killing running AHK process ${pid} (${processInfo.filePath})`);
-        process.kill(pid, 'SIGTERM');
-        setTimeout(() => {
-          try {
-            process.kill(pid, 'SIGKILL');
-          } catch {
-            // Process may have already exited
-          }
-        }, 5000);
-      } catch (err) {
-        logger.warn(`Failed to kill process ${pid}:`, err);
-      }
-    }
-    AhkRunTool.state.runningProcesses.clear();
+    // Delegate to global process manager
+    processManager.killAllProcesses();
   }
 
-  async execute(args: z.infer<typeof AhkRunArgsSchema>): Promise<any> {
+  async execute(args: unknown): Promise<any> {
     try {
-      const { mode, filePath, ahkPath, errorStdOut, workingDirectory, enabled, runner, wait, scriptArgs, timeout, killOnExit, detectWindow, windowDetectTimeout, windowTitle, windowClass } = AhkRunArgsSchema.parse(args);
+      const parsed = safeParse(args, AhkRunArgsSchema, 'AHK_Run');
+      if (!parsed.success) return parsed.error;
+
+      const { mode, filePath, ahkPath, errorStdOut, workingDirectory, enabled, runner, wait, scriptArgs, timeout, killOnExit, detectWindow, windowDetectTimeout, windowTitle, windowClass } = parsed.data;
       
       // Auto-detect AutoHotkey path if not provided
       let resolvedAhkPath = ahkPath;
@@ -481,7 +459,7 @@ Get
       // watch mode
       if (!enabled) {
         this.stopWatcher();
-        const processCount = AhkRunTool.state.runningProcesses.size;
+        const processCount = processManager.getProcessCount();
         if (killOnExit) {
           this.killRunningProcesses();
         }
@@ -544,7 +522,7 @@ Get
       }
     } catch (error) {
       logger.error('Error in AHK_Run tool:', error);
-      
+
       // Provide more helpful error messages
       let errorMessage = 'Unknown error occurred';
       if (error instanceof Error) {
@@ -558,21 +536,20 @@ Get
           errorMessage += '\n\nTip: Check file permissions or run with appropriate privileges.';
         }
       }
-      
-      return {
-        content: [{ type: 'text', text: `Error: ${errorMessage}` }],
-      };
+
+      return createErrorResponse(errorMessage);
     }
   }
 
   // Cleanup method for graceful shutdown
   static cleanup(): void {
-    AhkRunTool.prototype.stopWatcher();
-    AhkRunTool.prototype.killRunningProcesses();
+    const instance = new AhkRunTool();
+    instance.stopWatcher();
+    instance.killRunningProcesses();
   }
 }
 
-// Cleanup on process exit
-process.on('exit', () => AhkRunTool.cleanup());
-process.on('SIGINT', () => AhkRunTool.cleanup());
-process.on('SIGTERM', () => AhkRunTool.cleanup());
+// Register cleanup handler with process manager
+processManager.registerCleanupHandler(() => {
+  AhkRunTool.cleanup();
+});

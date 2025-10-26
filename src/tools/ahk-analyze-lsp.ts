@@ -3,6 +3,7 @@ import { AhkDiagnosticProvider } from '../lsp/diagnostics.js';
 import { AhkCompiler } from '../compiler/ahk-compiler.js';
 import type { Diagnostic } from '../types/index.js';
 import logger from '../logger.js';
+import { safeParse } from '../core/validation-middleware.js';
 
 export const AhkLspArgsSchema = z.object({
   code: z.string().min(1, 'AutoHotkey code is required'),
@@ -108,7 +109,10 @@ export class AhkLspTool {
     this.diagnosticProvider = new AhkDiagnosticProvider();
   }
 
-  async execute(args: z.infer<typeof AhkLspArgsSchema>) {
+  async execute(args: unknown) {
+    const parsed = safeParse(args, AhkLspArgsSchema, 'AHK_LSP');
+    if (!parsed.success) return parsed.error;
+
     const startTime = performance.now();
 
     try {
@@ -120,7 +124,7 @@ export class AhkLspTool {
         enableClaudeStandards,
         showPerformance,
         returnFixedCode
-      } = AhkLspArgsSchema.parse(args);
+      } = parsed.data;
 
       logger.info(`Running AHK LSP analysis in ${mode} mode`);
 

@@ -1,4 +1,4 @@
-import { AutoHotkeyMcpServer } from '../server.js';
+import type { IToolServer } from './server-interface.js';
 import path from 'path';
 
 /**
@@ -17,7 +17,7 @@ function getProjectRoot(): string {
 export class ToolRegistry {
   private toolHandlers = new Map<string, (args: any) => Promise<any>>();
 
-  constructor(private serverInstance: AutoHotkeyMcpServer) {
+  constructor(private serverInstance: IToolServer) {
     this.registerCoreTools();
     this.registerChatGPTTools();
   }

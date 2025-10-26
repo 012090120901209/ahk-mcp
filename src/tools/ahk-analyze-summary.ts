@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { getAhkIndex, getAhkDocumentationFull } from '../core/loader.js';
 import { ClaudeStandardsEngine } from '../core/claude-standards.js';
 import logger from '../logger.js';
+import { safeParse } from '../core/validation-middleware.js';
 
 export const AhkSummaryArgsSchema = z.object({});
 
@@ -17,7 +18,10 @@ Returns a summary of built-in variables, classes, and coding standards for AutoH
 };
 
 export class AhkSummaryTool {
-  async execute() {
+  async execute(args: unknown): Promise<any> {
+    const parsed = safeParse(args, AhkSummaryArgsSchema, 'AHK_Summary');
+    if (!parsed.success) return parsed.error;
+
     logger.info('Generating enhanced AutoHotkey summary with full documentation');
     const index = getAhkIndex();
     const fullDocs = getAhkDocumentationFull();

@@ -6,6 +6,7 @@ import { setActiveFilePath, getActiveFilePath } from '../core/active-file.js';
 import { AhkDiagnosticsTool } from './ahk-analyze-diagnostics.js';
 import { AhkAnalyzeTool } from './ahk-analyze-code.js';
 import { AhkRunTool } from './ahk-run-script.js';
+import { safeParse } from '../core/validation-middleware.js';
 
 export const AhkProcessRequestArgsSchema = z.object({
   input: z.string().describe('Multi-line input containing file path and instructions'),
@@ -123,21 +124,24 @@ export class AhkProcessRequestTool {
   /**
    * Execute the parsed request
    */
-  async execute(args: z.infer<typeof AhkProcessRequestArgsSchema>): Promise<any> {
+  async execute(args: unknown): Promise<any> {
+    const parsed = safeParse(args, AhkProcessRequestArgsSchema, 'AHK_Process_Request');
+    if (!parsed.success) return parsed.error;
+
     try {
-      const { input, autoExecute, defaultAction } = AhkProcessRequestArgsSchema.parse(args);
-      
+      const { input, autoExecute, defaultAction } = parsed.data;
+
       // Parse the input
-      const parsed = this.parseInput(input);
+      const parsedRequest = this.parseInput(input);
       
       // Override action if defaultAction is not 'auto'
       if (defaultAction !== 'auto') {
-        parsed.action = defaultAction as ParsedRequest['action'];
+        parsedRequest.action = defaultAction as ParsedRequest['action'];
       }
-      
+
       // Set active file if we found one
-      if (parsed.filePath) {
-        const resolved = resolveFilePath(parsed.filePath);
+      if (parsedRequest.filePath) {
+        const resolved = resolveFilePath(parsedRequest.filePath);
         if (resolved) {
           const setSuccess = setActiveFilePath(resolved);
           if (!setSuccess) {
@@ -146,24 +150,24 @@ export class AhkProcessRequestTool {
                 type: 'text',
                 text: `❌ Failed to set active file: ${resolved}`
               }],
-      
+
             };
           }
-          parsed.filePath = resolved;
+          parsedRequest.filePath = resolved;
           logger.info(`Set active file: ${resolved}`);
         } else {
           return {
             content: [{
               type: 'text',
-              text: `❌ File not found: ${parsed.filePath}\n\nPlease check the file path and try again.`
+              text: `❌ File not found: ${parsedRequest.filePath}\n\nPlease check the file path and try again.`
             }],
-    
+
           };
         }
       } else {
         // Try to use existing active file
-        parsed.filePath = getActiveFilePath();
-        if (!parsed.filePath) {
+        parsedRequest.filePath = getActiveFilePath();
+        if (!parsedRequest.filePath) {
           return {
             content: [{
               type: 'text',
@@ -177,34 +181,34 @@ export class AhkProcessRequestTool {
       // Read the file content if needed
       let codeContent = '';
       try {
-        codeContent = await fs.readFile(parsed.filePath, 'utf-8');
-        parsed.codeContent = codeContent;
+        codeContent = await fs.readFile(parsedRequest.filePath, 'utf-8');
+        parsedRequest.codeContent = codeContent;
       } catch (error) {
-        logger.error(`Failed to read file: ${parsed.filePath}`, error);
+        logger.error(`Failed to read file: ${parsedRequest.filePath}`, error);
         return {
           content: [{
             type: 'text',
-            text: `❌ Failed to read file: ${parsed.filePath}\n\nError: ${error}`
+            text: `❌ Failed to read file: ${parsedRequest.filePath}\n\nError: ${error}`
           }],
-  
+
         };
       }
-      
+
       // Build response
-      let response = `📄 **File:** ${parsed.filePath}\n`;
-      response += `📝 **Request:** ${parsed.instruction}\n`;
-      response += `⚙️ **Action:** ${parsed.action}\n\n`;
+      let response = `📄 **File:** ${parsedRequest.filePath}\n`;
+      response += `📝 **Request:** ${parsedRequest.instruction}\n`;
+      response += `⚙️ **Action:** ${parsedRequest.action}\n\n`;
       
       // Execute the action if autoExecute is true
       if (autoExecute) {
         let actionResult: any;
-        
-        switch (parsed.action) {
+
+        switch (parsedRequest.action) {
           case 'run':
             response += '🚀 **Running script...**\n\n';
             actionResult = await this.runTool.execute({
               mode: 'run',
-              filePath: parsed.filePath,
+              filePath: parsedRequest.filePath,
               wait: true,
               errorStdOut: 'utf-8',
               enabled: true,
@@ -265,10 +269,10 @@ export class AhkProcessRequestTool {
       return {
         content: [
           { type: 'text', text: response.trim() },
-          { 
-            type: 'text', 
+          {
+            type: 'text',
             text: JSON.stringify({
-              parsed,
+              parsedRequest,
               activeFile: getActiveFilePath()
             }, null, 2)
           }

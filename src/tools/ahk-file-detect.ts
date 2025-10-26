@@ -1,13 +1,14 @@
 import { z } from 'zod';
 import path from 'path';
 import logger from '../logger.js';
-import { 
-  loadConfig, 
-  saveConfig, 
-  detectFilePaths, 
-  resolveFilePath 
+import {
+  loadConfig,
+  saveConfig,
+  detectFilePaths,
+  resolveFilePath
 } from '../core/config.js';
 import { setActiveFilePath, getActiveFilePath } from '../core/active-file.js';
+import { safeParse } from '../core/validation-middleware.js';
 
 export const AhkAutoFileArgsSchema = z.object({
   text: z.string().describe('Text that may contain file paths to detect'),
@@ -44,9 +45,12 @@ export class AhkAutoFileTool {
   /**
    * Detect and optionally set active file from text
    */
-  async execute(args: z.infer<typeof AhkAutoFileArgsSchema>): Promise<any> {
+  async execute(args: unknown): Promise<any> {
+    const parsed = safeParse(args, AhkAutoFileArgsSchema, 'AHK_File_Detect');
+    if (!parsed.success) return parsed.error;
+
     try {
-      const { text, autoSet, scriptDir } = AhkAutoFileArgsSchema.parse(args);
+      const { text, autoSet, scriptDir } = parsed.data;
       
       // Update script directory if provided
       if (scriptDir) {

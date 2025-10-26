@@ -3,6 +3,7 @@ import logger from '../logger.js';
 import { activeFile } from '../core/active-file.js';
 import { checkToolAvailability } from '../core/tool-settings.js';
 import fs from 'fs/promises';
+import { safeParse } from '../core/validation-middleware.js';
 
 export const AhkFileArgsSchema = z.object({
   action: z.enum(['get', 'set', 'detect', 'clear']).default('get'),
@@ -36,7 +37,10 @@ DETECT AND SET ACTIVE FILE FOR EDITING - Use this immediately when user mentions
 };
 
 export class AhkFileTool {
-  async execute(args: z.infer<typeof AhkFileArgsSchema>): Promise<any> {
+  async execute(args: unknown): Promise<any> {
+    const parsed = safeParse(args, AhkFileArgsSchema, 'AHK_File_Active');
+    if (!parsed.success) return parsed.error;
+
     try {
       // Check if tool is enabled
       const availability = checkToolAvailability('AHK_File_Active');
@@ -45,8 +49,8 @@ export class AhkFileTool {
           content: [{ type: 'text', text: availability.message || 'Tool is disabled' }]
         };
       }
-      
-      const { action, path, text } = AhkFileArgsSchema.parse(args || {});
+
+      const { action, path, text } = parsed.data;
       
       switch (action) {
         case 'get': {

@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import logger from '../logger.js';
 import { loadConfig, saveConfig, normalizeDir } from '../core/config.js';
+import { safeParse, createValidationErrorResponse } from '../core/validation-middleware.js';
 
 export const AhkConfigArgsSchema = z.object({
   action: z.enum(['get', 'set']).default('get'),
@@ -23,9 +24,14 @@ Get/Set MCP configuration for A_ScriptDir and additional search directories.`,
 };
 
 export class AhkConfigTool {
-  async execute(args: z.infer<typeof AhkConfigArgsSchema>): Promise<any> {
+  async execute(args: unknown): Promise<any> {
+    // Validate arguments using middleware
+    const parsed = safeParse(args, AhkConfigArgsSchema, 'AHK_Config');
+    if (!parsed.success) return parsed.error;
+
+    const { action, scriptDir, searchDirs } = parsed.data;
+
     try {
-      const { action, scriptDir, searchDirs } = AhkConfigArgsSchema.parse(args || {});
       if (action === 'get') {
         const cfg = loadConfig();
         return {
@@ -48,14 +54,15 @@ export class AhkConfigTool {
 
       return {
         content: [
-          { type: 'text', text: 'Configuration updated.' },
+          { type: 'text', text: '✅ Configuration updated.' },
           { type: 'text', text: JSON.stringify({ config: cfg }, null, 2) },
         ],
       };
     } catch (error) {
       logger.error('Error in AHK_Config tool:', error);
       return {
-        content: [{ type: 'text', text: `Error: ${error instanceof Error ? error.message : String(error)}` }]
+        content: [{ type: 'text', text: `❌ Runtime Error: ${error instanceof Error ? error.message : String(error)}` }],
+        isError: true
       };
     }
   }
