@@ -1,4 +1,5 @@
 import { envConfig } from './core/env-config.js';
+import { tracer } from './core/tracing.js';
 
 // Simple logger that writes only to stderr to prevent stdout pollution
 class StderrLogger {
@@ -8,6 +9,13 @@ class StderrLogger {
     info: 2,
     debug: 3
   };
+
+  private useJsonFormat: boolean;
+
+  constructor() {
+    // Enable JSON format via environment variable
+    this.useJsonFormat = process.env.AHK_MCP_LOG_FORMAT === 'json';
+  }
 
   private getThreshold(): number {
     const level = envConfig.getLogLevel();
@@ -43,9 +51,37 @@ class StderrLogger {
   private log(level: string, ...args: any[]): void {
     if (!this.shouldLog(level)) return;
     const timestamp = new Date().toISOString();
-    const message = args.map(arg => this.serialize(arg, level)).join(' ');
-    // Write directly to stderr to avoid stdout pollution
-    process.stderr.write(`[${timestamp}] ${level.toUpperCase()}: ${message}\n`);
+
+    // Get current trace context if available
+    const context = tracer.getCurrentContext();
+
+    if (this.useJsonFormat) {
+      // Structured JSON logging
+      const logEntry: Record<string, unknown> = {
+        timestamp,
+        level: level.toUpperCase(),
+        message: args.map(arg => this.serialize(arg, level)).join(' '),
+      };
+
+      // Add trace context if available
+      if (context) {
+        logEntry.traceId = context.traceId;
+        logEntry.spanId = context.spanId;
+        if (context.parentSpanId) {
+          logEntry.parentSpanId = context.parentSpanId;
+        }
+      }
+
+      process.stderr.write(JSON.stringify(logEntry) + '\n');
+    } else {
+      // Human-readable format with trace context
+      const message = args.map(arg => this.serialize(arg, level)).join(' ');
+      const traceInfo = context
+        ? ` [traceId: ${context.traceId}] [spanId: ${context.spanId}]`
+        : '';
+
+      process.stderr.write(`[${timestamp}] ${level.toUpperCase()}:${traceInfo} ${message}\n`);
+    }
   }
 
   error(...args: any[]): void {

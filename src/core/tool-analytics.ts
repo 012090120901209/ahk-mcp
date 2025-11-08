@@ -1,4 +1,5 @@
 import logger from '../logger.js';
+import { tracer } from './tracing.js';
 
 export interface ToolCallMetrics {
   toolName: string;
@@ -7,6 +8,8 @@ export interface ToolCallMetrics {
   duration: number;
   errorType?: string;
   errorMessage?: string;
+  traceId?: string;
+  spanId?: string;
 }
 
 export interface ToolStats {
@@ -32,13 +35,18 @@ class ToolAnalytics {
     duration: number,
     error?: Error
   ): void {
+    // Capture current trace context
+    const context = tracer.getCurrentContext();
+
     const metric: ToolCallMetrics = {
       toolName,
       timestamp: Date.now(),
       success,
       duration,
       errorType: error?.name,
-      errorMessage: error?.message
+      errorMessage: error?.message,
+      traceId: context?.traceId,
+      spanId: context?.spanId,
     };
 
     this.metrics.push(metric);
