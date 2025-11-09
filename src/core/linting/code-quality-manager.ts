@@ -9,6 +9,7 @@ import { promises as fs } from 'fs';
 import logger from '../../logger.js';
 import { FastSyntaxChecker, SyntaxCheckResult } from './fast-syntax-checker.js';
 import { StructureAnalyzer, StructureMap } from './structure-analyzer.js';
+import { AutoFixEngine, AutoFixResult, AutoFixOptions } from './auto-fix-engine.js';
 
 // ===== Type Definitions =====
 
@@ -54,12 +55,14 @@ interface CacheEntry {
 export class CodeQualityManager {
   private fastChecker: FastSyntaxChecker;
   private structureAnalyzer: StructureAnalyzer;
+  private autoFixEngine: AutoFixEngine;
   private cache = new Map<string, CacheEntry>();
   private defaultTTL = 300000; // 5 minutes
 
   constructor() {
     this.fastChecker = new FastSyntaxChecker();
     this.structureAnalyzer = new StructureAnalyzer();
+    this.autoFixEngine = new AutoFixEngine();
 
     // Load TTL from environment
     const envTTL = process.env.AHK_MCP_LINT_CACHE_TTL;
@@ -380,6 +383,49 @@ export class CodeQualityManager {
     }
 
     return output;
+  }
+
+  /**
+   * Apply automatic fixes to a file
+   */
+  async applyAutoFix(
+    filePath: string,
+    options: AutoFixOptions = {}
+  ): Promise<AutoFixResult> {
+    logger.info(`Applying auto-fixes to ${filePath}`);
+
+    // First, analyze the file to get errors
+    const report = await this.analyzeFile(filePath, {
+      level: options.dryRun ? 'fast' : 'standard',
+      forceRefresh: true,
+      includeStructure: false
+    });
+
+    // Collect all fixable errors (errors + warnings)
+    const allErrors = [...report.errors, ...report.warnings];
+    const fixableErrors = allErrors.filter(e => e.fixable);
+
+    logger.info(`Found ${fixableErrors.length} fixable error(s) in ${filePath}`);
+
+    if (fixableErrors.length === 0) {
+      return {
+        success: true,
+        fixedContent: '',
+        appliedFixes: [],
+        failedFixes: [],
+        summary: '✨ No fixable errors found'
+      };
+    }
+
+    // Apply fixes using AutoFixEngine
+    const result = await this.autoFixEngine.applyFixes(filePath, fixableErrors, options);
+
+    // Clear cache for this file since content changed
+    if (!options.dryRun && result.appliedFixes.length > 0) {
+      this.clearCache(filePath);
+    }
+
+    return result;
   }
 
   /**

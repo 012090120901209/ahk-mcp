@@ -33,7 +33,11 @@ export const AhkLintArgsSchema = z.object({
 
   autoFix: z.boolean()
     .default(false)
-    .describe('Automatically fix issues (not yet implemented)'),
+    .describe('Automatically fix fixable issues and apply changes to file'),
+
+  dryRun: z.boolean()
+    .default(false)
+    .describe('Preview auto-fix changes without modifying the file (requires autoFix: true)'),
 
   outputFormat: z.enum(['text', 'json'])
     .default('text')
@@ -97,9 +101,34 @@ Force fresh analysis (bypass cache):
 }
 \`\`\`
 
+**Auto-Fix:**
+Preview fixes (dry-run):
+\`\`\`json
+{
+  "filePath": "MyScript.ahk",
+  "autoFix": true,
+  "dryRun": true
+}
+\`\`\`
+
+Apply fixes automatically:
+\`\`\`json
+{
+  "filePath": "MyScript.ahk",
+  "autoFix": true
+}
+\`\`\`
+
+Fixable issues:
+- Unterminated strings
+- Invalid escape sequences (\\n → \`n)
+- Function call spacing
+- Keyword spacing
+
 **Performance:**
 - Cached results: ~5ms
 - Uncached: 15-180ms depending on level
+- Auto-fix: +50-150ms (creates backup)
 - Cache automatically invalidates on file changes
 
 **See also:** AHK_Diagnostics, AHK_File_View, AHK_Smart_Orchestrator`,
@@ -130,7 +159,12 @@ Force fresh analysis (bypass cache):
       autoFix: {
         type: 'boolean',
         default: false,
-        description: 'Auto-fix issues (coming soon)'
+        description: 'Automatically fix fixable issues'
+      },
+      dryRun: {
+        type: 'boolean',
+        default: false,
+        description: 'Preview fixes without modifying file (requires autoFix: true)'
       },
       outputFormat: {
         type: 'string',
@@ -183,15 +217,46 @@ export class AhkLintTool {
 
       logger.info(`Running code quality analysis on ${filePath} (level: ${validatedArgs.level})`);
 
-      // Check if auto-fix is requested (not yet implemented)
+      // Handle auto-fix mode
       if (validatedArgs.autoFix) {
-        return {
-          content: [{
-            type: 'text',
-            text: '⚠️ **Auto-Fix Not Yet Implemented**\n\nAuto-fix functionality is coming soon. For now, the tool will analyze and suggest fixes without applying them.'
-          }],
-          isError: false
-        };
+        const isDryRun = validatedArgs.dryRun;
+        logger.info(`${isDryRun ? 'Previewing' : 'Applying'} auto-fixes for ${filePath}`);
+
+        const fixResult = await codeQualityManager.applyAutoFix(filePath, {
+          dryRun: isDryRun,
+          createBackup: true,
+          maxFixes: 100
+        });
+
+        const totalDuration = Date.now() - startTime;
+
+        // Format output
+        if (validatedArgs.outputFormat === 'json') {
+          return {
+            content: [{
+              type: 'text',
+              text: JSON.stringify({
+                success: fixResult.success,
+                appliedFixes: fixResult.appliedFixes.length,
+                failedFixes: fixResult.failedFixes.length,
+                duration: totalDuration,
+                details: fixResult
+              }, null, 2)
+            }]
+          };
+        } else {
+          let output = `# 🔧 Auto-Fix Results\n\n`;
+          output += `**File:** ${filePath}\n`;
+          output += `**Duration:** ${totalDuration}ms\n\n`;
+          output += fixResult.summary;
+
+          return {
+            content: [{
+              type: 'text',
+              text: output
+            }]
+          };
+        }
       }
 
       // Run code quality analysis
