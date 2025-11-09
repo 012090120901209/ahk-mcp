@@ -3,6 +3,8 @@ import { ToolRegistry } from './tool-registry.js';
 import { DebugFormatter, createDebugFormatter } from '../utils/debug-formatter.js';
 import { promises as fs } from 'fs';
 import path from 'path';
+import { codeQualityManager, CodeQualityReport, LintLevel } from './linting/code-quality-manager.js';
+import logger from '../logger.js';
 
 /**
  * Cache entry with TTL support
@@ -24,6 +26,10 @@ export interface OrchestrationRequest {
   operation?: 'view' | 'edit' | 'analyze';
   forceRefresh?: boolean;
   debugMode?: boolean;
+  // Code quality options
+  lintLevel?: LintLevel;
+  skipLinting?: boolean;
+  includeCodeQuality?: boolean;
 }
 
 /**
@@ -47,6 +53,8 @@ export interface OrchestrationContext {
   cacheHits: number;
   debugFormatter?: DebugFormatter;
   activeFile?: string;
+  codeQualityReport?: CodeQualityReport;
+  lintLevel?: LintLevel;
 }
 
 /**
@@ -60,6 +68,7 @@ export interface OrchestrationResult {
   duration: number;
   debugOutput?: string;
   error?: string;
+  codeQualityReport?: CodeQualityReport;
 }
 
 /**
@@ -144,18 +153,50 @@ export class OrchestrationEngine {
         });
       }
 
+      // Determine lint level for this operation
+      const lintLevel = this.determineLintLevel(request, intent.action);
+      context.lintLevel = lintLevel;
+
+      // Run code quality check if applicable
+      const filePath = intent.targetFile || request.filePath;
+      if (filePath && lintLevel !== 'none') {
+        const qualityReport = await this.runCodeQualityCheck(filePath, lintLevel, context);
+        if (qualityReport) {
+          context.codeQualityReport = qualityReport;
+
+          // Log summary
+          logger.info(`Code quality for ${filePath}: ${qualityReport.errors.length} errors, ${qualityReport.warnings.length} warnings`);
+        }
+      }
+
       // Execute the optimal tool chain
       const result = await this.executeToolChain(intent, context, request);
+
+      // Schedule background thorough analysis if this was an edit operation
+      if (intent.action === 'edit' && filePath && lintLevel === 'standard') {
+        this.scheduleBackgroundLinting(filePath, context);
+      }
       
       const duration = Date.now() - startTime;
-      
+
+      // Append code quality summary if requested and available
+      if (request.includeCodeQuality && context.codeQualityReport) {
+        const report = context.codeQualityReport;
+        const summary = this.formatCodeQualitySummary(report);
+        result.content.push({
+          type: 'text',
+          text: summary
+        });
+      }
+
       return {
         success: true,
         content: result.content,
         toolCalls: context.toolCalls,
         cacheHits: context.cacheHits,
         duration,
-        debugOutput: context.debugFormatter?.format()
+        debugOutput: context.debugFormatter?.format(),
+        codeQualityReport: context.codeQualityReport
       };
     } catch (error) {
       const duration = Date.now() - startTime;
@@ -243,6 +284,193 @@ export class OrchestrationEngine {
         hasExplicitOperation: !!request.operation
       }
     };
+  }
+
+  /**
+   * Determine optimal lint level based on operation type
+   */
+  private determineLintLevel(request: OrchestrationRequest, action: OrchestrationIntent['action']): LintLevel {
+    // User explicitly specified level
+    if (request.lintLevel) {
+      return request.lintLevel;
+    }
+
+    // Skip if explicitly disabled
+    if (request.skipLinting) {
+      return 'none';
+    }
+
+    // Auto-determine based on operation
+    switch (action) {
+      case 'view':
+        return 'none'; // No linting for view operations
+      case 'edit':
+        return 'standard'; // Standard linting for edits
+      case 'analyze':
+        return 'thorough'; // Thorough for explicit analysis
+      case 'run':
+        return 'fast'; // Quick check before running
+      default:
+        return 'fast'; // Safe default
+    }
+  }
+
+  /**
+   * Check if linting should run for this request
+   */
+  private shouldRunLinting(
+    lintLevel: LintLevel,
+    filePath?: string
+  ): boolean {
+    // Skip if level is none
+    if (lintLevel === 'none') {
+      return false;
+    }
+
+    // Skip if no file path
+    if (!filePath) {
+      return false;
+    }
+
+    // Skip if not an .ahk file
+    if (!filePath.toLowerCase().endsWith('.ahk')) {
+      return false;
+    }
+
+    return true;
+  }
+
+  /**
+   * Run code quality check with caching
+   */
+  private async runCodeQualityCheck(
+    filePath: string,
+    lintLevel: LintLevel,
+    context: OrchestrationContext
+  ): Promise<CodeQualityReport | null> {
+    if (!this.shouldRunLinting(lintLevel, filePath)) {
+      return null;
+    }
+
+    try {
+      const startTime = Date.now();
+
+      // Run analysis
+      const report = await codeQualityManager.analyzeFile(filePath, {
+        level: lintLevel,
+        includeStructure: lintLevel !== 'fast'
+      });
+
+      const duration = Date.now() - startTime;
+
+      // Log for debugging
+      if (context.debugFormatter) {
+        context.debugFormatter.addEntry({
+          tool: 'CodeQualityCheck',
+          reason: `Ran ${lintLevel} analysis (${report.cached ? 'cached' : 'fresh'})`,
+          duration,
+          metadata: {
+            errors: report.errors.length,
+            warnings: report.warnings.length,
+            cached: report.cached
+          }
+        });
+      }
+
+      // Track cache hits
+      if (report.cached) {
+        context.cacheHits++;
+      }
+
+      logger.debug(`Code quality check for ${filePath}: ${report.errors.length} errors, ${report.warnings.length} warnings (${duration}ms, ${report.cached ? 'cached' : 'fresh'})`);
+
+      return report;
+    } catch (error) {
+      logger.warn(`Code quality check failed for ${filePath}:`, error);
+      return null;
+    }
+  }
+
+  /**
+   * Schedule background thorough analysis (non-blocking)
+   */
+  private scheduleBackgroundLinting(filePath: string, context: OrchestrationContext): void {
+    // Don't block - run in background
+    setImmediate(async () => {
+      try {
+        logger.debug(`Starting background thorough analysis for ${filePath}`);
+
+        const report = await codeQualityManager.analyzeFile(filePath, {
+          level: 'thorough',
+          includeStructure: true
+        });
+
+        // Log interesting findings
+        if (report.errors.length > 0 || report.warnings.length > 5) {
+          logger.info(`Background lint for ${filePath}: ${report.errors.length} errors, ${report.warnings.length} warnings`);
+        } else {
+          logger.debug(`Background lint for ${filePath}: No significant issues found`);
+        }
+      } catch (error) {
+        logger.debug(`Background lint failed for ${filePath}:`, error);
+      }
+    });
+  }
+
+  /**
+   * Format code quality report into concise summary
+   */
+  private formatCodeQualitySummary(report: CodeQualityReport): string {
+    let summary = '\n\n---\n\n## 🔍 Code Quality\n\n';
+
+    // Error summary
+    if (report.errors.length === 0) {
+      summary += '✅ **No Errors**\n';
+    } else {
+      summary += `❌ **${report.errors.length} Error(s)**\n`;
+      // Show first 3 errors
+      for (const error of report.errors.slice(0, 3)) {
+        summary += `- Line ${error.line}: ${error.message}\n`;
+      }
+      if (report.errors.length > 3) {
+        summary += `- ... and ${report.errors.length - 3} more\n`;
+      }
+    }
+
+    // Warning summary
+    if (report.warnings.length > 0) {
+      summary += `\n⚠️ **${report.warnings.length} Warning(s)**\n`;
+      // Show first 2 warnings
+      if (report.warnings.length <= 3) {
+        for (const warning of report.warnings) {
+          summary += `- Line ${warning.line}: ${warning.message}\n`;
+        }
+      } else {
+        for (const warning of report.warnings.slice(0, 2)) {
+          summary += `- Line ${warning.line}: ${warning.message}\n`;
+        }
+        summary += `- ... and ${report.warnings.length - 2} more\n`;
+      }
+    }
+
+    // Suggestion summary
+    if (report.suggestions.length > 0) {
+      summary += `\n💡 **${report.suggestions.length} Suggestion(s)**\n`;
+    }
+
+    // Code metrics if available
+    if (report.structure && report.structure.metrics) {
+      const metrics = report.structure.metrics;
+      summary += `\n📊 **Metrics**:\n`;
+      summary += `- Complexity: ${metrics.complexity}\n`;
+      summary += `- Maintainability: ${metrics.maintainability}/100\n`;
+      summary += `- Lines of Code: ${metrics.linesOfCode}\n`;
+    }
+
+    // Analysis metadata
+    summary += `\n*Analysis: ${report.level} level (${report.duration}ms${report.cached ? ', cached' : ''})*\n`;
+
+    return summary;
   }
 
   /**
