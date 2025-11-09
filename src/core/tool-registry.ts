@@ -56,7 +56,8 @@ export class ToolRegistry {
       { name: 'AHK_Smart_Orchestrator', instance: 'ahkSmartOrchestratorToolInstance' },
       { name: 'AHK_Analytics', instance: 'ahkAnalyticsToolInstance' },
       { name: 'AHK_Test_Interactive', instance: 'ahkTestInteractiveToolInstance' },
-      { name: 'AHK_Trace_Viewer', instance: 'ahkTraceViewerToolInstance' }
+      { name: 'AHK_Trace_Viewer', instance: 'ahkTraceViewerToolInstance' },
+      { name: 'AHK_Lint', instance: 'ahkLintToolInstance' }
     ];
 
     coreTools.forEach(tool => {
