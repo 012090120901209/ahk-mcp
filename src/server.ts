@@ -46,6 +46,7 @@ import { AhkFileCreateTool, ahkFileCreateToolDefinition } from './tools/ahk-file
 import { AhkAnalyticsTool, ahkAnalyticsToolDefinition } from './tools/ahk-system-analytics.js';
 import { AhkTestInteractiveTool, ahkTestInteractiveToolDefinition } from './tools/ahk-test-interactive.js';
 import { AhkTraceViewerTool, ahkTraceViewerToolDefinition } from './tools/ahk-trace-viewer.js';
+import { AhkLintTool, ahkLintToolDefinition } from './tools/ahk-lint.js';
 import { AHK_Library_List_Definition } from './tools/ahk-library-list.js';
 import { AHK_Library_Info_Definition } from './tools/ahk-library-info.js';
 import { AHK_Library_Import_Definition } from './tools/ahk-library-import.js';
@@ -92,6 +93,7 @@ export class AutoHotkeyMcpServer {
   public ahkAnalyticsToolInstance: AhkAnalyticsTool;
   public ahkTestInteractiveToolInstance: AhkTestInteractiveTool;
   public ahkTraceViewerToolInstance: AhkTraceViewerTool;
+  public ahkLintToolInstance: AhkLintTool;
 
   constructor() {
     this.server = new Server(
@@ -139,6 +141,7 @@ export class AutoHotkeyMcpServer {
     this.ahkAnalyticsToolInstance = new AhkAnalyticsTool();
     this.ahkTestInteractiveToolInstance = new AhkTestInteractiveTool();
     this.ahkTraceViewerToolInstance = new AhkTraceViewerTool();
+    this.ahkLintToolInstance = new AhkLintTool();
 
     this.toolRegistry = new ToolRegistry(this);
     
@@ -174,6 +177,7 @@ export class AutoHotkeyMcpServer {
         ahkFileListToolDefinition,
         ahkDiffEditToolDefinition,
         ahkDiagnosticsToolDefinition,
+        ahkLintToolDefinition,
         ahkRunToolDefinition,
         ahkAnalyzeToolDefinition,
         ahkContextInjectorToolDefinition,
