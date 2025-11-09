@@ -43,6 +43,9 @@ import { AhkFileEditorTool, ahkFileEditorToolDefinition } from './tools/ahk-file
 import { AhkSmallEditTool, ahkSmallEditToolDefinition } from './tools/ahk-file-edit-small.js';
 import { AhkSmartOrchestratorTool, ahkSmartOrchestratorToolDefinition } from './tools/ahk-smart-orchestrator.js';
 import { AhkFileCreateTool, ahkFileCreateToolDefinition } from './tools/ahk-file-create.js';
+import { AhkAnalyticsTool, ahkAnalyticsToolDefinition } from './tools/ahk-system-analytics.js';
+import { AhkTestInteractiveTool, ahkTestInteractiveToolDefinition } from './tools/ahk-test-interactive.js';
+import { AhkTraceViewerTool, ahkTraceViewerToolDefinition } from './tools/ahk-trace-viewer.js';
 import { AHK_Library_List_Definition } from './tools/ahk-library-list.js';
 import { AHK_Library_Info_Definition } from './tools/ahk-library-info.js';
 import { AHK_Library_Import_Definition } from './tools/ahk-library-import.js';
@@ -52,6 +55,9 @@ import { toolSettings } from './core/tool-settings.js';
 import { configManager } from './core/path-converter-config.js';
 import { pathConverter } from './utils/path-converter.js';
 import { pathInterceptor } from './core/path-interceptor.js';
+import { observabilityServer } from './core/observability-server.js';
+import './core/opentelemetry.js'; // Initialize OpenTelemetry (if enabled)
+import { tracer } from './core/tracing.js';
 
 export class AutoHotkeyMcpServer {
   private server: Server;
@@ -83,6 +89,9 @@ export class AutoHotkeyMcpServer {
   public ahkSmallEditToolInstance: AhkSmallEditTool;
   public ahkFileCreateToolInstance: AhkFileCreateTool;
   public ahkSmartOrchestratorToolInstance: AhkSmartOrchestratorTool;
+  public ahkAnalyticsToolInstance: AhkAnalyticsTool;
+  public ahkTestInteractiveToolInstance: AhkTestInteractiveTool;
+  public ahkTraceViewerToolInstance: AhkTraceViewerTool;
 
   constructor() {
     this.server = new Server(
@@ -127,6 +136,9 @@ export class AutoHotkeyMcpServer {
     this.ahkFileEditorToolInstance = new AhkFileEditorTool();
     this.ahkSmallEditToolInstance = new AhkSmallEditTool();
     this.ahkFileCreateToolInstance = new AhkFileCreateTool();
+    this.ahkAnalyticsToolInstance = new AhkAnalyticsTool();
+    this.ahkTestInteractiveToolInstance = new AhkTestInteractiveTool();
+    this.ahkTraceViewerToolInstance = new AhkTraceViewerTool();
 
     this.toolRegistry = new ToolRegistry(this);
     
@@ -182,6 +194,9 @@ export class AutoHotkeyMcpServer {
         ahkSmallEditToolDefinition,
         ahkAlphaToolDefinition,
         ahkSmartOrchestratorToolDefinition,
+        ahkAnalyticsToolDefinition,
+        ahkTestInteractiveToolDefinition,
+        ahkTraceViewerToolDefinition,
         AHK_Library_List_Definition,
         AHK_Library_Info_Definition,
         AHK_Library_Import_Definition,
@@ -250,7 +265,29 @@ export class AutoHotkeyMcpServer {
       }
 
       try {
-        const result = await this.toolRegistry.executeTool(name, args);
+        // Execute tool with distributed tracing
+        const result = await tracer.trace(
+          name,
+          async (span) => {
+            // Add tool metadata to span
+            span.attributes.tool = name;
+            span.attributes.argCount = args && typeof args === 'object'
+              ? Object.keys(args as Record<string, unknown>).length
+              : 0;
+
+            // Execute the tool
+            const toolResult = await this.toolRegistry.executeTool(name, args);
+
+            // Add result metadata to span
+            if (toolResult && toolResult.content) {
+              span.attributes.resultContentCount = toolResult.content.length;
+              span.attributes.isError = toolResult.isError || false;
+            }
+
+            return toolResult;
+          },
+          { toolType: name.split('_')[1] || 'unknown' }
+        );
 
         logDebugEvent('tools.call', { status: 'success', message: name, details: {
           duration: Date.now() - startTime,
@@ -1342,6 +1379,14 @@ F12::hkManager.ToggleHotkey("F1", (*) => MsgBox("F1 pressed!"), "Example hotkey"
   async start(): Promise<void> {
     try {
       await this.initialize();
+
+      // Start observability server (if enabled)
+      try {
+        await observabilityServer.start();
+      } catch (error) {
+        logger.warn('Failed to start observability server:', error);
+        // Continue even if observability server fails to start
+      }
 
       // Check if we should use SSE transport for ChatGPT (via --sse flag or PORT env var)
       const useSSE = envConfig.useSSEMode();
