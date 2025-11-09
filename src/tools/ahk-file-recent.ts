@@ -3,6 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import logger from '../logger.js';
 import { resolveSearchDirs } from '../core/config.js';
+import { safeParse } from '../core/validation-middleware.js';
 
 export const AhkRecentArgsSchema = z.object({
   scriptDir: z.string().optional(),
@@ -65,9 +66,12 @@ function matchesPattern(fileName: string, pattern: string): boolean {
 }
 
 export class AhkRecentTool {
-  async execute(args: z.infer<typeof AhkRecentArgsSchema>): Promise<any> {
+  async execute(args: unknown): Promise<any> {
     try {
-      const { scriptDir, extraDirs, limit, patterns } = AhkRecentArgsSchema.parse(args || {});
+      const parsed = safeParse(args, AhkRecentArgsSchema, 'AHK_File_Recent');
+      if (!parsed.success) return parsed.error;
+
+      const { scriptDir, extraDirs = [], limit = 10, patterns = ['*.ahk'] } = parsed.data;
 
       // Resolve directories: arg -> config -> env -> cwd
       const searchDirs = resolveSearchDirs(scriptDir, extraDirs);

@@ -351,7 +351,7 @@ export class AutoHotkeyParser extends AutoHotkeyParserBase {
         this.interpreter = new antlr.ParserATNSimulator(this, AutoHotkeyParser._ATN, AutoHotkeyParser.decisionsToDFA, new antlr.PredictionContextCache());
     }
     public program(): ProgramContext {
-        let localContext = new ProgramContext(this.context, this.state);
+        const localContext = new ProgramContext(this.context, this.state);
         this.enterRule(localContext, 0, AutoHotkeyParser.RULE_program);
         try {
             this.state = 180;
@@ -389,7 +389,7 @@ export class AutoHotkeyParser extends AutoHotkeyParserBase {
         return localContext;
     }
     public sourceElements(): SourceElementsContext {
-        let localContext = new SourceElementsContext(this.context, this.state);
+        const localContext = new SourceElementsContext(this.context, this.state);
         this.enterRule(localContext, 2, AutoHotkeyParser.RULE_sourceElements);
         try {
             let alternative: number;
@@ -451,7 +451,7 @@ export class AutoHotkeyParser extends AutoHotkeyParserBase {
         return localContext;
     }
     public sourceElement(): SourceElementContext {
-        let localContext = new SourceElementContext(this.context, this.state);
+        const localContext = new SourceElementContext(this.context, this.state);
         this.enterRule(localContext, 4, AutoHotkeyParser.RULE_sourceElement);
         try {
             this.state = 197;
@@ -515,7 +515,7 @@ export class AutoHotkeyParser extends AutoHotkeyParserBase {
         return localContext;
     }
     public directive(): DirectiveContext {
-        let localContext = new DirectiveContext(this.context, this.state);
+        const localContext = new DirectiveContext(this.context, this.state);
         this.enterRule(localContext, 6, AutoHotkeyParser.RULE_directive);
         try {
             this.enterOuterAlt(localContext, 1);
@@ -865,7 +865,7 @@ export class AutoHotkeyParser extends AutoHotkeyParserBase {
         return localContext;
     }
     public remap(): RemapContext {
-        let localContext = new RemapContext(this.context, this.state);
+        const localContext = new RemapContext(this.context, this.state);
         this.enterRule(localContext, 12, AutoHotkeyParser.RULE_remap);
         try {
             this.enterOuterAlt(localContext, 1);
@@ -888,7 +888,7 @@ export class AutoHotkeyParser extends AutoHotkeyParserBase {
         return localContext;
     }
     public hotstring(): HotstringContext {
-        let localContext = new HotstringContext(this.context, this.state);
+        const localContext = new HotstringContext(this.context, this.state);
         this.enterRule(localContext, 14, AutoHotkeyParser.RULE_hotstring);
         let _la: number;
         try {
@@ -989,7 +989,7 @@ export class AutoHotkeyParser extends AutoHotkeyParserBase {
         return localContext;
     }
     public hotstringExpansion(): HotstringExpansionContext {
-        let localContext = new HotstringExpansionContext(this.context, this.state);
+        const localContext = new HotstringExpansionContext(this.context, this.state);
         this.enterRule(localContext, 16, AutoHotkeyParser.RULE_hotstringExpansion);
         let _la: number;
         try {
@@ -1020,7 +1020,7 @@ export class AutoHotkeyParser extends AutoHotkeyParserBase {
         return localContext;
     }
     public hotkey(): HotkeyContext {
-        let localContext = new HotkeyContext(this.context, this.state);
+        const localContext = new HotkeyContext(this.context, this.state);
         this.enterRule(localContext, 18, AutoHotkeyParser.RULE_hotkey);
         try {
             let alternative: number;
@@ -1094,7 +1094,7 @@ export class AutoHotkeyParser extends AutoHotkeyParserBase {
         return localContext;
     }
     public statement(): StatementContext {
-        let localContext = new StatementContext(this.context, this.state);
+        const localContext = new StatementContext(this.context, this.state);
         this.enterRule(localContext, 20, AutoHotkeyParser.RULE_statement);
         try {
             this.state = 309;
@@ -1225,7 +1225,7 @@ export class AutoHotkeyParser extends AutoHotkeyParserBase {
         return localContext;
     }
     public blockStatement(): BlockStatementContext {
-        let localContext = new BlockStatementContext(this.context, this.state);
+        const localContext = new BlockStatementContext(this.context, this.state);
         this.enterRule(localContext, 22, AutoHotkeyParser.RULE_blockStatement);
         try {
             this.enterOuterAlt(localContext, 1);
@@ -1248,7 +1248,7 @@ export class AutoHotkeyParser extends AutoHotkeyParserBase {
         return localContext;
     }
     public block(): BlockContext {
-        let localContext = new BlockContext(this.context, this.state);
+        const localContext = new BlockContext(this.context, this.state);
         this.enterRule(localContext, 24, AutoHotkeyParser.RULE_block);
         try {
             let alternative: number;
@@ -1300,7 +1300,7 @@ export class AutoHotkeyParser extends AutoHotkeyParserBase {
         return localContext;
     }
     public statementList(): StatementListContext {
-        let localContext = new StatementListContext(this.context, this.state);
+        const localContext = new StatementListContext(this.context, this.state);
         this.enterRule(localContext, 26, AutoHotkeyParser.RULE_statementList);
         try {
             let alternative: number;
@@ -1344,7 +1344,7 @@ export class AutoHotkeyParser extends AutoHotkeyParserBase {
         return localContext;
     }
     public variableStatement(): VariableStatementContext {
-        let localContext = new VariableStatementContext(this.context, this.state);
+        const localContext = new VariableStatementContext(this.context, this.state);
         this.enterRule(localContext, 28, AutoHotkeyParser.RULE_variableStatement);
         let _la: number;
         try {
@@ -1399,7 +1399,7 @@ export class AutoHotkeyParser extends AutoHotkeyParserBase {
         return localContext;
     }
     public declaration(): DeclarationContext {
-        let localContext = new DeclarationContext(this.context, this.state);
+        const localContext = new DeclarationContext(this.context, this.state);
         this.enterRule(localContext, 30, AutoHotkeyParser.RULE_declaration);
         try {
             this.state = 344;
@@ -1435,7 +1435,7 @@ export class AutoHotkeyParser extends AutoHotkeyParserBase {
         return localContext;
     }
     public variableDeclarationList(): VariableDeclarationListContext {
-        let localContext = new VariableDeclarationListContext(this.context, this.state);
+        const localContext = new VariableDeclarationListContext(this.context, this.state);
         this.enterRule(localContext, 32, AutoHotkeyParser.RULE_variableDeclarationList);
         let _la: number;
         try {
@@ -1489,7 +1489,7 @@ export class AutoHotkeyParser extends AutoHotkeyParserBase {
         return localContext;
     }
     public variableDeclaration(): VariableDeclarationContext {
-        let localContext = new VariableDeclarationContext(this.context, this.state);
+        const localContext = new VariableDeclarationContext(this.context, this.state);
         this.enterRule(localContext, 34, AutoHotkeyParser.RULE_variableDeclaration);
         let _la: number;
         try {
@@ -1562,7 +1562,7 @@ export class AutoHotkeyParser extends AutoHotkeyParserBase {
         return localContext;
     }
     public functionStatement(): FunctionStatementContext {
-        let localContext = new FunctionStatementContext(this.context, this.state);
+        const localContext = new FunctionStatementContext(this.context, this.state);
         this.enterRule(localContext, 36, AutoHotkeyParser.RULE_functionStatement);
         let _la: number;
         try {
@@ -1617,7 +1617,7 @@ export class AutoHotkeyParser extends AutoHotkeyParserBase {
         return localContext;
     }
     public expressionStatement(): ExpressionStatementContext {
-        let localContext = new ExpressionStatementContext(this.context, this.state);
+        const localContext = new ExpressionStatementContext(this.context, this.state);
         this.enterRule(localContext, 38, AutoHotkeyParser.RULE_expressionStatement);
         try {
             this.enterOuterAlt(localContext, 1);
@@ -1640,7 +1640,7 @@ export class AutoHotkeyParser extends AutoHotkeyParserBase {
         return localContext;
     }
     public ifStatement(): IfStatementContext {
-        let localContext = new IfStatementContext(this.context, this.state);
+        const localContext = new IfStatementContext(this.context, this.state);
         this.enterRule(localContext, 40, AutoHotkeyParser.RULE_ifStatement);
         let _la: number;
         try {
@@ -1709,7 +1709,7 @@ export class AutoHotkeyParser extends AutoHotkeyParserBase {
         return localContext;
     }
     public flowBlock(): FlowBlockContext {
-        let localContext = new FlowBlockContext(this.context, this.state);
+        const localContext = new FlowBlockContext(this.context, this.state);
         this.enterRule(localContext, 42, AutoHotkeyParser.RULE_flowBlock);
         try {
             let alternative: number;
@@ -1768,7 +1768,7 @@ export class AutoHotkeyParser extends AutoHotkeyParserBase {
         return localContext;
     }
     public untilProduction(): UntilProductionContext {
-        let localContext = new UntilProductionContext(this.context, this.state);
+        const localContext = new UntilProductionContext(this.context, this.state);
         this.enterRule(localContext, 44, AutoHotkeyParser.RULE_untilProduction);
         try {
             let alternative: number;
@@ -1812,7 +1812,7 @@ export class AutoHotkeyParser extends AutoHotkeyParserBase {
         return localContext;
     }
     public elseProduction(): ElseProductionContext {
-        let localContext = new ElseProductionContext(this.context, this.state);
+        const localContext = new ElseProductionContext(this.context, this.state);
         this.enterRule(localContext, 46, AutoHotkeyParser.RULE_elseProduction);
         try {
             let alternative: number;
@@ -2190,7 +2190,7 @@ export class AutoHotkeyParser extends AutoHotkeyParserBase {
         return localContext;
     }
     public forInParameters(): ForInParametersContext {
-        let localContext = new ForInParametersContext(this.context, this.state);
+        const localContext = new ForInParametersContext(this.context, this.state);
         this.enterRule(localContext, 50, AutoHotkeyParser.RULE_forInParameters);
         let _la: number;
         try {
@@ -2430,7 +2430,7 @@ export class AutoHotkeyParser extends AutoHotkeyParserBase {
         return localContext;
     }
     public continueStatement(): ContinueStatementContext {
-        let localContext = new ContinueStatementContext(this.context, this.state);
+        const localContext = new ContinueStatementContext(this.context, this.state);
         this.enterRule(localContext, 52, AutoHotkeyParser.RULE_continueStatement);
         let _la: number;
         try {
@@ -2539,7 +2539,7 @@ export class AutoHotkeyParser extends AutoHotkeyParserBase {
         return localContext;
     }
     public breakStatement(): BreakStatementContext {
-        let localContext = new BreakStatementContext(this.context, this.state);
+        const localContext = new BreakStatementContext(this.context, this.state);
         this.enterRule(localContext, 54, AutoHotkeyParser.RULE_breakStatement);
         let _la: number;
         try {
@@ -2648,7 +2648,7 @@ export class AutoHotkeyParser extends AutoHotkeyParserBase {
         return localContext;
     }
     public returnStatement(): ReturnStatementContext {
-        let localContext = new ReturnStatementContext(this.context, this.state);
+        const localContext = new ReturnStatementContext(this.context, this.state);
         this.enterRule(localContext, 56, AutoHotkeyParser.RULE_returnStatement);
         try {
             let alternative: number;
@@ -2698,7 +2698,7 @@ export class AutoHotkeyParser extends AutoHotkeyParserBase {
         return localContext;
     }
     public switchStatement(): SwitchStatementContext {
-        let localContext = new SwitchStatementContext(this.context, this.state);
+        const localContext = new SwitchStatementContext(this.context, this.state);
         this.enterRule(localContext, 58, AutoHotkeyParser.RULE_switchStatement);
         let _la: number;
         try {
@@ -2791,7 +2791,7 @@ export class AutoHotkeyParser extends AutoHotkeyParserBase {
         return localContext;
     }
     public caseBlock(): CaseBlockContext {
-        let localContext = new CaseBlockContext(this.context, this.state);
+        const localContext = new CaseBlockContext(this.context, this.state);
         this.enterRule(localContext, 60, AutoHotkeyParser.RULE_caseBlock);
         let _la: number;
         try {
@@ -2845,7 +2845,7 @@ export class AutoHotkeyParser extends AutoHotkeyParserBase {
         return localContext;
     }
     public caseClause(): CaseClauseContext {
-        let localContext = new CaseClauseContext(this.context, this.state);
+        const localContext = new CaseClauseContext(this.context, this.state);
         this.enterRule(localContext, 62, AutoHotkeyParser.RULE_caseClause);
         let _la: number;
         try {
@@ -2952,7 +2952,7 @@ export class AutoHotkeyParser extends AutoHotkeyParserBase {
         return localContext;
     }
     public labelledStatement(): LabelledStatementContext {
-        let localContext = new LabelledStatementContext(this.context, this.state);
+        const localContext = new LabelledStatementContext(this.context, this.state);
         this.enterRule(localContext, 64, AutoHotkeyParser.RULE_labelledStatement);
         try {
             this.enterOuterAlt(localContext, 1);
@@ -2981,7 +2981,7 @@ export class AutoHotkeyParser extends AutoHotkeyParserBase {
         return localContext;
     }
     public gotoStatement(): GotoStatementContext {
-        let localContext = new GotoStatementContext(this.context, this.state);
+        const localContext = new GotoStatementContext(this.context, this.state);
         this.enterRule(localContext, 66, AutoHotkeyParser.RULE_gotoStatement);
         let _la: number;
         try {
@@ -3054,7 +3054,7 @@ export class AutoHotkeyParser extends AutoHotkeyParserBase {
         return localContext;
     }
     public throwStatement(): ThrowStatementContext {
-        let localContext = new ThrowStatementContext(this.context, this.state);
+        const localContext = new ThrowStatementContext(this.context, this.state);
         this.enterRule(localContext, 68, AutoHotkeyParser.RULE_throwStatement);
         try {
             let alternative: number;
@@ -3104,7 +3104,7 @@ export class AutoHotkeyParser extends AutoHotkeyParserBase {
         return localContext;
     }
     public tryStatement(): TryStatementContext {
-        let localContext = new TryStatementContext(this.context, this.state);
+        const localContext = new TryStatementContext(this.context, this.state);
         this.enterRule(localContext, 70, AutoHotkeyParser.RULE_tryStatement);
         try {
             let alternative: number;
@@ -3182,7 +3182,7 @@ export class AutoHotkeyParser extends AutoHotkeyParserBase {
         return localContext;
     }
     public catchProduction(): CatchProductionContext {
-        let localContext = new CatchProductionContext(this.context, this.state);
+        const localContext = new CatchProductionContext(this.context, this.state);
         this.enterRule(localContext, 72, AutoHotkeyParser.RULE_catchProduction);
         let _la: number;
         try {
@@ -3251,7 +3251,7 @@ export class AutoHotkeyParser extends AutoHotkeyParserBase {
         return localContext;
     }
     public catchAssignable(): CatchAssignableContext {
-        let localContext = new CatchAssignableContext(this.context, this.state);
+        const localContext = new CatchAssignableContext(this.context, this.state);
         this.enterRule(localContext, 74, AutoHotkeyParser.RULE_catchAssignable);
         let _la: number;
         try {
@@ -3474,7 +3474,7 @@ export class AutoHotkeyParser extends AutoHotkeyParserBase {
         return localContext;
     }
     public catchClasses(): CatchClassesContext {
-        let localContext = new CatchClassesContext(this.context, this.state);
+        const localContext = new CatchClassesContext(this.context, this.state);
         this.enterRule(localContext, 76, AutoHotkeyParser.RULE_catchClasses);
         let _la: number;
         try {
@@ -3531,7 +3531,7 @@ export class AutoHotkeyParser extends AutoHotkeyParserBase {
         return localContext;
     }
     public finallyProduction(): FinallyProductionContext {
-        let localContext = new FinallyProductionContext(this.context, this.state);
+        const localContext = new FinallyProductionContext(this.context, this.state);
         this.enterRule(localContext, 78, AutoHotkeyParser.RULE_finallyProduction);
         try {
             let alternative: number;
@@ -3575,7 +3575,7 @@ export class AutoHotkeyParser extends AutoHotkeyParserBase {
         return localContext;
     }
     public functionDeclaration(): FunctionDeclarationContext {
-        let localContext = new FunctionDeclarationContext(this.context, this.state);
+        const localContext = new FunctionDeclarationContext(this.context, this.state);
         this.enterRule(localContext, 80, AutoHotkeyParser.RULE_functionDeclaration);
         let _la: number;
         try {
@@ -3622,7 +3622,7 @@ export class AutoHotkeyParser extends AutoHotkeyParserBase {
         return localContext;
     }
     public classDeclaration(): ClassDeclarationContext {
-        let localContext = new ClassDeclarationContext(this.context, this.state);
+        const localContext = new ClassDeclarationContext(this.context, this.state);
         this.enterRule(localContext, 82, AutoHotkeyParser.RULE_classDeclaration);
         let _la: number;
         try {
@@ -3718,7 +3718,7 @@ export class AutoHotkeyParser extends AutoHotkeyParserBase {
         return localContext;
     }
     public classExtensionName(): ClassExtensionNameContext {
-        let localContext = new ClassExtensionNameContext(this.context, this.state);
+        const localContext = new ClassExtensionNameContext(this.context, this.state);
         this.enterRule(localContext, 84, AutoHotkeyParser.RULE_classExtensionName);
         let _la: number;
         try {
@@ -3758,7 +3758,7 @@ export class AutoHotkeyParser extends AutoHotkeyParserBase {
         return localContext;
     }
     public classTail(): ClassTailContext {
-        let localContext = new ClassTailContext(this.context, this.state);
+        const localContext = new ClassTailContext(this.context, this.state);
         this.enterRule(localContext, 86, AutoHotkeyParser.RULE_classTail);
         let _la: number;
         try {
@@ -3993,7 +3993,7 @@ export class AutoHotkeyParser extends AutoHotkeyParserBase {
         return localContext;
     }
     public methodDefinition(): MethodDefinitionContext {
-        let localContext = new MethodDefinitionContext(this.context, this.state);
+        const localContext = new MethodDefinitionContext(this.context, this.state);
         this.enterRule(localContext, 90, AutoHotkeyParser.RULE_methodDefinition);
         try {
             this.enterOuterAlt(localContext, 1);
@@ -4018,7 +4018,7 @@ export class AutoHotkeyParser extends AutoHotkeyParserBase {
         return localContext;
     }
     public propertyDefinition(): PropertyDefinitionContext {
-        let localContext = new PropertyDefinitionContext(this.context, this.state);
+        const localContext = new PropertyDefinitionContext(this.context, this.state);
         this.enterRule(localContext, 92, AutoHotkeyParser.RULE_propertyDefinition);
         let _la: number;
         try {
@@ -4115,7 +4115,7 @@ export class AutoHotkeyParser extends AutoHotkeyParserBase {
         return localContext;
     }
     public classPropertyName(): ClassPropertyNameContext {
-        let localContext = new ClassPropertyNameContext(this.context, this.state);
+        const localContext = new ClassPropertyNameContext(this.context, this.state);
         this.enterRule(localContext, 94, AutoHotkeyParser.RULE_classPropertyName);
         let _la: number;
         try {
@@ -4180,7 +4180,7 @@ export class AutoHotkeyParser extends AutoHotkeyParserBase {
         return localContext;
     }
     public propertyGetterDefinition(): PropertyGetterDefinitionContext {
-        let localContext = new PropertyGetterDefinitionContext(this.context, this.state);
+        const localContext = new PropertyGetterDefinitionContext(this.context, this.state);
         this.enterRule(localContext, 96, AutoHotkeyParser.RULE_propertyGetterDefinition);
         try {
             this.enterOuterAlt(localContext, 1);
@@ -4205,7 +4205,7 @@ export class AutoHotkeyParser extends AutoHotkeyParserBase {
         return localContext;
     }
     public propertySetterDefinition(): PropertySetterDefinitionContext {
-        let localContext = new PropertySetterDefinitionContext(this.context, this.state);
+        const localContext = new PropertySetterDefinitionContext(this.context, this.state);
         this.enterRule(localContext, 98, AutoHotkeyParser.RULE_propertySetterDefinition);
         try {
             this.enterOuterAlt(localContext, 1);
@@ -4230,7 +4230,7 @@ export class AutoHotkeyParser extends AutoHotkeyParserBase {
         return localContext;
     }
     public fieldDefinition(): FieldDefinitionContext {
-        let localContext = new FieldDefinitionContext(this.context, this.state);
+        const localContext = new FieldDefinitionContext(this.context, this.state);
         this.enterRule(localContext, 100, AutoHotkeyParser.RULE_fieldDefinition);
         let _la: number;
         try {
@@ -4276,7 +4276,7 @@ export class AutoHotkeyParser extends AutoHotkeyParserBase {
         return localContext;
     }
     public formalParameterList(): FormalParameterListContext {
-        let localContext = new FormalParameterListContext(this.context, this.state);
+        const localContext = new FormalParameterListContext(this.context, this.state);
         this.enterRule(localContext, 102, AutoHotkeyParser.RULE_formalParameterList);
         let _la: number;
         try {
@@ -4333,7 +4333,7 @@ export class AutoHotkeyParser extends AutoHotkeyParserBase {
         return localContext;
     }
     public formalParameterArg(): FormalParameterArgContext {
-        let localContext = new FormalParameterArgContext(this.context, this.state);
+        const localContext = new FormalParameterArgContext(this.context, this.state);
         this.enterRule(localContext, 104, AutoHotkeyParser.RULE_formalParameterArg);
         let _la: number;
         try {
@@ -4393,7 +4393,7 @@ export class AutoHotkeyParser extends AutoHotkeyParserBase {
         return localContext;
     }
     public lastFormalParameterArg(): LastFormalParameterArgContext {
-        let localContext = new LastFormalParameterArgContext(this.context, this.state);
+        const localContext = new LastFormalParameterArgContext(this.context, this.state);
         this.enterRule(localContext, 106, AutoHotkeyParser.RULE_lastFormalParameterArg);
         let _la: number;
         try {
@@ -4440,7 +4440,7 @@ export class AutoHotkeyParser extends AutoHotkeyParserBase {
         return localContext;
     }
     public arrayLiteral(): ArrayLiteralContext {
-        let localContext = new ArrayLiteralContext(this.context, this.state);
+        const localContext = new ArrayLiteralContext(this.context, this.state);
         this.enterRule(localContext, 108, AutoHotkeyParser.RULE_arrayLiteral);
         let _la: number;
         try {
@@ -4521,7 +4521,7 @@ export class AutoHotkeyParser extends AutoHotkeyParserBase {
         return localContext;
     }
     public propertyAssignment(): PropertyAssignmentContext {
-        let localContext = new PropertyAssignmentContext(this.context, this.state);
+        const localContext = new PropertyAssignmentContext(this.context, this.state);
         this.enterRule(localContext, 110, AutoHotkeyParser.RULE_propertyAssignment);
         let _la: number;
         try {
@@ -4594,7 +4594,7 @@ export class AutoHotkeyParser extends AutoHotkeyParserBase {
         return localContext;
     }
     public propertyName(): PropertyNameContext {
-        let localContext = new PropertyNameContext(this.context, this.state);
+        const localContext = new PropertyNameContext(this.context, this.state);
         this.enterRule(localContext, 112, AutoHotkeyParser.RULE_propertyName);
         try {
             this.state = 1112;
@@ -4644,7 +4644,7 @@ export class AutoHotkeyParser extends AutoHotkeyParserBase {
         return localContext;
     }
     public dereference(): DereferenceContext {
-        let localContext = new DereferenceContext(this.context, this.state);
+        const localContext = new DereferenceContext(this.context, this.state);
         this.enterRule(localContext, 114, AutoHotkeyParser.RULE_dereference);
         try {
             this.enterOuterAlt(localContext, 1);
@@ -4671,7 +4671,7 @@ export class AutoHotkeyParser extends AutoHotkeyParserBase {
         return localContext;
     }
     public arguments(): ArgumentsContext {
-        let localContext = new ArgumentsContext(this.context, this.state);
+        const localContext = new ArgumentsContext(this.context, this.state);
         this.enterRule(localContext, 116, AutoHotkeyParser.RULE_arguments);
         let _la: number;
         try {
@@ -4791,7 +4791,7 @@ export class AutoHotkeyParser extends AutoHotkeyParserBase {
         return localContext;
     }
     public argument(): ArgumentContext {
-        let localContext = new ArgumentContext(this.context, this.state);
+        const localContext = new ArgumentContext(this.context, this.state);
         this.enterRule(localContext, 118, AutoHotkeyParser.RULE_argument);
         let _la: number;
         try {
@@ -4832,7 +4832,7 @@ export class AutoHotkeyParser extends AutoHotkeyParserBase {
         return localContext;
     }
     public expressionSequence(): ExpressionSequenceContext {
-        let localContext = new ExpressionSequenceContext(this.context, this.state);
+        const localContext = new ExpressionSequenceContext(this.context, this.state);
         this.enterRule(localContext, 120, AutoHotkeyParser.RULE_expressionSequence);
         let _la: number;
         try {
@@ -4889,7 +4889,7 @@ export class AutoHotkeyParser extends AutoHotkeyParserBase {
         return localContext;
     }
     public memberIndexArguments(): MemberIndexArgumentsContext {
-        let localContext = new MemberIndexArgumentsContext(this.context, this.state);
+        const localContext = new MemberIndexArgumentsContext(this.context, this.state);
         this.enterRule(localContext, 122, AutoHotkeyParser.RULE_memberIndexArguments);
         let _la: number;
         try {
@@ -4963,11 +4963,11 @@ export class AutoHotkeyParser extends AutoHotkeyParserBase {
             _p = 0;
         }
 
-        let parentContext = this.context;
-        let parentState = this.state;
+        const parentContext = this.context;
+        const parentState = this.state;
         let localContext = new SingleExpressionContext(this.context, parentState);
         let previousContext = localContext;
-        let _startState = 124;
+        const _startState = 124;
         this.enterRecursionRule(localContext, 124, AutoHotkeyParser.RULE_singleExpression, _p);
         let _la: number;
         try {
@@ -5764,11 +5764,11 @@ export class AutoHotkeyParser extends AutoHotkeyParserBase {
             _p = 0;
         }
 
-        let parentContext = this.context;
-        let parentState = this.state;
+        const parentContext = this.context;
+        const parentState = this.state;
         let localContext = new PrimaryExpressionContext(this.context, parentState);
         let previousContext = localContext;
-        let _startState = 126;
+        const _startState = 126;
         this.enterRecursionRule(localContext, 126, AutoHotkeyParser.RULE_primaryExpression, _p);
         try {
             let alternative: number;
@@ -5998,7 +5998,7 @@ export class AutoHotkeyParser extends AutoHotkeyParserBase {
         return localContext;
     }
     public memberDot(): MemberDotContext {
-        let localContext = new MemberDotContext(this.context, this.state);
+        const localContext = new MemberDotContext(this.context, this.state);
         this.enterRule(localContext, 130, AutoHotkeyParser.RULE_memberDot);
         let _la: number;
         try {
@@ -6126,7 +6126,7 @@ export class AutoHotkeyParser extends AutoHotkeyParserBase {
         return localContext;
     }
     public memberIdentifier(): MemberIdentifierContext {
-        let localContext = new MemberIdentifierContext(this.context, this.state);
+        const localContext = new MemberIdentifierContext(this.context, this.state);
         this.enterRule(localContext, 132, AutoHotkeyParser.RULE_memberIdentifier);
         try {
             this.state = 1424;
@@ -6162,7 +6162,7 @@ export class AutoHotkeyParser extends AutoHotkeyParserBase {
         return localContext;
     }
     public dynamicIdentifier(): DynamicIdentifierContext {
-        let localContext = new DynamicIdentifierContext(this.context, this.state);
+        const localContext = new DynamicIdentifierContext(this.context, this.state);
         this.enterRule(localContext, 134, AutoHotkeyParser.RULE_dynamicIdentifier);
         try {
             let alternative: number;
@@ -6401,7 +6401,7 @@ export class AutoHotkeyParser extends AutoHotkeyParserBase {
         return localContext;
     }
     public initializer(): InitializerContext {
-        let localContext = new InitializerContext(this.context, this.state);
+        const localContext = new InitializerContext(this.context, this.state);
         this.enterRule(localContext, 136, AutoHotkeyParser.RULE_initializer);
         try {
             this.enterOuterAlt(localContext, 1);
@@ -6426,7 +6426,7 @@ export class AutoHotkeyParser extends AutoHotkeyParserBase {
         return localContext;
     }
     public assignable(): AssignableContext {
-        let localContext = new AssignableContext(this.context, this.state);
+        const localContext = new AssignableContext(this.context, this.state);
         this.enterRule(localContext, 138, AutoHotkeyParser.RULE_assignable);
         try {
             this.enterOuterAlt(localContext, 1);
@@ -6449,7 +6449,7 @@ export class AutoHotkeyParser extends AutoHotkeyParserBase {
         return localContext;
     }
     public objectLiteral(): ObjectLiteralContext {
-        let localContext = new ObjectLiteralContext(this.context, this.state);
+        const localContext = new ObjectLiteralContext(this.context, this.state);
         this.enterRule(localContext, 140, AutoHotkeyParser.RULE_objectLiteral);
         let _la: number;
         try {
@@ -6546,7 +6546,7 @@ export class AutoHotkeyParser extends AutoHotkeyParserBase {
         return localContext;
     }
     public functionHead(): FunctionHeadContext {
-        let localContext = new FunctionHeadContext(this.context, this.state);
+        const localContext = new FunctionHeadContext(this.context, this.state);
         this.enterRule(localContext, 142, AutoHotkeyParser.RULE_functionHead);
         let _la: number;
         try {
@@ -6594,7 +6594,7 @@ export class AutoHotkeyParser extends AutoHotkeyParserBase {
         return localContext;
     }
     public functionHeadPrefix(): FunctionHeadPrefixContext {
-        let localContext = new FunctionHeadPrefixContext(this.context, this.state);
+        const localContext = new FunctionHeadPrefixContext(this.context, this.state);
         this.enterRule(localContext, 144, AutoHotkeyParser.RULE_functionHeadPrefix);
         let _la: number;
         try {
@@ -6632,7 +6632,7 @@ export class AutoHotkeyParser extends AutoHotkeyParserBase {
         return localContext;
     }
     public functionExpressionHead(): FunctionExpressionHeadContext {
-        let localContext = new FunctionExpressionHeadContext(this.context, this.state);
+        const localContext = new FunctionExpressionHeadContext(this.context, this.state);
         this.enterRule(localContext, 146, AutoHotkeyParser.RULE_functionExpressionHead);
         let _la: number;
         try {
@@ -6691,7 +6691,7 @@ export class AutoHotkeyParser extends AutoHotkeyParserBase {
         return localContext;
     }
     public fatArrowExpressionHead(): FatArrowExpressionHeadContext {
-        let localContext = new FatArrowExpressionHeadContext(this.context, this.state);
+        const localContext = new FatArrowExpressionHeadContext(this.context, this.state);
         this.enterRule(localContext, 148, AutoHotkeyParser.RULE_fatArrowExpressionHead);
         let _la: number;
         try {
@@ -6785,7 +6785,7 @@ export class AutoHotkeyParser extends AutoHotkeyParserBase {
         return localContext;
     }
     public functionBody(): FunctionBodyContext {
-        let localContext = new FunctionBodyContext(this.context, this.state);
+        const localContext = new FunctionBodyContext(this.context, this.state);
         this.enterRule(localContext, 150, AutoHotkeyParser.RULE_functionBody);
         let _la: number;
         try {
@@ -6849,7 +6849,7 @@ export class AutoHotkeyParser extends AutoHotkeyParserBase {
         return localContext;
     }
     public assignmentOperator(): AssignmentOperatorContext {
-        let localContext = new AssignmentOperatorContext(this.context, this.state);
+        const localContext = new AssignmentOperatorContext(this.context, this.state);
         this.enterRule(localContext, 152, AutoHotkeyParser.RULE_assignmentOperator);
         let _la: number;
         try {
@@ -6880,7 +6880,7 @@ export class AutoHotkeyParser extends AutoHotkeyParserBase {
         return localContext;
     }
     public literal(): LiteralContext {
-        let localContext = new LiteralContext(this.context, this.state);
+        const localContext = new LiteralContext(this.context, this.state);
         this.enterRule(localContext, 154, AutoHotkeyParser.RULE_literal);
         let _la: number;
         try {
@@ -6936,7 +6936,7 @@ export class AutoHotkeyParser extends AutoHotkeyParserBase {
         return localContext;
     }
     public boolean_(): BooleanContext {
-        let localContext = new BooleanContext(this.context, this.state);
+        const localContext = new BooleanContext(this.context, this.state);
         this.enterRule(localContext, 156, AutoHotkeyParser.RULE_boolean);
         let _la: number;
         try {
@@ -6967,7 +6967,7 @@ export class AutoHotkeyParser extends AutoHotkeyParserBase {
         return localContext;
     }
     public numericLiteral(): NumericLiteralContext {
-        let localContext = new NumericLiteralContext(this.context, this.state);
+        const localContext = new NumericLiteralContext(this.context, this.state);
         this.enterRule(localContext, 158, AutoHotkeyParser.RULE_numericLiteral);
         let _la: number;
         try {
@@ -6998,7 +6998,7 @@ export class AutoHotkeyParser extends AutoHotkeyParserBase {
         return localContext;
     }
     public getter(): GetterContext {
-        let localContext = new GetterContext(this.context, this.state);
+        const localContext = new GetterContext(this.context, this.state);
         this.enterRule(localContext, 160, AutoHotkeyParser.RULE_getter);
         try {
             this.enterOuterAlt(localContext, 1);
@@ -7023,7 +7023,7 @@ export class AutoHotkeyParser extends AutoHotkeyParserBase {
         return localContext;
     }
     public setter(): SetterContext {
-        let localContext = new SetterContext(this.context, this.state);
+        const localContext = new SetterContext(this.context, this.state);
         this.enterRule(localContext, 162, AutoHotkeyParser.RULE_setter);
         try {
             this.enterOuterAlt(localContext, 1);
@@ -7048,7 +7048,7 @@ export class AutoHotkeyParser extends AutoHotkeyParserBase {
         return localContext;
     }
     public identifierName(): IdentifierNameContext {
-        let localContext = new IdentifierNameContext(this.context, this.state);
+        const localContext = new IdentifierNameContext(this.context, this.state);
         this.enterRule(localContext, 164, AutoHotkeyParser.RULE_identifierName);
         try {
             this.state = 1559;
@@ -7084,7 +7084,7 @@ export class AutoHotkeyParser extends AutoHotkeyParserBase {
         return localContext;
     }
     public identifier(): IdentifierContext {
-        let localContext = new IdentifierContext(this.context, this.state);
+        const localContext = new IdentifierContext(this.context, this.state);
         this.enterRule(localContext, 166, AutoHotkeyParser.RULE_identifier);
         let _la: number;
         try {
@@ -7115,7 +7115,7 @@ export class AutoHotkeyParser extends AutoHotkeyParserBase {
         return localContext;
     }
     public reservedWord(): ReservedWordContext {
-        let localContext = new ReservedWordContext(this.context, this.state);
+        const localContext = new ReservedWordContext(this.context, this.state);
         this.enterRule(localContext, 168, AutoHotkeyParser.RULE_reservedWord);
         try {
             this.state = 1566;
@@ -7158,7 +7158,7 @@ export class AutoHotkeyParser extends AutoHotkeyParserBase {
         return localContext;
     }
     public keyword(): KeywordContext {
-        let localContext = new KeywordContext(this.context, this.state);
+        const localContext = new KeywordContext(this.context, this.state);
         this.enterRule(localContext, 170, AutoHotkeyParser.RULE_keyword);
         let _la: number;
         try {
@@ -7189,7 +7189,7 @@ export class AutoHotkeyParser extends AutoHotkeyParserBase {
         return localContext;
     }
     public s(): SContext {
-        let localContext = new SContext(this.context, this.state);
+        const localContext = new SContext(this.context, this.state);
         this.enterRule(localContext, 172, AutoHotkeyParser.RULE_s);
         let _la: number;
         try {
@@ -7220,7 +7220,7 @@ export class AutoHotkeyParser extends AutoHotkeyParserBase {
         return localContext;
     }
     public eos(): EosContext {
-        let localContext = new EosContext(this.context, this.state);
+        const localContext = new EosContext(this.context, this.state);
         this.enterRule(localContext, 174, AutoHotkeyParser.RULE_eos);
         let _la: number;
         try {

@@ -9,6 +9,7 @@ import { z } from 'zod';
 import { LibraryCatalog } from '../core/library-catalog.js';
 import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
 import { McpToolResponse, createTextResponse, createErrorResponse } from '../types/mcp-types.js';
+import { safeParse } from '../core/validation-middleware.js';
 
 /**
  * Input schema for AHK_Library_Info tool
@@ -78,10 +79,15 @@ export async function initializeCatalog(scriptsDir: string): Promise<void> {
  * @returns MCP tool result
  */
 export async function handleAHK_Library_Info(
-  args: AHK_Library_Info_Args,
+  args: unknown,
   scriptsDir: string
 ): Promise<CallToolResult> {
   try {
+    // Validate arguments
+    const parsed = safeParse(args, AHK_Library_Info_ArgsSchema, 'AHK_Library_Info');
+    if (!parsed.success) return parsed.error as any;
+
+    const { name, include_dependencies } = parsed.data;
     const catalog = getCatalog();
 
     // Initialize catalog if needed
@@ -90,11 +96,11 @@ export async function handleAHK_Library_Info(
     }
 
     // Get library metadata
-    const library = catalog.get(args.name);
+    const library = catalog.get(name);
 
     if (!library) {
       // Provide "did you mean" suggestions
-      const suggestions = catalog.findSimilar(args.name, 3);
+      const suggestions = catalog.findSimilar(name, 3);
       const suggestionText = suggestions.length > 0
         ? `\n\nDid you mean: ${suggestions.join(', ')}?`
         : '';
@@ -103,7 +109,7 @@ export async function handleAHK_Library_Info(
         content: [
           {
             type: 'text',
-            text: `Library "${args.name}" not found.${suggestionText}\n\nUse AHK_Library_List to see all available libraries.`
+            text: `Library "${name}" not found.${suggestionText}\n\nUse AHK_Library_List to see all available libraries.`
           }
         ]
       };
@@ -205,7 +211,7 @@ export async function handleAHK_Library_Info(
       lines.push('');
 
       // Detailed dependency resolution if requested
-      if (args.include_dependencies) {
+      if (include_dependencies) {
         const resolver = catalog.getResolver();
         const resolution = resolver.resolve(library.name);
 

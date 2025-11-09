@@ -5,6 +5,7 @@ import * as path from 'path';
 import * as os from 'os';
 import logger from '../logger.js';
 import { McpToolResponse, createTextResponse, createErrorResponse } from '../types/mcp-types.js';
+import { safeParse } from '../core/validation-middleware.js';
 
 export const TestInteractiveArgsSchema = z.object({
   scriptContent: z.string().describe('AHK v2 script code to test'),
@@ -81,9 +82,12 @@ export class AhkTestInteractiveTool {
     return undefined;
   }
 
-  async execute(args: z.infer<typeof TestInteractiveArgsSchema>): Promise<McpToolResponse> {
+  async execute(args: unknown): Promise<McpToolResponse> {
     try {
-      const { scriptContent, testDescription, timeout, ahkPath } = TestInteractiveArgsSchema.parse(args);
+      const parsed = safeParse(args, TestInteractiveArgsSchema, 'AHK_Test_Interactive');
+      if (!parsed.success) return parsed.error;
+
+      const { scriptContent, testDescription, timeout, ahkPath } = parsed.data;
 
       // Auto-detect AutoHotkey path if not provided
       let resolvedAhkPath = ahkPath;

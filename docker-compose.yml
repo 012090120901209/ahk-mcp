@@ -1,147 +1,102 @@
-version: '3.8'
-
 services:
-  # Main AutoHotkey MCP Server
-  ahk-mcp-server:
+  # Main AutoHotkey MCP Server (stdio mode - default)
+  ahk-mcp:
     build:
       context: .
       target: production
-    container_name: ahk-mcp-server
-    ports:
-      - "3000:3000"  # SSE mode port
+      args:
+        - NODE_ENV=production
+    image: ahk-mcp:latest
+    container_name: ahk-mcp
     environment:
       - NODE_ENV=production
       - AHK_MCP_LOG_LEVEL=info
-      - PORT=3000
     volumes:
-      - ./data:/app/data:ro
-      - ahk-mcp-config:/app/config
       - ahk-mcp-logs:/app/logs
     restart: unless-stopped
+    stdin_open: true  # Enable stdin for stdio mode
+    tty: true         # Allocate a pseudo-TTY
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 128M
+    command: ["node", "dist/index.js"]
+
+  # AutoHotkey MCP Server (SSE mode - HTTP accessible)
+  sse:
+    build:
+      context: .
+      target: production
+      args:
+        - NODE_ENV=production
+    image: ahk-mcp:latest
+    container_name: ahk-mcp-sse
+    ports:
+      - "${SSE_PORT:-3000}:3000"  # SSE mode port (configurable via .env)
+    environment:
+      - NODE_ENV=production
+      - AHK_MCP_LOG_LEVEL=${AHK_MCP_LOG_LEVEL:-info}
+      - PORT=3000
+    volumes:
+      - ahk-mcp-logs:/app/logs
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 128M
     healthcheck:
-      test: ["CMD", "node", "-e", "console.log('Health check')"]
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/health"]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 40s
+    command: ["node", "dist/index.js", "--sse"]
+    profiles:
+      - sse
 
   # Development version with hot reload
-  ahk-mcp-dev:
+  dev:
     build:
       context: .
       target: development
+      args:
+        - NODE_ENV=development
+    image: ahk-mcp:dev
     container_name: ahk-mcp-dev
     ports:
-      - "3001:3000"  # Different port for development
+      - "${DEV_PORT:-3001}:3000"  # Different port for development
     environment:
       - NODE_ENV=development
       - AHK_MCP_LOG_LEVEL=debug
       - PORT=3000
     volumes:
       - .:/app
-      - /app/node_modules  # Preserve node_modules
-      - ahk-mcp-dev-config:/app/config
+      - /app/node_modules  # Preserve node_modules in container
+      - ahk-mcp-logs:/app/logs
     profiles:
       - dev
-    command: npm run dev
-
-  # Redis for caching (optional)
-  redis:
-    image: redis:7-alpine
-    container_name: ahk-mcp-redis
-    ports:
-      - "6379:6379"
-    volumes:
-      - redis-data:/data
-    restart: unless-stopped
-    profiles:
-      - cache
-
-  # PostgreSQL for analytics (optional)
-  postgres:
-    image: postgres:15-alpine
-    container_name: ahk-mcp-postgres
-    ports:
-      - "5432:5432"
-    environment:
-      - POSTGRES_DB=ahk_mcp
-      - POSTGRES_USER=ahk_mcp
-      - POSTGRES_PASSWORD=ahk_mcp_password
-    volumes:
-      - postgres-data:/var/lib/postgresql/data
-      - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql:ro
-    restart: unless-stopped
-    profiles:
-      - analytics
-
-  # Nginx reverse proxy
-  nginx:
-    image: nginx:alpine
-    container_name: ahk-mcp-nginx
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
-      - ./nginx/ssl:/etc/nginx/ssl:ro
-    depends_on:
-      - ahk-mcp-server
-    restart: unless-stopped
-    profiles:
-      - production
-
-  # Monitoring with Prometheus
-  prometheus:
-    image: prom/prometheus:latest
-    container_name: ahk-mcp-prometheus
-    ports:
-      - "9090:9090"
-    volumes:
-      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
-      - prometheus-data:/prometheus
-    command:
-      - '--config.file=/etc/prometheus/prometheus.yml'
-      - '--storage.tsdb.path=/prometheus'
-      - '--web.console.libraries=/etc/prometheus/console_libraries'
-      - '--web.console.templates=/etc/prometheus/consoles'
-      - '--storage.tsdb.retention.time=200h'
-      - '--web.enable-lifecycle'
-    restart: unless-stopped
-    profiles:
-      - monitoring
-
-  # Grafana for visualization
-  grafana:
-    image: grafana/grafana:latest
-    container_name: ahk-mcp-grafana
-    ports:
-      - "3000:3000"
-    environment:
-      - GF_SECURITY_ADMIN_PASSWORD=admin
-    volumes:
-      - grafana-data:/var/lib/grafana
-      - ./monitoring/grafana/dashboards:/etc/grafana/provisioning/dashboards:ro
-      - ./monitoring/grafana/datasources:/etc/grafana/provisioning/datasources:ro
-    depends_on:
-      - prometheus
-    restart: unless-stopped
-    profiles:
-      - monitoring
+    stdin_open: true
+    tty: true
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 1G
+        reservations:
+          cpus: '0.5'
+          memory: 256M
+    command: ["npm", "run", "dev"]
 
 volumes:
-  ahk-mcp-config:
-    driver: local
   ahk-mcp-logs:
-    driver: local
-  ahk-mcp-dev-config:
-    driver: local
-  redis-data:
-    driver: local
-  postgres-data:
-    driver: local
-  prometheus-data:
-    driver: local
-  grafana-data:
     driver: local
 
 networks:

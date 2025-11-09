@@ -40,10 +40,12 @@ export const ahkAnalyticsToolDefinition = {
 };
 
 export class AhkAnalyticsTool {
-  async execute(args: z.infer<typeof AhkAnalyticsArgsSchema>): Promise<McpToolResponse> {
+  async execute(args: unknown): Promise<McpToolResponse> {
     try {
-      const validatedArgs = AhkAnalyticsArgsSchema.parse(args);
-      const { action, toolName, limit } = validatedArgs;
+      const parsed = safeParse(args, AhkAnalyticsArgsSchema, 'AHK_Analytics');
+      if (!parsed.success) return parsed.error;
+
+      const { action, toolName, limit } = parsed.data;
 
       logger.info(`Analytics action: ${action}`);
 

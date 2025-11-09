@@ -43,6 +43,7 @@ export class ToolRegistry {
       { name: 'AHK_Active_File', instance: 'ahkActiveFileToolInstance' },
       { name: 'AHK_LSP', instance: 'ahkLspToolInstance' },
       { name: 'AHK_File_View', instance: 'ahkFileViewToolInstance' },
+      { name: 'AHK_File_List', instance: 'ahkFileListToolInstance' },
       { name: 'AHK_File_Detect', instance: 'ahkAutoFileToolInstance' },
       { name: 'AHK_Process_Request', instance: 'ahkProcessRequestToolInstance' },
       { name: 'AHK_File_Active', instance: 'ahkFileToolInstance' },

@@ -59,7 +59,7 @@ module.exports = {
   setupFilesAfterEnv: ['<rootDir>/Tests/setup/jest.setup.ts'],
   testTimeout: 30000,
   verbose: true,
-  moduleNameMapping: {
+  moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1',
     '^@tests/(.*)$': '<rootDir>/Tests/$1'
   },

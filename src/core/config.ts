@@ -155,13 +155,13 @@ export function detectFilePaths(text: string): string[] {
   }
 
   // Pattern 2: Paths with drive letters (Windows)
-  const drivePaths = text.match(/[A-Z]:(?:\|\/)[^\s"']+\.ahk/gi);
+  const drivePaths = text.match(/[A-Z]:(?:\\|\/)[^\s"']+\.ahk/gi);
   if (drivePaths) {
     paths.push(...drivePaths);
   }
 
   // Pattern 3: Relative paths
-  const relativePaths = text.match(/(?:^|\s)(?:\.\/|\.\.\/|[\w-]+\/)*[\w-]+\.ahk/gi);
+  const relativePaths = text.match(/(?:^|\s)(?:\.\/|\.\.\/|[^\s"']+\/)*[^\s"']+\.ahk/gi);
   if (relativePaths) {
     paths.push(...relativePaths.map(p => p.trim()));
   }

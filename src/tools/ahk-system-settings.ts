@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import logger from '../logger.js';
 import { toolSettings } from '../core/tool-settings.js';
+import { safeParse } from '../core/validation-middleware.js';
 
 export const AhkSettingsArgsSchema = z.object({
   action: z.enum([
@@ -75,9 +76,12 @@ Manage tool settings and enable/disable features`,
 };
 
 export class AhkSettingsTool {
-  async execute(args: z.infer<typeof AhkSettingsArgsSchema>): Promise<any> {
+  async execute(args: unknown): Promise<any> {
     try {
-      const { action, tool, settings } = AhkSettingsArgsSchema.parse(args || {});
+      const parsed = safeParse(args, AhkSettingsArgsSchema, 'AHK_Settings');
+      if (!parsed.success) return parsed.error;
+
+      const { action, tool, settings } = parsed.data;
       
       switch (action) {
         case 'get': {

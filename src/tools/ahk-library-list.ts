@@ -9,6 +9,7 @@ import { z } from 'zod';
 import { LibraryCatalog } from '../core/library-catalog.js';
 import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
 import { McpToolResponse, createTextResponse, createErrorResponse } from '../types/mcp-types.js';
+import { safeParse } from '../core/validation-middleware.js';
 
 /**
  * Input schema for AHK_Library_List tool
@@ -80,10 +81,15 @@ export async function initializeCatalog(scriptsDir: string): Promise<void> {
  * @returns MCP tool result
  */
 export async function handleAHK_Library_List(
-  args: AHK_Library_List_Args,
+  args: unknown,
   scriptsDir: string
 ): Promise<CallToolResult> {
   try {
+    // Validate arguments
+    const parsed = safeParse(args, AHK_Library_List_ArgsSchema, 'AHK_Library_List');
+    if (!parsed.success) return parsed.error as any;
+
+    const validatedArgs = parsed.data;
     const catalog = getCatalog();
 
     // Initialize catalog if needed
@@ -93,10 +99,10 @@ export async function handleAHK_Library_List(
 
     // Get libraries based on query/category
     let libraries;
-    if (args.category) {
-      libraries = catalog.filter(args.category);
-    } else if (args.query) {
-      libraries = catalog.search(args.query);
+    if (validatedArgs.category) {
+      libraries = catalog.filter(validatedArgs.category);
+    } else if (validatedArgs.query) {
+      libraries = catalog.search(validatedArgs.query);
     } else {
       libraries = catalog.getAll();
     }
@@ -108,10 +114,10 @@ export async function handleAHK_Library_List(
     const lines: string[] = [];
 
     // Header
-    if (args.query) {
-      lines.push(`# Libraries matching "${args.query}"`);
-    } else if (args.category) {
-      lines.push(`# Libraries in category "${args.category}"`);
+    if (validatedArgs.query) {
+      lines.push(`# Libraries matching "${validatedArgs.query}"`);
+    } else if (validatedArgs.category) {
+      lines.push(`# Libraries in category "${validatedArgs.category}"`);
     } else {
       lines.push('# All Libraries');
     }

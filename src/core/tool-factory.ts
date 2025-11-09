@@ -13,6 +13,7 @@ import { AhkConfigTool } from '../tools/ahk-system-config.js';
 import { AhkActiveFileTool } from '../tools/ahk-active-file.js';
 import { AhkLspTool } from '../tools/ahk-analyze-lsp.js';
 import { AhkFileViewTool } from '../tools/ahk-file-view.js';
+import { AhkFileListTool } from '../tools/ahk-file-list.js';
 import { AhkAutoFileTool } from '../tools/ahk-file-detect.js';
 import { AhkProcessRequestTool } from '../tools/ahk-run-process.js';
 import { AhkFileTool } from '../tools/ahk-file-active.js';
@@ -97,6 +98,7 @@ export interface IToolFactory {
   createActiveFileTool(): AhkActiveFileTool;
   createLspTool(): AhkLspTool;
   createFileViewTool(): AhkFileViewTool;
+  createFileListTool(): AhkFileListTool;
   createAutoFileTool(): AhkAutoFileTool;
   createProcessRequestTool(): AhkProcessRequestTool;
   createFileTool(): AhkFileTool;
@@ -142,6 +144,7 @@ export class ToolFactory implements IToolFactory {
     this.registry.register('AhkActiveFileTool', AhkActiveFileTool);
     this.registry.register('AhkLspTool', AhkLspTool);
     this.registry.register('AhkFileViewTool', AhkFileViewTool);
+    this.registry.register('AhkFileListTool', AhkFileListTool);
     this.registry.register('AhkAutoFileTool', AhkAutoFileTool);
     this.registry.register('AhkProcessRequestTool', AhkProcessRequestTool);
     this.registry.register('AhkFileTool', AhkFileTool);
@@ -216,6 +219,10 @@ export class ToolFactory implements IToolFactory {
 
   createFileViewTool(): AhkFileViewTool {
     return this.registry.create('AhkFileViewTool') as AhkFileViewTool;
+  }
+
+  createFileListTool(): AhkFileListTool {
+    return this.registry.create('AhkFileListTool') as AhkFileListTool;
   }
 
   createAutoFileTool(): AhkAutoFileTool {
