@@ -10,7 +10,7 @@ export abstract class AutoHotkeyParserBase extends Parser {
     }
 
     protected isValidLoopExpression(): boolean {
-        var next = this.inputStream.LA(2);
+        const next = this.inputStream.LA(2);
         if (next == AutoHotkeyLexer.Parse || next == AutoHotkeyLexer.Reg || next == AutoHotkeyLexer.Read || next == AutoHotkeyLexer.Files)
             return false;
         return true;

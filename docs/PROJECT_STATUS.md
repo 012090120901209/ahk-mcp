@@ -102,6 +102,7 @@ Current implementation status and feature completion tracking.
 
 ### File Operations
 - `AHK_File_Create` - Create new AutoHotkey v2 scripts with automatic Windows/WSL path handling and safety checks
+- `AHK_File_List` - Native directory listing with extension filters and metadata
 - `AHK_File_Edit` - Modify existing scripts with replace, insert, delete, and create modes
 
 ### System Integration

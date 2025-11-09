@@ -19,7 +19,7 @@ module.exports = {
   setupFilesAfterEnv: ['<rootDir>/Tests/setup/jest.integration.setup.ts'],
   testTimeout: 120000, // 2 minutes for integration tests
   verbose: true,
-  moduleNameMapping: {
+  moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1',
     '^@tests/(.*)$': '<rootDir>/Tests/$1'
   },

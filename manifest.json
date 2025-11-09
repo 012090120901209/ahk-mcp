@@ -1,0 +1,200 @@
+{
+  "dxt_version": "0.1",
+  "name": "ahk-mcp",
+  "display_name": "AutoHotkey v2 MCP",
+  "version": "2.0.0",
+  "description": "AutoHotkey v2 Development Tools with LSP-like Capabilities",
+  "long_description": "Comprehensive AutoHotkey v2 MCP server providing intelligent code analysis, file management, script execution, and context-aware assistance for LLMs working with AutoHotkey code. Features 33+ tools including smart orchestration, advanced editing, debug agents, and complete AutoHotkey v2 documentation integration.",
+  "author": {
+    "name": "Your Name",
+    "email": "your.email@example.com",
+    "url": "https://github.com/yourusername"
+  },
+  "homepage": "https://github.com/yourusername/ahk-mcp",
+  "documentation": "https://github.com/yourusername/ahk-mcp#readme",
+  "icon": "icon.png",
+  "server": {
+    "type": "node",
+    "entry_point": "dist/index.js",
+    "mcp_config": {
+      "command": "node",
+      "args": ["${__dirname}/dist/index.js"],
+      "env": {
+        "NODE_ENV": "production",
+        "AHK_MCP_LOG_LEVEL": "info"
+      }
+    }
+  },
+  "tools": [
+    {
+      "name": "AHK_Smart_Orchestrator",
+      "description": "Intelligent task orchestrator that analyzes requests and coordinates multiple tools automatically"
+    },
+    {
+      "name": "AHK_File_Edit_Advanced",
+      "description": "Advanced file editing with regex support, bulk operations, and validation"
+    },
+    {
+      "name": "AHK_File_Edit",
+      "description": "Edit AutoHotkey files with search-and-replace functionality"
+    },
+    {
+      "name": "AHK_File_Edit_Small",
+      "description": "Quick edits for small changes without loading full file"
+    },
+    {
+      "name": "AHK_File_Edit_Diff",
+      "description": "Apply unified diff patches to AutoHotkey files"
+    },
+    {
+      "name": "AHK_File_Create",
+      "description": "Create new AutoHotkey v2 scripts with templates"
+    },
+    {
+      "name": "AHK_File_View",
+      "description": "View AutoHotkey file contents with syntax highlighting context"
+    },
+    {
+      "name": "AHK_File_Active",
+      "description": "Get or set the currently active AutoHotkey file"
+    },
+    {
+      "name": "AHK_File_Recent",
+      "description": "List recently accessed AutoHotkey files"
+    },
+    {
+      "name": "AHK_File_Detect",
+      "description": "Auto-detect and analyze AutoHotkey files in directory"
+    },
+    {
+      "name": "AHK_Run",
+      "description": "Execute AutoHotkey v2 scripts with window detection and output capture"
+    },
+    {
+      "name": "AHK_Debug_Agent",
+      "description": "Advanced debugging with error analysis and fix suggestions"
+    },
+    {
+      "name": "AHK_Process_Request",
+      "description": "Manage AutoHotkey process execution and monitoring"
+    },
+    {
+      "name": "AHK_Analyze",
+      "description": "Comprehensive code analysis with syntax checking"
+    },
+    {
+      "name": "AHK_Summary",
+      "description": "Generate summaries of AutoHotkey scripts"
+    },
+    {
+      "name": "AHK_Diagnostics",
+      "description": "Get detailed diagnostics for AutoHotkey code"
+    },
+    {
+      "name": "AHK_LSP",
+      "description": "LSP-like features: completions, definitions, references"
+    },
+    {
+      "name": "AHK_VSCode_Problems",
+      "description": "Fetch and analyze VSCode problems/diagnostics"
+    },
+    {
+      "name": "AHK_Doc_Search",
+      "description": "Search AutoHotkey v2 documentation with intelligent context"
+    },
+    {
+      "name": "AHK_Context_Injector",
+      "description": "Inject relevant AutoHotkey context based on keywords"
+    },
+    {
+      "name": "AHK_Prompts",
+      "description": "Access built-in AutoHotkey coding prompts and standards"
+    },
+    {
+      "name": "AHK_Sampling_Enhancer",
+      "description": "Get relevant code samples for AutoHotkey patterns"
+    },
+    {
+      "name": "AHK_Library_List",
+      "description": "List available AutoHotkey libraries with metadata"
+    },
+    {
+      "name": "AHK_Library_Info",
+      "description": "Get detailed information about a specific library"
+    },
+    {
+      "name": "AHK_Library_Import",
+      "description": "Generate #Include statements for libraries with dependency resolution"
+    },
+    {
+      "name": "AHK_Memory_Context",
+      "description": "Store and retrieve context across conversation sessions"
+    },
+    {
+      "name": "AHK_Test_Interactive",
+      "description": "Interactive testing tools for AutoHotkey scripts"
+    },
+    {
+      "name": "AHK_Config",
+      "description": "View and manage MCP server configuration"
+    },
+    {
+      "name": "AHK_Settings",
+      "description": "Manage server settings and preferences"
+    },
+    {
+      "name": "AHK_Analytics",
+      "description": "View tool usage analytics and performance metrics"
+    },
+    {
+      "name": "AHK_Alpha",
+      "description": "Experimental features and advanced capabilities"
+    },
+    {
+      "name": "AHK_Active_File",
+      "description": "Get active file information and context"
+    }
+  ],
+  "resources": [
+    {
+      "name": "AutoHotkey Coding Standards",
+      "description": "Best practices and coding standards for AutoHotkey v2"
+    },
+    {
+      "name": "AutoHotkey Documentation Index",
+      "description": "Searchable index of AutoHotkey v2 documentation"
+    }
+  ],
+  "prompts": [
+    {
+      "name": "AutoHotkey Best Practices",
+      "description": "Get AutoHotkey v2 coding standards and best practices"
+    },
+    {
+      "name": "Code Review",
+      "description": "Request a comprehensive AutoHotkey code review"
+    }
+  ],
+  "compatibility": {
+    "platforms": ["darwin", "win32", "linux"],
+    "runtimes": {
+      "node": ">=v18.0.0"
+    }
+  },
+  "keywords": [
+    "autohotkey",
+    "ahk",
+    "v2",
+    "automation",
+    "scripting",
+    "windows",
+    "developer tools",
+    "code analysis",
+    "mcp"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/yourusername/ahk-mcp.git"
+  }
+}

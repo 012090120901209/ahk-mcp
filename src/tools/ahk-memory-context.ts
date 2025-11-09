@@ -2,6 +2,7 @@ import { z } from 'zod';
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import { McpToolResponse } from '../types/mcp-types.js';
+import { safeParse } from '../core/validation-middleware.js';
 
 export const MemoryContextArgsSchema = z.object({
   memory_type: z.enum(['common-issues', 'all']).default('all').describe('Which memory to retrieve: common-issues or all'),
@@ -35,9 +36,12 @@ interface MemoryFile {
  * Class-based implementation of AHK_Memory_Context tool
  */
 export class AhkMemoryContextTool {
-  async execute(args: MemoryContextArgs): Promise<McpToolResponse> {
+  async execute(args: unknown): Promise<McpToolResponse> {
     try {
-      const validatedArgs = MemoryContextArgsSchema.parse(args);
+      const parsed = safeParse(args, MemoryContextArgsSchema, 'AHK_Memory_Context');
+      if (!parsed.success) return parsed.error;
+
+      const validatedArgs = parsed.data;
       const memoriesDir = path.join(process.cwd(), '.claude', 'memories');
       const memories: MemoryFile[] = [];
 

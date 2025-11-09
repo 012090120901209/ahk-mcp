@@ -131,7 +131,7 @@ AUTOHOTKEY MCP SERVER
 ```
 Step 1: YOU
    │
-   ├─→ "Create an AutoHotkey v2 script that monitors 
+   ├─→ "Create an AutoHotkey v2 script that monitors
    │   clipboard changes and shows a popup when it changes"
    │
    └─→ (to Claude)

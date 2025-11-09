@@ -48,6 +48,7 @@ export class PathInterceptor {
       'AHK_File_Edit_Diff',
       'AHK_File_Edit_Small',
       'AHK_File_View',
+      'AHK_File_List',
       'AHK_File_Active',
       'AHK_File_Create',
       'AHK_File_Detect',

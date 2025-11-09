@@ -10,6 +10,7 @@ import path from 'path';
 import { LibraryCatalog } from '../core/library-catalog.js';
 import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
 import { McpToolResponse, createTextResponse, createErrorResponse } from '../types/mcp-types.js';
+import { safeParse } from '../core/validation-middleware.js';
 
 /**
  * Input schema for AHK_Library_Import tool
@@ -88,10 +89,15 @@ export async function initializeCatalog(scriptsDir: string): Promise<void> {
  * @returns MCP tool result
  */
 export async function handleAHK_Library_Import(
-  args: AHK_Library_Import_Args,
+  args: unknown,
   scriptsDir: string
 ): Promise<CallToolResult> {
   try {
+    // Validate arguments
+    const parsed = safeParse(args, AHK_Library_Import_ArgsSchema, 'AHK_Library_Import');
+    if (!parsed.success) return parsed.error as any;
+
+    const { name, include_dependencies, format = 'angle-brackets' } = parsed.data;
     const catalog = getCatalog();
 
     // Initialize catalog if needed
@@ -100,11 +106,11 @@ export async function handleAHK_Library_Import(
     }
 
     // Get library metadata
-    const library = catalog.get(args.name);
+    const library = catalog.get(name);
 
     if (!library) {
       // Provide "did you mean" suggestions
-      const suggestions = catalog.findSimilar(args.name, 3);
+      const suggestions = catalog.findSimilar(name, 3);
       const suggestionText = suggestions.length > 0
         ? `\n\nDid you mean: ${suggestions.join(', ')}?`
         : '';
@@ -113,7 +119,7 @@ export async function handleAHK_Library_Import(
         content: [
           {
             type: 'text',
-            text: `Library "${args.name}" not found.${suggestionText}\n\nUse AHK_Library_List to see all available libraries.`
+            text: `Library "${name}" not found.${suggestionText}\n\nUse AHK_Library_List to see all available libraries.`
           }
         ]
       };
@@ -121,12 +127,12 @@ export async function handleAHK_Library_Import(
 
     // Get dependency resolution
     const resolver = catalog.getResolver();
-    const resolution = resolver.resolve(args.name);
+    const resolution = resolver.resolve(name);
 
     // Build markdown output
     const lines: string[] = [];
 
-    lines.push(`# Import Statements for ${args.name}`);
+    lines.push(`# Import Statements for ${name}`);
     lines.push('');
 
     // Check for errors
@@ -177,7 +183,7 @@ export async function handleAHK_Library_Import(
     // Generate #Include statements
     const includeStatements: string[] = [];
 
-    if (args.include_dependencies && resolution.importOrder.length > 0) {
+    if (include_dependencies && resolution.importOrder.length > 0) {
       lines.push('## Complete Import Order');
       lines.push('');
       lines.push('Copy these #Include statements to your script:');
@@ -188,7 +194,7 @@ export async function handleAHK_Library_Import(
         const libMeta = catalog.get(libName);
         if (!libMeta) continue;
 
-        const includeStmt = formatInclude(libName, libMeta.filePath, scriptsDir, args.format);
+        const includeStmt = formatInclude(libName, libMeta.filePath, scriptsDir, format);
         includeStatements.push(includeStmt);
         lines.push(includeStmt);
       }
@@ -199,7 +205,7 @@ export async function handleAHK_Library_Import(
       // Show dependency tree
       lines.push('## Dependency Tree');
       lines.push('');
-      const tree = buildDependencyTree(args.name, catalog, 0);
+      const tree = buildDependencyTree(name, catalog, 0);
       lines.push('```');
       lines.push(tree);
       lines.push('```');
@@ -209,7 +215,7 @@ export async function handleAHK_Library_Import(
       lines.push('## Single Library Import');
       lines.push('');
       lines.push('```autohotkey');
-      const includeStmt = formatInclude(args.name, library.filePath, scriptsDir, args.format);
+      const includeStmt = formatInclude(name, library.filePath, scriptsDir, format);
       includeStatements.push(includeStmt);
       lines.push(includeStmt);
       lines.push('```');
@@ -235,7 +241,7 @@ export async function handleAHK_Library_Import(
     if (library.version) {
       lines.push('### Version Information');
       lines.push('');
-      lines.push(`**${args.name}:** v${library.version}`);
+      lines.push(`**${name}:** v${library.version}`);
 
       // Check dependency versions
       const versionedDeps = library.dependencies

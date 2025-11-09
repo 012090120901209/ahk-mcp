@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import fs from 'fs/promises';
 import path from 'path';
-import { getActiveFilePath } from '../core/active-file.js';
+import { activeFile, getActiveFilePath } from '../core/active-file.js';
 import { resolveFilePath } from '../core/config.js';
 import { AhkCompiler } from '../compiler/ahk-compiler.js';
 import logger from '../logger.js';
@@ -140,6 +140,11 @@ export class AhkFileViewTool {
 
       // Resolve file path
       const filePath = await this.resolveTargetFile(file);
+
+      // Ensure the resolved file becomes the active file for follow-up edit tools
+      if (!activeFile.setActiveFile(filePath)) {
+        logger.warn(`Failed to set active file during view operation: ${filePath}`);
+      }
 
       // Generate view result
       const result = await this.generateView(filePath, validatedArgs);

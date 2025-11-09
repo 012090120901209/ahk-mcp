@@ -121,6 +121,19 @@ const result = await tool.execute({
 });
 ```
 
+## Tool Chain Discipline (Stay in AHK Tools)
+
+To keep Claude from falling back to generic `filesystem.*` MCP tools, follow these guardrails whenever you interact with the AutoHotkey server:
+
+- **Always set context first** – use `AHK_File_Active` (or `AHK_File_List` ➜ `AHK_File_Active`) before you request edits. This makes the target explicit so the agent does not search via non-AHK tools.
+- **Declare the desired sequence in your prompt** – e.g. “Use `AHK_File_List`, then `AHK_File_View`, then `AHK_File_Edit`. Do not call other filesystem tools.” Claude honours explicit scripts.
+- **Prefer the orchestrator for multi-step work** – call `AHK_Smart_Orchestrator` with your plan. It now knows about `AHK_File_List` and generates native-only tool chains.
+- **Use hooks to enforce policy** – configure `.claude/settings.json` with a `PreToolUse` hook that rejects calls whose name does not start with `AHK_`. A sample PowerShell hook lives in `.claude/hooks/require-ahk-tool.ps1` (create if missing) and checks `$env:CLAUDE_TOOL_NAME`.
+- **Echo next steps** – when you customise tool output (e.g. after `AHK_File_View`), include guidance such as “Next tool: `AHK_File_Edit`”. Claude tends to follow the instructions it just received.
+- **Reset between tasks** – run `AHK_File_Active { "action": "clear" }` when you switch projects so stale context does not trigger extra tool calls.
+
+> **Tip:** If you must inspect the directory tree manually, call the native `AHK_File_List` tool instead of `filesystem.list_directory`. This keeps path conversion, backups, and policy enforcement inside the AutoHotkey server.
+
 ## Keyword-Based Module Routing
 
 The context injector automatically detects keywords and loads relevant modules:

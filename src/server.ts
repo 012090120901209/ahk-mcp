@@ -31,6 +31,7 @@ import { AhkConfigTool, ahkConfigToolDefinition } from './tools/ahk-system-confi
 import { AhkActiveFileTool, ahkActiveFileToolDefinition } from './tools/ahk-active-file.js';
 import { AhkLspTool, ahkLspToolDefinition } from './tools/ahk-analyze-lsp.js';
 import { AhkFileViewTool, ahkFileViewToolDefinition } from './tools/ahk-file-view.js';
+import { AhkFileListTool, ahkFileListToolDefinition } from './tools/ahk-file-list.js';
 import { AhkAutoFileTool, ahkAutoFileToolDefinition } from './tools/ahk-file-detect.js';
 import { AhkProcessRequestTool, ahkProcessRequestToolDefinition } from './tools/ahk-run-process.js';
 import { AhkFileTool, ahkFileToolDefinition } from './tools/ahk-file-active.js';
@@ -70,6 +71,7 @@ export class AutoHotkeyMcpServer {
   public ahkActiveFileToolInstance: AhkActiveFileTool;
   public ahkLspToolInstance: AhkLspTool;
   public ahkFileViewToolInstance: AhkFileViewTool;
+  public ahkFileListToolInstance: AhkFileListTool;
   public ahkAutoFileToolInstance: AhkAutoFileTool;
   public ahkProcessRequestToolInstance: AhkProcessRequestTool;
   public ahkFileToolInstance: AhkFileTool;
@@ -114,6 +116,7 @@ export class AutoHotkeyMcpServer {
     this.ahkActiveFileToolInstance = new AhkActiveFileTool();
     this.ahkLspToolInstance = new AhkLspTool();
     this.ahkFileViewToolInstance = new AhkFileViewTool();
+    this.ahkFileListToolInstance = new AhkFileListTool();
     this.ahkAutoFileToolInstance = new AhkAutoFileTool();
     this.ahkProcessRequestToolInstance = new AhkProcessRequestTool();
     this.ahkFileToolInstance = new AhkFileTool();
@@ -156,6 +159,7 @@ export class AutoHotkeyMcpServer {
         ahkEditToolDefinition,
         ahkFileToolDefinition,
         ahkFileCreateToolDefinition,
+        ahkFileListToolDefinition,
         ahkDiffEditToolDefinition,
         ahkDiagnosticsToolDefinition,
         ahkRunToolDefinition,
@@ -1352,6 +1356,17 @@ F12::hkManager.ToggleHotkey("F1", (*) => MsgBox("F1 pressed!"), "Example hotkey"
         const app = express.default();
 
         app.use(express.default.json());
+
+        // Health check endpoint for Docker
+        app.get('/health', (req, res) => {
+          res.json({
+            status: 'ok',
+            server: 'AutoHotkey MCP Server',
+            mode: 'SSE',
+            uptime: process.uptime(),
+            memory: process.memoryUsage()
+          });
+        });
 
         // Store active transports by session
         const activeTransports = new Map();

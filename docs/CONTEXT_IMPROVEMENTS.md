@@ -26,6 +26,7 @@ Updated 20+ tool descriptions with Claude-optimized language:
 - `AHK_Run` - Script execution with window detection
 - `AHK_Doc_Search` - Fuzzy documentation search
 - `AHK_File_Active` - Active file context management
+- `AHK_File_List` - Native directory enumeration with filter controls
 - `AHK_Config` - Server configuration display
 - `AHK_Summary` - Quick API reference
 - `AHK_Context_Injector` - Advanced context analysis

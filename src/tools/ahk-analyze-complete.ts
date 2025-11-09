@@ -180,13 +180,27 @@ export class AhkAnalyzeUnifiedTool {
 
       logger.info(`Running unified AHK analysis in ${mode} mode`);
 
-      const result = await this.runUnifiedAnalysis(validatedArgs);
+      const result = await this.runUnifiedAnalysis({
+        ...validatedArgs,
+        format: validatedArgs.format ?? 'detailed',
+        mode: validatedArgs.mode ?? 'quick',
+        includeDocumentation: validatedArgs.includeDocumentation ?? true,
+        includeUsageExamples: validatedArgs.includeUsageExamples ?? false,
+        analyzeComplexity: validatedArgs.analyzeComplexity ?? true,
+        enableClaudeStandards: validatedArgs.enableClaudeStandards ?? true,
+        severityFilter: validatedArgs.severityFilter ?? 'all',
+        autoFix: validatedArgs.autoFix ?? false,
+        fixLevel: validatedArgs.fixLevel ?? 'safe',
+        returnFixedCode: validatedArgs.returnFixedCode ?? true,
+        includeVSCodeProblems: validatedArgs.includeVSCodeProblems ?? false,
+        showPerformance: validatedArgs.showPerformance ?? false
+      });
 
       // Calculate total time
       result.performance.totalTime = Math.round(performance.now() - startTime);
 
       // Format output
-      const output = this.formatOutput(result, validatedArgs.format);
+      const output = this.formatOutput(result, validatedArgs.format ?? 'detailed');
 
       return {
         content: [{ type: 'text', text: output }]
