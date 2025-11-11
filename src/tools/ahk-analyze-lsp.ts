@@ -131,10 +131,10 @@ export class AhkLspTool {
       // Run analysis
       const result = await this.runLspAnalysis(
         code,
-        mode,
-        autoFix,
-        fixLevel,
-        enableClaudeStandards
+        mode ?? 'check',
+        autoFix ?? true,
+        fixLevel ?? 'safe',
+        enableClaudeStandards ?? true
       );
 
       // Add performance metrics
@@ -142,7 +142,7 @@ export class AhkLspTool {
       result.performance.analysisTime = Math.round(endTime - startTime);
 
       // Format output based on mode
-      const output = this.formatOutput(result, mode, showPerformance, returnFixedCode);
+      const output = this.formatOutput(result, mode ?? 'check', showPerformance ?? false, returnFixedCode ?? true);
 
       return {
         content: [{ type: 'text', text: output }]

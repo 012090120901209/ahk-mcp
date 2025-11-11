@@ -8,7 +8,11 @@ export const AhkAnalyzeArgsSchema = z.object({
   code: z.string().min(1, 'AutoHotkey code is required'),
   includeDocumentation: z.boolean().optional().default(true),
   includeUsageExamples: z.boolean().optional().default(false),
-  analyzeComplexity: z.boolean().optional().default(false)
+  analyzeComplexity: z.boolean().optional().default(false),
+  // New filtering parameters for token reduction
+  severityFilter: z.array(z.enum(['error', 'warning', 'info'])).optional().describe('Filter issues by severity levels'),
+  maxIssues: z.number().optional().describe('Limit number of issues returned'),
+  summaryOnly: z.boolean().optional().default(false).describe('Return only summary counts, not detailed issues')
 });
 
 export const ahkAnalyzeToolDefinition = {
@@ -35,6 +39,23 @@ Analyzes AutoHotkey v2 scripts and provides contextual information about functio
       analyzeComplexity: {
         type: 'boolean',
         description: 'Analyze code complexity',
+        default: false
+      },
+      severityFilter: {
+        type: 'array',
+        items: {
+          type: 'string',
+          enum: ['error', 'warning', 'info']
+        },
+        description: 'Filter issues by severity levels (e.g., ["error"] for errors only)'
+      },
+      maxIssues: {
+        type: 'number',
+        description: 'Limit number of issues returned (reduces token usage)'
+      },
+      summaryOnly: {
+        type: 'boolean',
+        description: 'Return only summary counts, not detailed issues (minimal tokens)',
         default: false
       }
     },
@@ -111,11 +132,38 @@ export class AhkAnalyzeTool {
       if (validatedArgs.code) {
         autoDetect(validatedArgs.code);
       }
-      const { code, includeDocumentation, includeUsageExamples, analyzeComplexity } = validatedArgs;
+      const { code, includeDocumentation, includeUsageExamples, analyzeComplexity, severityFilter, maxIssues, summaryOnly } = validatedArgs;
 
       // Use the new compiler system for comprehensive analysis
       const compilerResults = AhkCompiler.analyze(code);
       const statistics = AhkCompiler.getStatistics(code);
+
+      // If summaryOnly is true, return minimal output
+      if (summaryOnly) {
+        const syntaxIssues = this.checkAhkV2Syntax(code);
+        const diagnostics = compilerResults.diagnostics.data || [];
+
+        const summary = {
+          lines: statistics.lines,
+          tokens: statistics.tokens,
+          functions: statistics.functions,
+          classes: statistics.classes,
+          complexity: statistics.complexity,
+          issues: {
+            syntaxErrors: compilerResults.ast.success ? 0 : compilerResults.ast.errors.length,
+            diagnostics: diagnostics.length,
+            v2SyntaxIssues: syntaxIssues.length,
+            total: (compilerResults.ast.success ? 0 : compilerResults.ast.errors.length) + diagnostics.length + syntaxIssues.length
+          }
+        };
+
+        return {
+          content: [{
+            type: 'text',
+            text: `# Analysis Summary\n\n${JSON.stringify(summary, null, 2)}`
+          }]
+        };
+      }
 
       // Format the results
       let report = '# AutoHotkey v2 Script Analysis\n\n';
@@ -155,7 +203,13 @@ export class AhkAnalyzeTool {
       }
 
       // Enhanced Regex-based AutoHotkey v2 Syntax Checking
-      const syntaxIssues = this.checkAhkV2Syntax(code);
+      let syntaxIssues = this.checkAhkV2Syntax(code);
+
+      // Apply maxIssues filter if specified
+      if (maxIssues && maxIssues > 0) {
+        syntaxIssues = syntaxIssues.slice(0, maxIssues);
+      }
+
       if (syntaxIssues.length > 0) {
         report += '## ⚠️ AutoHotkey v2 Syntax Issues (Enhanced Detection)\n';
         syntaxIssues.forEach(issue => {

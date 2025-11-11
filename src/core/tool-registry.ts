@@ -27,6 +27,11 @@ export class ToolRegistry {
    */
   private registerCoreTools(): void {
     const coreTools = [
+      // New efficiency tools
+      { name: 'AHK_Tools_Search', instance: 'ahkToolsSearchToolInstance' },
+      { name: 'AHK_Workflow_Analyze_Fix_Run', instance: 'ahkWorkflowAnalyzeFixRunToolInstance' },
+
+      // Existing tools
       { name: 'AHK_File_Edit_Advanced', instance: 'ahkFileEditorToolInstance' },
       { name: 'AHK_Diagnostics', instance: 'ahkDiagnosticsToolInstance' },
       { name: 'AHK_Summary', instance: 'ahkSummaryToolInstance' },

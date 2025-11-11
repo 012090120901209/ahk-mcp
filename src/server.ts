@@ -45,6 +45,8 @@ import { AhkFileCreateTool, ahkFileCreateToolDefinition } from './tools/ahk-file
 import { AhkAnalyticsTool, ahkAnalyticsToolDefinition } from './tools/ahk-system-analytics.js';
 import { AhkTestInteractiveTool, ahkTestInteractiveToolDefinition } from './tools/ahk-test-interactive.js';
 import { AhkTraceViewerTool, ahkTraceViewerToolDefinition } from './tools/ahk-trace-viewer.js';
+import { AhkToolsSearchTool, ahkToolsSearchToolDefinition } from './tools/ahk-tools-search.js';
+import { AhkWorkflowAnalyzeFixRunTool, ahkWorkflowAnalyzeFixRunToolDefinition } from './tools/ahk-workflow-analyze-fix-run.js';
 import { AHK_Library_List_Definition } from './tools/ahk-library-list.js';
 import { AHK_Library_Info_Definition } from './tools/ahk-library-info.js';
 import { AHK_Library_Import_Definition } from './tools/ahk-library-import.js';
@@ -90,6 +92,8 @@ export class AutoHotkeyMcpServer {
   public ahkAnalyticsToolInstance: AhkAnalyticsTool;
   public ahkTestInteractiveToolInstance: AhkTestInteractiveTool;
   public ahkTraceViewerToolInstance: AhkTraceViewerTool;
+  public ahkToolsSearchToolInstance: AhkToolsSearchTool;
+  public ahkWorkflowAnalyzeFixRunToolInstance: AhkWorkflowAnalyzeFixRunTool;
 
   constructor() {
     this.server = new Server(
@@ -136,8 +140,16 @@ export class AutoHotkeyMcpServer {
     this.ahkAnalyticsToolInstance = new AhkAnalyticsTool();
     this.ahkTestInteractiveToolInstance = new AhkTestInteractiveTool();
     this.ahkTraceViewerToolInstance = new AhkTraceViewerTool();
+    this.ahkToolsSearchToolInstance = new AhkToolsSearchTool();
 
     this.toolRegistry = new ToolRegistry(this);
+
+    // Initialize workflow tool with dependencies (must be after other tools are initialized)
+    this.ahkWorkflowAnalyzeFixRunToolInstance = new AhkWorkflowAnalyzeFixRunTool(
+      this.ahkAnalyzeToolInstance,
+      this.ahkEditToolInstance,
+      this.ahkRunToolInstance
+    );
     
     // Initialize Smart Orchestrator after toolRegistry is created
     const toolFactory = new ToolFactory();
@@ -164,7 +176,12 @@ export class AutoHotkeyMcpServer {
       logDebugEvent('tools.list', { status: 'start', message: useSSE ? 'Including SSE-specific tools' : 'Standard tool listing' });
 
       const standardTools = [
-        ahkFileEditorToolDefinition, // PRIMARY FILE EDITING TOOL - Listed first for priority
+        // New efficiency tools - listed first for priority
+        ahkToolsSearchToolDefinition, // Progressive tool discovery
+        ahkWorkflowAnalyzeFixRunToolDefinition, // Composite workflow tool
+
+        // Existing tools
+        ahkFileEditorToolDefinition, // PRIMARY FILE EDITING TOOL
         ahkEditToolDefinition,
         ahkFileToolDefinition,
         ahkFileCreateToolDefinition,
