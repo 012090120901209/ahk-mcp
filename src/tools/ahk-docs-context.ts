@@ -284,7 +284,7 @@ export class AhkContextInjectorTool {
       }
 
       // Search in both index and full documentation
-      const contextMatches = this.findRelevantContextEnhanced(keywords, ahkIndex, ahkFullDocs, contextType, maxItems);
+      const contextMatches = this.findRelevantContextEnhanced(keywords, ahkIndex, ahkFullDocs, contextType ?? 'auto', maxItems ?? 5);
 
       if (contextMatches.length === 0 && !moduleInstructions) {
         const hasFilePath = this.detectFilePath(combinedText);

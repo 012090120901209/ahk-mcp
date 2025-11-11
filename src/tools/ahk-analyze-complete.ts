@@ -180,13 +180,30 @@ export class AhkAnalyzeUnifiedTool {
 
       logger.info(`Running unified AHK analysis in ${mode} mode`);
 
-      const result = await this.runUnifiedAnalysis(validatedArgs);
+      // Create a version with all defaults applied for strict typing
+      const argsWithDefaults = {
+        code: validatedArgs.code,
+        mode: validatedArgs.mode ?? 'quick' as const,
+        includeDocumentation: validatedArgs.includeDocumentation ?? true,
+        includeUsageExamples: validatedArgs.includeUsageExamples ?? false,
+        analyzeComplexity: validatedArgs.analyzeComplexity ?? true,
+        enableClaudeStandards: validatedArgs.enableClaudeStandards ?? true,
+        severityFilter: validatedArgs.severityFilter ?? 'all' as const,
+        autoFix: validatedArgs.autoFix ?? false,
+        fixLevel: validatedArgs.fixLevel ?? 'safe' as const,
+        returnFixedCode: validatedArgs.returnFixedCode ?? true,
+        includeVSCodeProblems: validatedArgs.includeVSCodeProblems ?? false,
+        showPerformance: validatedArgs.showPerformance ?? false,
+        format: validatedArgs.format ?? 'detailed' as const
+      };
+
+      const result = await this.runUnifiedAnalysis(argsWithDefaults);
 
       // Calculate total time
       result.performance.totalTime = Math.round(performance.now() - startTime);
 
       // Format output
-      const output = this.formatOutput(result, validatedArgs.format);
+      const output = this.formatOutput(result, argsWithDefaults.format);
 
       return {
         content: [{ type: 'text', text: output }]
@@ -244,12 +261,21 @@ export class AhkAnalyzeUnifiedTool {
       case 'complete':
         // Add full analysis
         const analysisStart = performance.now();
-        result.analysis = await this.analyzeTool.execute({
+        const analysisArgs = {
           code: args.code,
-          includeDocumentation: args.includeDocumentation,
-          includeUsageExamples: args.includeUsageExamples,
-          analyzeComplexity: args.analyzeComplexity
-        });
+          format: args.format ?? 'detailed' as const,
+          includeDocumentation: args.includeDocumentation ?? true,
+          includeUsageExamples: args.includeUsageExamples ?? false,
+          analyzeComplexity: args.analyzeComplexity ?? true,
+          enableClaudeStandards: args.enableClaudeStandards ?? true,
+          severityFilter: args.severityFilter ?? 'all' as const,
+          autoFix: args.autoFix ?? false,
+          fixLevel: args.fixLevel ?? 'safe' as const,
+          returnFixedCode: args.returnFixedCode ?? true,
+          includeVSCodeProblems: args.includeVSCodeProblems ?? false,
+          showPerformance: args.showPerformance ?? false
+        };
+        result.analysis = await this.analyzeTool.execute(analysisArgs);
         result.performance.analysisTime = Math.round(performance.now() - analysisStart);
 
         // Extract complexity for summary

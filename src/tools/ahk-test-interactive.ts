@@ -15,7 +15,7 @@ export const TestInteractiveArgsSchema = z.object({
 
 export type TestInteractiveToolArgs = z.infer<typeof TestInteractiveArgsSchema>;
 
-export const testInteractiveToolDefinition = {
+export const ahkTestInteractiveToolDefinition = {
   name: 'AHK_Test_Interactive',
   description: 'Run AHK script with interactive GUI feedback interface. Opens a GUI with PASS/FAIL buttons, captures script output, and waits for manual test verification. Returns pass/fail status and any output captured.',
   inputSchema: {

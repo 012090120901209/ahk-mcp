@@ -110,10 +110,11 @@ export class AhkDocSearchTool {
       };
 
       let results: IndexedDoc[] = [];
+      const limitValue = limit ?? 10;
       try {
         const sets = await (AhkDocSearchTool.index as any).search(query, {
           enrich: true,
-          limit: limit * 2,
+          limit: limitValue * 2,
           index: ['name', 'description', 'path']
         });
         // Aggregate unique docs across fields
@@ -127,9 +128,9 @@ export class AhkDocSearchTool {
             if (seen.has(doc.id)) continue;
             seen.add(doc.id);
             aggregated.push(doc);
-            if (aggregated.length >= limit) break;
+            if (aggregated.length >= limitValue) break;
           }
-          if (aggregated.length >= limit) break;
+          if (aggregated.length >= limitValue) break;
         }
         results = aggregated;
       } catch (err) {
@@ -138,7 +139,7 @@ export class AhkDocSearchTool {
         results = AhkDocSearchTool.corpus.filter((d) => filterType(d.type) && (
           d.name.toLowerCase().includes(query.toLowerCase()) ||
           (d.description || '').toLowerCase().includes(query.toLowerCase())
-        )).slice(0, limit);
+        )).slice(0, limitValue);
       }
 
       if (results.length === 0) {

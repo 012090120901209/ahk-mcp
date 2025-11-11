@@ -110,19 +110,19 @@ export class AhkVSCodeProblemsTool {
       }));
 
       const filtered = normalized.filter(n =>
-        includeBySeverity(n.severityName, severity) &&
+        includeBySeverity(n.severityName, severity ?? 'all') &&
         (!fileIncludes || n.file.toLowerCase().includes(fileIncludes.toLowerCase())) &&
         (!ownerIncludes || n.owner.toLowerCase().includes(ownerIncludes.toLowerCase())) &&
         (!originIncludes || n.origin.toLowerCase().includes(originIncludes.toLowerCase()))
       );
 
       if (format === 'raw') {
-        const subset = filtered.slice(0, limit);
+        const subset = filtered.slice(0, limit ?? 100);
         const raw = JSON.stringify(subset, null, 2);
         return { content: [{ type: 'text', text: raw }] };
       }
 
-      const text = this.formatSummary(filtered, limit);
+      const text = this.formatSummary(filtered, limit ?? 100);
       return { content: [{ type: 'text', text }] };
     } catch (error) {
       logger.error('Error in AHK_VSCode_Problems tool:', error);

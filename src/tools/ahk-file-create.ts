@@ -140,7 +140,8 @@ export class AhkFileCreateTool {
         throw new Error(`Directory does not exist: ${directoryPath}. Enable createDirectories to create it automatically.`);
       }
 
-      const bytesToWrite = Buffer.byteLength(validatedArgs.content, UTF8_ENCODING);
+      const contentToWrite = validatedArgs.content ?? '';
+      const bytesToWrite = Buffer.byteLength(contentToWrite, UTF8_ENCODING);
       let directoriesCreated = false;
       let activeFileSet = false;
 
@@ -154,7 +155,7 @@ export class AhkFileCreateTool {
           logger.info(`Overwriting existing file: ${resolvedPath}`);
         }
 
-        await fs.writeFile(resolvedPath, validatedArgs.content, { encoding: UTF8_ENCODING });
+        await fs.writeFile(resolvedPath, contentToWrite, { encoding: UTF8_ENCODING });
 
         if (setActive) {
           activeFileSet = activeFile.setActiveFile(resolvedPath);

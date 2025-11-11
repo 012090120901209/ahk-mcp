@@ -161,14 +161,14 @@ export class AhkSamplingEnhancer {
       }
 
       // Generate enhanced context
-      const enhancedContext = await this.generateEnhancedContext(originalPrompt, contextLevel, includeExamples);
-      
+      const enhancedContext = await this.generateEnhancedContext(originalPrompt, contextLevel ?? 'standard', includeExamples ?? true);
+
       // Create sampling request following MCP standards
       const samplingRequest = this.createSamplingRequest(
-        originalPrompt, 
-        enhancedContext, 
-        modelPreferences, 
-        maxTokens
+        originalPrompt,
+        enhancedContext,
+        modelPreferences,
+        maxTokens ?? 1000
       );
 
       return {
@@ -178,7 +178,7 @@ export class AhkSamplingEnhancer {
             text: this.formatSamplingRequest(samplingRequest, enhancedContext) + 
               '\n\n---\n\n**Enhancement Details:**\n' +
               `- Detected Keywords: ${this.extractKeywords(originalPrompt).join(', ')}\n` +
-              `- Context Level: ${contextLevel}\n` +
+              `- Context Level: ${contextLevel ?? 'standard'}\n` +
               `- Enhancement Reason: AutoHotkey-related content detected, enhanced with relevant documentation`
           }
         ]
