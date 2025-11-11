@@ -48,6 +48,9 @@ import { AhkTraceViewerTool, ahkTraceViewerToolDefinition } from './tools/ahk-tr
 import { AhkToolsSearchTool, ahkToolsSearchToolDefinition } from './tools/ahk-tools-search.js';
 import { AhkWorkflowAnalyzeFixRunTool, ahkWorkflowAnalyzeFixRunToolDefinition } from './tools/ahk-workflow-analyze-fix-run.js';
 import { AhkLspDocumentSymbolsTool, ahkLspDocumentSymbolsToolDefinition } from './tools/ahk-lsp-document-symbols.js';
+import { AhkLspHoverTool, ahkLspHoverToolDefinition } from './tools/ahk-lsp-hover.js';
+import { AhkLspFormatTool, ahkLspFormatToolDefinition } from './tools/ahk-lsp-format.js';
+import { AhkLspCompletionTool, ahkLspCompletionToolDefinition } from './tools/ahk-lsp-completion.js';
 import { AHK_Library_List_Definition } from './tools/ahk-library-list.js';
 import { AHK_Library_Info_Definition } from './tools/ahk-library-info.js';
 import { AHK_Library_Import_Definition } from './tools/ahk-library-import.js';
@@ -96,6 +99,9 @@ export class AutoHotkeyMcpServer {
   public ahkToolsSearchToolInstance: AhkToolsSearchTool;
   public ahkWorkflowAnalyzeFixRunToolInstance: AhkWorkflowAnalyzeFixRunTool;
   public ahkLspDocumentSymbolsToolInstance: AhkLspDocumentSymbolsTool;
+  public ahkLspHoverToolInstance: AhkLspHoverTool;
+  public ahkLspFormatToolInstance: AhkLspFormatTool;
+  public ahkLspCompletionToolInstance: AhkLspCompletionTool;
 
   constructor() {
     this.server = new Server(
@@ -144,6 +150,9 @@ export class AutoHotkeyMcpServer {
     this.ahkTraceViewerToolInstance = new AhkTraceViewerTool();
     this.ahkToolsSearchToolInstance = new AhkToolsSearchTool();
     this.ahkLspDocumentSymbolsToolInstance = new AhkLspDocumentSymbolsTool();
+    this.ahkLspHoverToolInstance = new AhkLspHoverTool();
+    this.ahkLspFormatToolInstance = new AhkLspFormatTool();
+    this.ahkLspCompletionToolInstance = new AhkLspCompletionTool();
 
     this.toolRegistry = new ToolRegistry(this);
 
@@ -204,6 +213,9 @@ export class AutoHotkeyMcpServer {
         ahkActiveFileToolDefinition,
         ahkLspToolDefinition,
         ahkLspDocumentSymbolsToolDefinition,
+        ahkLspHoverToolDefinition,
+        ahkLspFormatToolDefinition,
+        ahkLspCompletionToolDefinition,
         ahkFileViewToolDefinition,
         ahkAutoFileToolDefinition,
         ahkProcessRequestToolDefinition,
