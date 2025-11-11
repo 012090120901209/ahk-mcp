@@ -47,6 +47,7 @@ import { AhkTestInteractiveTool, ahkTestInteractiveToolDefinition } from './tool
 import { AhkTraceViewerTool, ahkTraceViewerToolDefinition } from './tools/ahk-trace-viewer.js';
 import { AhkToolsSearchTool, ahkToolsSearchToolDefinition } from './tools/ahk-tools-search.js';
 import { AhkWorkflowAnalyzeFixRunTool, ahkWorkflowAnalyzeFixRunToolDefinition } from './tools/ahk-workflow-analyze-fix-run.js';
+import { AhkLspDocumentSymbolsTool, ahkLspDocumentSymbolsToolDefinition } from './tools/ahk-lsp-document-symbols.js';
 import { AHK_Library_List_Definition } from './tools/ahk-library-list.js';
 import { AHK_Library_Info_Definition } from './tools/ahk-library-info.js';
 import { AHK_Library_Import_Definition } from './tools/ahk-library-import.js';
@@ -94,6 +95,7 @@ export class AutoHotkeyMcpServer {
   public ahkTraceViewerToolInstance: AhkTraceViewerTool;
   public ahkToolsSearchToolInstance: AhkToolsSearchTool;
   public ahkWorkflowAnalyzeFixRunToolInstance: AhkWorkflowAnalyzeFixRunTool;
+  public ahkLspDocumentSymbolsToolInstance: AhkLspDocumentSymbolsTool;
 
   constructor() {
     this.server = new Server(
@@ -141,6 +143,7 @@ export class AutoHotkeyMcpServer {
     this.ahkTestInteractiveToolInstance = new AhkTestInteractiveTool();
     this.ahkTraceViewerToolInstance = new AhkTraceViewerTool();
     this.ahkToolsSearchToolInstance = new AhkToolsSearchTool();
+    this.ahkLspDocumentSymbolsToolInstance = new AhkLspDocumentSymbolsTool();
 
     this.toolRegistry = new ToolRegistry(this);
 
@@ -200,6 +203,7 @@ export class AutoHotkeyMcpServer {
         ahkConfigToolDefinition,
         ahkActiveFileToolDefinition,
         ahkLspToolDefinition,
+        ahkLspDocumentSymbolsToolDefinition,
         ahkFileViewToolDefinition,
         ahkAutoFileToolDefinition,
         ahkProcessRequestToolDefinition,
