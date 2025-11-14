@@ -127,5 +127,5 @@
   "enabledMcpjsonServers": [
     "ahk"
   ],
-  "outputStyle": "Clean_Markdown"
+  "outputStyle": "Code_Style"
 }

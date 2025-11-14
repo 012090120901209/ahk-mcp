@@ -439,12 +439,6 @@ export class AhkDebugAgentTool {
       const validated = parsed.data;
       const { mode, listenHost, listenPort, listenPorts, portRange, scanTimeoutMs, forwardHost, forwardPort, maxEvents, eventLimit } = validated;
 
-      const finalListenHost = listenHost ?? '127.0.0.1';
-      const finalListenPort = listenPort ?? 9002;
-      const finalMaxEvents = maxEvents ?? 200;
-      const finalScanTimeout = scanTimeoutMs ?? 3000;
-      const finalEventLimit = eventLimit ?? 100;
-
       const resolvePortList = (): number[] => {
         if (Array.isArray(listenPorts) && listenPorts.length > 0) {
           return Array.from(new Set(listenPorts)).sort((a, b) => a - b);
@@ -456,31 +450,32 @@ export class AhkDebugAgentTool {
           for (let p = start; p <= end; p++) result.push(p);
           return result;
         }
-        return [finalListenPort];
+        return [listenPort ?? 9002];
       };
 
       if (mode === 'start') {
-        const proxy = this.getOrCreateProxy(finalMaxEvents);
+        const proxy = this.getOrCreateProxy(maxEvents ?? 200);
         const ports = resolvePortList();
         proxy.setProtocolMode((validated as any).protocol || 'auto');
-        await proxy.startOnPorts(finalListenHost, ports, forwardHost, forwardPort);
+        await proxy.startOnPorts(listenHost ?? '127.0.0.1', ports, forwardHost, forwardPort);
         const status = proxy.status();
         return { content: [{ type: 'text', text: this.formatStatus(status) }] };
       }
 
       if (mode === 'scan') {
-        const proxy = this.getOrCreateProxy(finalMaxEvents);
+        const proxy = this.getOrCreateProxy(maxEvents ?? 200);
         // Default scan pool if none specified
         let ports = resolvePortList();
-        if ((!listenPorts || listenPorts.length === 0) && !portRange && Array.isArray(ports) && ports.length === 1 && ports[0] === finalListenPort) {
+        const defaultListenPort = listenPort ?? 9002;
+        if ((!listenPorts || listenPorts.length === 0) && !portRange && Array.isArray(ports) && ports.length === 1 && ports[0] === defaultListenPort) {
           // Use recommended rotating pool common for VS Code AHK adapters
           ports = [9002, 9003, 9004, 9005, 9006];
         }
         proxy.setProtocolMode((validated as any).protocol || 'auto');
-        await proxy.startOnPorts(finalListenHost, ports, forwardHost, forwardPort);
-        const result = await proxy.onNextConnection(finalScanTimeout);
+        await proxy.startOnPorts(listenHost ?? '127.0.0.1', ports, forwardHost, forwardPort);
+        const result = await proxy.onNextConnection(scanTimeoutMs ?? 3000);
         if (result.timedOut) {
-          return { content: [{ type: 'text', text: `Scan active on ports [${ports.join(', ')}], no connection detected within ${finalScanTimeout}ms.` }] };
+          return { content: [{ type: 'text', text: `Scan active on ports [${ports.join(', ')}], no connection detected within ${scanTimeoutMs ?? 3000}ms.` }] };
         } else {
           return { content: [{ type: 'text', text: `Detected connection on port ${result.port}. Listeners remain active on [${ports.join(', ')}].` }] };
         }
@@ -500,7 +495,7 @@ export class AhkDebugAgentTool {
       }
 
       if (mode === 'get_events') {
-        const events = AhkDebugAgentTool.proxyInstance?.getEvents(finalEventLimit) || [];
+        const events = AhkDebugAgentTool.proxyInstance?.getEvents(eventLimit ?? 100) || [];
         return { content: [{ type: 'text', text: this.formatEvents(events) }] };
       }
 
