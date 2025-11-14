@@ -23,6 +23,7 @@ import { AhkConfigTool } from './tools/ahk-system-config.js';
 import { AhkActiveFileTool } from './tools/ahk-active-file.js';
 import { AhkLspTool } from './tools/ahk-analyze-lsp.js';
 import { AhkFileViewTool } from './tools/ahk-file-view.js';
+import { AhkFileListTool } from './tools/ahk-file-list.js';
 import { AhkAutoFileTool } from './tools/ahk-file-detect.js';
 import { AhkProcessRequestTool } from './tools/ahk-run-process.js';
 import { AhkFileTool } from './tools/ahk-file-active.js';
@@ -37,13 +38,13 @@ import { AhkFileCreateTool } from './tools/ahk-file-create.js';
 import { AhkAnalyticsTool } from './tools/ahk-system-analytics.js';
 import { AhkTestInteractiveTool } from './tools/ahk-test-interactive.js';
 import { AhkTraceViewerTool } from './tools/ahk-trace-viewer.js';
+import { AhkLintTool } from './tools/ahk-lint.js';
 import { AhkToolsSearchTool } from './tools/ahk-tools-search.js';
 import { AhkWorkflowAnalyzeFixRunTool } from './tools/ahk-workflow-analyze-fix-run.js';
 import { AhkLspDocumentSymbolsTool } from './tools/ahk-lsp-document-symbols.js';
 import { AhkLspHoverTool } from './tools/ahk-lsp-hover.js';
 import { AhkLspFormatTool } from './tools/ahk-lsp-format.js';
 import { AhkLspCompletionTool } from './tools/ahk-lsp-completion.js';
-import { ToolFactory } from './core/tool-factory.js';
 import { autoDetect, getActiveFilePath } from './core/active-file.js';
 import { toolSettings } from './core/tool-settings.js';
 import { configManager } from './core/path-converter-config.js';
@@ -82,6 +83,7 @@ export class AutoHotkeyMcpServer {
         this.ahkActiveFileToolInstance = new AhkActiveFileTool();
         this.ahkLspToolInstance = new AhkLspTool();
         this.ahkFileViewToolInstance = new AhkFileViewTool();
+        this.ahkFileListToolInstance = new AhkFileListTool();
         this.ahkAutoFileToolInstance = new AhkAutoFileTool();
         this.ahkProcessRequestToolInstance = new AhkProcessRequestTool();
         this.ahkFileToolInstance = new AhkFileTool();
@@ -100,12 +102,12 @@ export class AutoHotkeyMcpServer {
         this.ahkLspHoverToolInstance = new AhkLspHoverTool();
         this.ahkLspFormatToolInstance = new AhkLspFormatTool();
         this.ahkLspCompletionToolInstance = new AhkLspCompletionTool();
+        this.ahkLintToolInstance = new AhkLintTool();
         this.toolRegistry = new ToolRegistry(this);
         // Initialize workflow tool with dependencies (must be after other tools are initialized)
         this.ahkWorkflowAnalyzeFixRunToolInstance = new AhkWorkflowAnalyzeFixRunTool(this.ahkAnalyzeToolInstance, this.ahkEditToolInstance, this.ahkRunToolInstance);
         // Initialize Smart Orchestrator after toolRegistry is created
-        const toolFactory = new ToolFactory();
-        this.ahkSmartOrchestratorToolInstance = new AhkSmartOrchestratorTool(toolFactory, this.toolRegistry);
+        this.ahkSmartOrchestratorToolInstance = new AhkSmartOrchestratorTool();
         // Initialize path conversion system
         this.initializePathConversion();
         this.setupToolHandlers();

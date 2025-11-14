@@ -274,10 +274,7 @@ export class ToolFactory implements IToolFactory {
   }
 
   createSmartOrchestratorTool(): AhkSmartOrchestratorTool {
-    // Smart Orchestrator requires ToolFactory and ToolRegistry dependencies
-    // Create it directly with the required parameters
-    // Note: ToolRegistry will be injected from server instance
-    return new AhkSmartOrchestratorTool(this, {} as CoreToolRegistry);
+    return new AhkSmartOrchestratorTool();
   }
 }
 

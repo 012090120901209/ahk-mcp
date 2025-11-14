@@ -56,7 +56,6 @@ import { AhkLspCompletionTool, ahkLspCompletionToolDefinition } from './tools/ah
 import { AHK_Library_List_Definition } from './tools/ahk-library-list.js';
 import { AHK_Library_Info_Definition } from './tools/ahk-library-info.js';
 import { AHK_Library_Import_Definition } from './tools/ahk-library-import.js';
-import { ToolFactory } from './core/tool-factory.js';
 import { autoDetect, getActiveFilePath } from './core/active-file.js';
 import { toolSettings } from './core/tool-settings.js';
 import { configManager } from './core/path-converter-config.js';
@@ -171,8 +170,7 @@ export class AutoHotkeyMcpServer {
     );
     
     // Initialize Smart Orchestrator after toolRegistry is created
-    const toolFactory = new ToolFactory();
-    this.ahkSmartOrchestratorToolInstance = new AhkSmartOrchestratorTool(toolFactory, this.toolRegistry);
+    this.ahkSmartOrchestratorToolInstance = new AhkSmartOrchestratorTool();
     
     // Initialize path conversion system
     this.initializePathConversion();
