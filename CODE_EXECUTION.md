@@ -18,6 +18,8 @@ Engineering at Anthropic
 
 # Code execution with MCP: Building more efficient agents
 
+> **Project Note:** The on-disk wrapper implementation that mirrors this article now lives in `docs/CODE_EXECUTION_BRIDGE.md` and the `code-execution/` directory. Regenerate the wrappers with `npm run codeexec:generate` whenever tool definitions change, then rerun `npm run build` to keep Claude/ChatGPT workspaces in sync.
+
 Published&nbsp;Nov 04, 2025
 
 Direct tool calls consume context for each definition and result. Agents scale better by writing code to call tools instead. Here's how it works with MCP.
