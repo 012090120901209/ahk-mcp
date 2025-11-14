@@ -55,7 +55,7 @@ import { AHK_Library_List_Definition } from './tools/ahk-library-list.js';
 import { AHK_Library_Info_Definition } from './tools/ahk-library-info.js';
 import { AHK_Library_Import_Definition } from './tools/ahk-library-import.js';
 import { ToolFactory } from './core/tool-factory.js';
-import { autoDetect } from './core/active-file.js';
+import { autoDetect, getActiveFilePath } from './core/active-file.js';
 import { toolSettings } from './core/tool-settings.js';
 import { configManager } from './core/path-converter-config.js';
 import { pathConverter } from './utils/path-converter.js';
@@ -63,6 +63,7 @@ import { pathInterceptor } from './core/path-interceptor.js';
 import { observabilityServer } from './core/observability-server.js';
 import './core/opentelemetry.js'; // Initialize OpenTelemetry (if enabled)
 import { tracer } from './core/tracing.js';
+import { getStandardToolDefinitions, getToolMetadata } from './core/tool-metadata.js';
 
 export class AutoHotkeyMcpServer {
   private server: Server;
@@ -187,49 +188,29 @@ export class AutoHotkeyMcpServer {
       const useSSE = envConfig.useSSEMode();
       logDebugEvent('tools.list', { status: 'start', message: useSSE ? 'Including SSE-specific tools' : 'Standard tool listing' });
 
-      const standardTools = [
-        // New efficiency tools - listed first for priority
-        ahkToolsSearchToolDefinition, // Progressive tool discovery
-        ahkWorkflowAnalyzeFixRunToolDefinition, // Composite workflow tool
+      const standardTools = getStandardToolDefinitions();
+      const metadataIndex = new Map(getToolMetadata().map((entry) => [entry.definition.name, entry]));
+      const activeFileAwareNames = new Set(
+        getToolMetadata()
+          .filter((entry) => entry.category === 'file')
+          .map((entry) => entry.definition.name)
+      );
+      const activeFilePath = getActiveFilePath();
+      const activeFileNote = `\n\n📎 Active File: ${activeFilePath ?? 'Not set. Use AHK_File_Active to select a target.'}`;
 
-        // Existing tools
-        ahkFileEditorToolDefinition, // PRIMARY FILE EDITING TOOL
-        ahkEditToolDefinition,
-        ahkFileToolDefinition,
-        ahkFileCreateToolDefinition,
-        ahkDiffEditToolDefinition,
-        ahkDiagnosticsToolDefinition,
-        ahkRunToolDefinition,
-        ahkAnalyzeToolDefinition,
-        ahkContextInjectorToolDefinition,
-        ahkSummaryToolDefinition,
-        ahkPromptsToolDefinition,
-        ahkSamplingEnhancerToolDefinition,
-        ahkDebugAgentToolDefinition,
-        ahkDocSearchToolDefinition,
-        ahkVSCodeProblemsToolDefinition,
-        ahkRecentToolDefinition,
-        ahkConfigToolDefinition,
-        ahkActiveFileToolDefinition,
-        ahkLspToolDefinition,
-        ahkLspDocumentSymbolsToolDefinition,
-        ahkLspHoverToolDefinition,
-        ahkLspFormatToolDefinition,
-        ahkLspCompletionToolDefinition,
-        ahkFileViewToolDefinition,
-        ahkAutoFileToolDefinition,
-        ahkProcessRequestToolDefinition,
-        ahkSettingsToolDefinition,
-        ahkSmallEditToolDefinition,
-        ahkAlphaToolDefinition,
-        ahkSmartOrchestratorToolDefinition,
-        ahkAnalyticsToolDefinition,
-        ahkTestInteractiveToolDefinition,
-        ahkTraceViewerToolDefinition,
-        AHK_Library_List_Definition,
-        AHK_Library_Info_Definition,
-        AHK_Library_Import_Definition,
-      ];
+      const contextualTools = standardTools.map((tool) => {
+        if (!activeFileAwareNames.has(tool.name)) {
+          return tool;
+        }
+
+        const metadata = metadataIndex.get(tool.name);
+        const suffix = metadata?.category === 'file' ? activeFileNote : '';
+
+        return {
+          ...tool,
+          description: `${tool.description}${suffix}`
+        };
+      });
 
       // Add ChatGPT-compatible tools when in SSE mode
       const chatGPTTools = useSSE ? [
@@ -262,7 +243,7 @@ export class AutoHotkeyMcpServer {
           }
         }
       ] : [];
-      const tools = [...standardTools, ...chatGPTTools];
+      const tools = [...contextualTools, ...chatGPTTools];
       logDebugEvent('tools.list', { status: 'success', message: `Returned ${tools.length} tools`, details: { mode: useSSE ? 'sse' : 'stdio' } });
 
       return {

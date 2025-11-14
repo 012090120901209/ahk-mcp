@@ -15,6 +15,7 @@
     "watch:restart": "npm run build:restart && npm run claude:watch",
     "clean": "rimraf dist",
     "lint": "eslint src --ext .ts",
+    "codeexec:generate": "tsx scripts/generate-code-exec-wrappers.ts",
     "test": "npm run test:unit",
     "test:unit": "cross-env NODE_ENV=test jest --config jest.config.js",
     "test:unit:watch": "cross-env NODE_ENV=test jest --config jest.config.js --watch",
@@ -56,6 +57,7 @@
     "rimraf": "^5.0.5",
     "ts-jest": "^29.1.1",
     "ts-node": "^10.9.2",
+    "tsx": "^4.20.6",
     "typescript": "^5.3.3"
   }
 }

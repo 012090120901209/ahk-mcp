@@ -8,40 +8,43 @@ import { ToolRegistry } from './core/tool-registry.js';
 import { envConfig } from './core/env-config.js';
 import { logDebugEvent, logDebugError } from './debug-journal.js';
 // Import tool classes and definitions
-import { AhkDiagnosticsTool, ahkDiagnosticsToolDefinition } from './tools/ahk-analyze-diagnostics.js';
-import { AhkSummaryTool, ahkSummaryToolDefinition } from './tools/ahk-analyze-summary.js';
-import { AhkPromptsTool, ahkPromptsToolDefinition, getPromptCatalog } from './tools/ahk-docs-prompts.js';
-import { AhkAnalyzeTool, ahkAnalyzeToolDefinition } from './tools/ahk-analyze-code.js';
-import { AhkContextInjectorTool, ahkContextInjectorToolDefinition } from './tools/ahk-docs-context.js';
-import { AhkSamplingEnhancer, ahkSamplingEnhancerToolDefinition } from './tools/ahk-docs-samples.js';
-import { AhkDebugAgentTool, ahkDebugAgentToolDefinition } from './tools/ahk-run-debug.js';
-import { AhkDocSearchTool, ahkDocSearchToolDefinition } from './tools/ahk-docs-search.js';
-import { AhkVSCodeProblemsTool, ahkVSCodeProblemsToolDefinition } from './tools/ahk-analyze-vscode.js';
-import { AhkRunTool, ahkRunToolDefinition } from './tools/ahk-run-script.js';
-import { AhkRecentTool, ahkRecentToolDefinition } from './tools/ahk-file-recent.js';
-import { AhkConfigTool, ahkConfigToolDefinition } from './tools/ahk-system-config.js';
-import { AhkActiveFileTool, ahkActiveFileToolDefinition } from './tools/ahk-active-file.js';
-import { AhkLspTool, ahkLspToolDefinition } from './tools/ahk-analyze-lsp.js';
-import { AhkFileViewTool, ahkFileViewToolDefinition } from './tools/ahk-file-view.js';
-import { AhkAutoFileTool, ahkAutoFileToolDefinition } from './tools/ahk-file-detect.js';
-import { AhkProcessRequestTool, ahkProcessRequestToolDefinition } from './tools/ahk-run-process.js';
-import { AhkFileTool, ahkFileToolDefinition } from './tools/ahk-file-active.js';
-import { AhkEditTool, ahkEditToolDefinition } from './tools/ahk-file-edit.js';
-import { AhkDiffEditTool, ahkDiffEditToolDefinition } from './tools/ahk-file-edit-diff.js';
-import { AhkSettingsTool, ahkSettingsToolDefinition } from './tools/ahk-system-settings.js';
-import { AhkAlphaTool, ahkAlphaToolDefinition } from './tools/ahk-system-alpha.js';
-import { AhkFileEditorTool, ahkFileEditorToolDefinition } from './tools/ahk-file-edit-advanced.js';
-import { AhkSmallEditTool, ahkSmallEditToolDefinition } from './tools/ahk-file-edit-small.js';
-import { AhkSmartOrchestratorTool, ahkSmartOrchestratorToolDefinition } from './tools/ahk-smart-orchestrator.js';
-import { AhkFileCreateTool, ahkFileCreateToolDefinition } from './tools/ahk-file-create.js';
-import { AhkAnalyticsTool, ahkAnalyticsToolDefinition } from './tools/ahk-system-analytics.js';
-import { AhkTestInteractiveTool, ahkTestInteractiveToolDefinition } from './tools/ahk-test-interactive.js';
-import { AhkTraceViewerTool, ahkTraceViewerToolDefinition } from './tools/ahk-trace-viewer.js';
-import { AHK_Library_List_Definition } from './tools/ahk-library-list.js';
-import { AHK_Library_Info_Definition } from './tools/ahk-library-info.js';
-import { AHK_Library_Import_Definition } from './tools/ahk-library-import.js';
+import { AhkDiagnosticsTool } from './tools/ahk-analyze-diagnostics.js';
+import { AhkSummaryTool } from './tools/ahk-analyze-summary.js';
+import { AhkPromptsTool, getPromptCatalog } from './tools/ahk-docs-prompts.js';
+import { AhkAnalyzeTool } from './tools/ahk-analyze-code.js';
+import { AhkContextInjectorTool } from './tools/ahk-docs-context.js';
+import { AhkSamplingEnhancer } from './tools/ahk-docs-samples.js';
+import { AhkDebugAgentTool } from './tools/ahk-run-debug.js';
+import { AhkDocSearchTool } from './tools/ahk-docs-search.js';
+import { AhkVSCodeProblemsTool } from './tools/ahk-analyze-vscode.js';
+import { AhkRunTool } from './tools/ahk-run-script.js';
+import { AhkRecentTool } from './tools/ahk-file-recent.js';
+import { AhkConfigTool } from './tools/ahk-system-config.js';
+import { AhkActiveFileTool } from './tools/ahk-active-file.js';
+import { AhkLspTool } from './tools/ahk-analyze-lsp.js';
+import { AhkFileViewTool } from './tools/ahk-file-view.js';
+import { AhkAutoFileTool } from './tools/ahk-file-detect.js';
+import { AhkProcessRequestTool } from './tools/ahk-run-process.js';
+import { AhkFileTool } from './tools/ahk-file-active.js';
+import { AhkEditTool } from './tools/ahk-file-edit.js';
+import { AhkDiffEditTool } from './tools/ahk-file-edit-diff.js';
+import { AhkSettingsTool } from './tools/ahk-system-settings.js';
+import { AhkAlphaTool } from './tools/ahk-system-alpha.js';
+import { AhkFileEditorTool } from './tools/ahk-file-edit-advanced.js';
+import { AhkSmallEditTool } from './tools/ahk-file-edit-small.js';
+import { AhkSmartOrchestratorTool } from './tools/ahk-smart-orchestrator.js';
+import { AhkFileCreateTool } from './tools/ahk-file-create.js';
+import { AhkAnalyticsTool } from './tools/ahk-system-analytics.js';
+import { AhkTestInteractiveTool } from './tools/ahk-test-interactive.js';
+import { AhkTraceViewerTool } from './tools/ahk-trace-viewer.js';
+import { AhkToolsSearchTool } from './tools/ahk-tools-search.js';
+import { AhkWorkflowAnalyzeFixRunTool } from './tools/ahk-workflow-analyze-fix-run.js';
+import { AhkLspDocumentSymbolsTool } from './tools/ahk-lsp-document-symbols.js';
+import { AhkLspHoverTool } from './tools/ahk-lsp-hover.js';
+import { AhkLspFormatTool } from './tools/ahk-lsp-format.js';
+import { AhkLspCompletionTool } from './tools/ahk-lsp-completion.js';
 import { ToolFactory } from './core/tool-factory.js';
-import { autoDetect } from './core/active-file.js';
+import { autoDetect, getActiveFilePath } from './core/active-file.js';
 import { toolSettings } from './core/tool-settings.js';
 import { configManager } from './core/path-converter-config.js';
 import { pathConverter } from './utils/path-converter.js';
@@ -49,6 +52,7 @@ import { pathInterceptor } from './core/path-interceptor.js';
 import { observabilityServer } from './core/observability-server.js';
 import './core/opentelemetry.js'; // Initialize OpenTelemetry (if enabled)
 import { tracer } from './core/tracing.js';
+import { getStandardToolDefinitions, getToolMetadata } from './core/tool-metadata.js';
 export class AutoHotkeyMcpServer {
     constructor() {
         this.server = new Server({
@@ -91,7 +95,14 @@ export class AutoHotkeyMcpServer {
         this.ahkAnalyticsToolInstance = new AhkAnalyticsTool();
         this.ahkTestInteractiveToolInstance = new AhkTestInteractiveTool();
         this.ahkTraceViewerToolInstance = new AhkTraceViewerTool();
+        this.ahkToolsSearchToolInstance = new AhkToolsSearchTool();
+        this.ahkLspDocumentSymbolsToolInstance = new AhkLspDocumentSymbolsTool();
+        this.ahkLspHoverToolInstance = new AhkLspHoverTool();
+        this.ahkLspFormatToolInstance = new AhkLspFormatTool();
+        this.ahkLspCompletionToolInstance = new AhkLspCompletionTool();
         this.toolRegistry = new ToolRegistry(this);
+        // Initialize workflow tool with dependencies (must be after other tools are initialized)
+        this.ahkWorkflowAnalyzeFixRunToolInstance = new AhkWorkflowAnalyzeFixRunTool(this.ahkAnalyzeToolInstance, this.ahkEditToolInstance, this.ahkRunToolInstance);
         // Initialize Smart Orchestrator after toolRegistry is created
         const toolFactory = new ToolFactory();
         this.ahkSmartOrchestratorToolInstance = new AhkSmartOrchestratorTool(toolFactory, this.toolRegistry);
@@ -111,40 +122,24 @@ export class AutoHotkeyMcpServer {
             // Check if we're in SSE mode (for ChatGPT compatibility)
             const useSSE = envConfig.useSSEMode();
             logDebugEvent('tools.list', { status: 'start', message: useSSE ? 'Including SSE-specific tools' : 'Standard tool listing' });
-            const standardTools = [
-                ahkFileEditorToolDefinition, // PRIMARY FILE EDITING TOOL - Listed first for priority
-                ahkEditToolDefinition,
-                ahkFileToolDefinition,
-                ahkFileCreateToolDefinition,
-                ahkDiffEditToolDefinition,
-                ahkDiagnosticsToolDefinition,
-                ahkRunToolDefinition,
-                ahkAnalyzeToolDefinition,
-                ahkContextInjectorToolDefinition,
-                ahkSummaryToolDefinition,
-                ahkPromptsToolDefinition,
-                ahkSamplingEnhancerToolDefinition,
-                ahkDebugAgentToolDefinition,
-                ahkDocSearchToolDefinition,
-                ahkVSCodeProblemsToolDefinition,
-                ahkRecentToolDefinition,
-                ahkConfigToolDefinition,
-                ahkActiveFileToolDefinition,
-                ahkLspToolDefinition,
-                ahkFileViewToolDefinition,
-                ahkAutoFileToolDefinition,
-                ahkProcessRequestToolDefinition,
-                ahkSettingsToolDefinition,
-                ahkSmallEditToolDefinition,
-                ahkAlphaToolDefinition,
-                ahkSmartOrchestratorToolDefinition,
-                ahkAnalyticsToolDefinition,
-                ahkTestInteractiveToolDefinition,
-                ahkTraceViewerToolDefinition,
-                AHK_Library_List_Definition,
-                AHK_Library_Info_Definition,
-                AHK_Library_Import_Definition,
-            ];
+            const standardTools = getStandardToolDefinitions();
+            const metadataIndex = new Map(getToolMetadata().map((entry) => [entry.definition.name, entry]));
+            const activeFileAwareNames = new Set(getToolMetadata()
+                .filter((entry) => entry.category === 'file')
+                .map((entry) => entry.definition.name));
+            const activeFilePath = getActiveFilePath();
+            const activeFileNote = `\n\n📎 Active File: ${activeFilePath ?? 'Not set. Use AHK_File_Active to select a target.'}`;
+            const contextualTools = standardTools.map((tool) => {
+                if (!activeFileAwareNames.has(tool.name)) {
+                    return tool;
+                }
+                const metadata = metadataIndex.get(tool.name);
+                const suffix = metadata?.category === 'file' ? activeFileNote : '';
+                return {
+                    ...tool,
+                    description: `${tool.description}${suffix}`
+                };
+            });
             // Add ChatGPT-compatible tools when in SSE mode
             const chatGPTTools = useSSE ? [
                 {
@@ -176,7 +171,7 @@ export class AutoHotkeyMcpServer {
                     }
                 }
             ] : [];
-            const tools = [...standardTools, ...chatGPTTools];
+            const tools = [...contextualTools, ...chatGPTTools];
             logDebugEvent('tools.list', { status: 'success', message: `Returned ${tools.length} tools`, details: { mode: useSSE ? 'sse' : 'stdio' } });
             return {
                 tools,
