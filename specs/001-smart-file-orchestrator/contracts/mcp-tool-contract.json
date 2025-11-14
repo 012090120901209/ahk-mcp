@@ -1,0 +1,162 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "AHK_Smart_Orchestrator MCP Tool Contract",
+  "description": "Intelligently orchestrates file detection, analysis, and viewing operations to minimize redundant tool calls",
+  "tool": "AHK_Smart_Orchestrator",
+  "version": "1.0.0",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "intent": {
+        "type": "string",
+        "description": "High-level description of what you want to do",
+        "examples": [
+          "edit the _Dark class checkbox methods",
+          "view the ResponsiveListManager constructor",
+          "analyze the GUI structure"
+        ]
+      },
+      "filePath": {
+        "type": "string",
+        "description": "Optional: Direct path to AHK file (skips detection if provided)",
+        "pattern": "\\.ahk$",
+        "examples": [
+          "C:\\Users\\uphol\\Documents\\Design\\Coding\\AHK\\!Running\\__Lists.ahk"
+        ]
+      },
+      "targetEntity": {
+        "type": "string",
+        "description": "Optional: Specific class, method, or function name to focus on",
+        "examples": [
+          "_Dark",
+          "_Dark.ColorCheckbox",
+          "GuiForm",
+          "ResponsiveListManager.CreateHeaderSection"
+        ]
+      },
+      "operation": {
+        "type": "string",
+        "enum": ["view", "edit", "analyze"],
+        "default": "view",
+        "description": "Type of operation to perform: view (read-only), edit (prepare for editing), analyze (structure only)"
+      },
+      "forceRefresh": {
+        "type": "boolean",
+        "default": false,
+        "description": "Force re-analysis even if cached data exists (use when file was modified externally)"
+      }
+    },
+    "required": ["intent"]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "content": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "type": {
+              "const": "text"
+            },
+            "text": {
+              "type": "string",
+              "description": "Formatted output with code snippets, guidance, and context"
+            }
+          },
+          "required": ["type", "text"]
+        }
+      },
+      "isError": {
+        "type": "boolean",
+        "description": "Whether the operation encountered errors"
+      }
+    },
+    "required": ["content"]
+  },
+  "examples": [
+    {
+      "name": "View specific class with auto-detection",
+      "input": {
+        "intent": "edit the _Dark class",
+        "targetEntity": "_Dark",
+        "operation": "view"
+      },
+      "expectedBehavior": "Detects file, analyzes structure, reads _Dark class lines",
+      "expectedToolCalls": 3
+    },
+    {
+      "name": "Edit with direct file path (skip detection)",
+      "input": {
+        "intent": "modify checkbox styling",
+        "filePath": "C:\\path\\to\\__Lists.ahk",
+        "targetEntity": "_Dark.ColorCheckbox",
+        "operation": "edit"
+      },
+      "expectedBehavior": "Skips detection, uses cache if available, sets active file",
+      "expectedToolCalls": 2
+    },
+    {
+      "name": "Analyze file structure only",
+      "input": {
+        "intent": "understand the file structure",
+        "filePath": "C:\\path\\to\\__Lists.ahk",
+        "operation": "analyze"
+      },
+      "expectedBehavior": "Analyzes file, returns class/function list, no file reading",
+      "expectedToolCalls": 1
+    },
+    {
+      "name": "Force refresh stale cache",
+      "input": {
+        "intent": "view updated code",
+        "filePath": "C:\\path\\to\\__Lists.ahk",
+        "targetEntity": "_Dark",
+        "operation": "view",
+        "forceRefresh": true
+      },
+      "expectedBehavior": "Bypasses cache, re-analyzes file, reads fresh content",
+      "expectedToolCalls": 2
+    }
+  ],
+  "errorCases": [
+    {
+      "scenario": "File not found",
+      "input": {
+        "intent": "edit missing file",
+        "filePath": "C:\\nonexistent.ahk"
+      },
+      "expectedError": "File not found at path: C:\\nonexistent.ahk",
+      "fallback": "Check file path and try again"
+    },
+    {
+      "scenario": "Target entity not found",
+      "input": {
+        "intent": "view DarkMode class",
+        "filePath": "C:\\path\\to\\__Lists.ahk",
+        "targetEntity": "DarkMode"
+      },
+      "expectedError": "Class 'DarkMode' not found. Available classes: _Dark, ResponsiveListManager",
+      "fallback": "Show list of available entities"
+    },
+    {
+      "scenario": "Analysis fails due to syntax errors",
+      "input": {
+        "intent": "analyze file",
+        "filePath": "C:\\path\\to\\broken.ahk"
+      },
+      "expectedError": "File contains syntax errors. Analysis incomplete.",
+      "fallback": "Show partial analysis + offer manual line ranges"
+    }
+  ],
+  "performanceTargets": {
+    "cacheHit": {
+      "maxToolCalls": 2,
+      "maxDuration": "200ms"
+    },
+    "cacheMiss": {
+      "maxToolCalls": 4,
+      "maxDuration": "2000ms"
+    }
+  }
+}
