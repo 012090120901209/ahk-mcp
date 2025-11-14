@@ -5,7 +5,6 @@ import * as path from 'path';
 import * as os from 'os';
 import logger from '../logger.js';
 import { McpToolResponse, createTextResponse, createErrorResponse } from '../types/mcp-types.js';
-import { safeParse } from '../core/validation-middleware.js';
 
 export const TestInteractiveArgsSchema = z.object({
   scriptContent: z.string().describe('AHK v2 script code to test'),
@@ -16,7 +15,7 @@ export const TestInteractiveArgsSchema = z.object({
 
 export type TestInteractiveToolArgs = z.infer<typeof TestInteractiveArgsSchema>;
 
-export const testInteractiveToolDefinition = {
+export const ahkTestInteractiveToolDefinition = {
   name: 'AHK_Test_Interactive',
   description: 'Run AHK script with interactive GUI feedback interface. Opens a GUI with PASS/FAIL buttons, captures script output, and waits for manual test verification. Returns pass/fail status and any output captured.',
   inputSchema: {
@@ -82,12 +81,9 @@ export class AhkTestInteractiveTool {
     return undefined;
   }
 
-  async execute(args: unknown): Promise<McpToolResponse> {
+  async execute(args: z.infer<typeof TestInteractiveArgsSchema>): Promise<McpToolResponse> {
     try {
-      const parsed = safeParse(args, TestInteractiveArgsSchema, 'AHK_Test_Interactive');
-      if (!parsed.success) return parsed.error;
-
-      const { scriptContent, testDescription, timeout, ahkPath } = parsed.data;
+      const { scriptContent, testDescription, timeout, ahkPath } = TestInteractiveArgsSchema.parse(args);
 
       // Auto-detect AutoHotkey path if not provided
       let resolvedAhkPath = ahkPath;

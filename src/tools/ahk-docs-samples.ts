@@ -178,7 +178,7 @@ export class AhkSamplingEnhancer {
             text: this.formatSamplingRequest(samplingRequest, enhancedContext) + 
               '\n\n---\n\n**Enhancement Details:**\n' +
               `- Detected Keywords: ${this.extractKeywords(originalPrompt).join(', ')}\n` +
-              `- Context Level: ${contextLevel}\n` +
+              `- Context Level: ${contextLevel ?? 'standard'}\n` +
               `- Enhancement Reason: AutoHotkey-related content detected, enhanced with relevant documentation`
           }
         ]
