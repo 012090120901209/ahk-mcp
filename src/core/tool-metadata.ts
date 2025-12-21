@@ -74,20 +74,20 @@ const TOOL_METADATA: ToolMetadataEntry[] = [
   entry(ahkEditToolDefinition, 'file-edit', 'file'),
   entry(ahkFileToolDefinition, 'file-active', 'file'),
   entry(ahkFileCreateToolDefinition, 'file-create', 'file'),
-  entry(ahkDiffEditToolDefinition, 'file-edit-diff', 'file'),
-  entry(ahkDiagnosticsToolDefinition, 'diagnostics', 'analysis'),
-  entry(ahkRunToolDefinition, 'run-script', 'execution'),
+  // entry(ahkDiffEditToolDefinition, 'file-edit-diff', 'file'), // Hidden: use file-edit instead
+  // entry(ahkDiagnosticsToolDefinition, 'diagnostics', 'analysis'), // Hidden: use lint instead
+  // entry(ahkRunToolDefinition, 'run-script', 'execution'), // Hidden: use run-debug instead
   entry(ahkAnalyzeToolDefinition, 'analyze-code', 'analysis'),
   entry(ahkContextInjectorToolDefinition, 'context-injector', 'analysis'),
-  entry(ahkSummaryToolDefinition, 'summary', 'docs'),
+  // entry(ahkSummaryToolDefinition, 'summary', 'docs'), // Hidden: low value
   entry(ahkPromptsToolDefinition, 'prompts', 'docs'),
-  entry(ahkSamplingEnhancerToolDefinition, 'sampling-enhancer', 'analysis'),
+  // entry(ahkSamplingEnhancerToolDefinition, 'sampling-enhancer', 'analysis'), // Hidden: unclear value
   entry(ahkDebugAgentToolDefinition, 'run-debug', 'execution'),
   entry(ahkDocSearchToolDefinition, 'doc-search', 'docs'),
   entry(ahkVSCodeProblemsToolDefinition, 'vscode-problems', 'analysis'),
   entry(ahkRecentToolDefinition, 'file-recent', 'file'),
   entry(ahkConfigToolDefinition, 'config', 'system'),
-  entry(ahkActiveFileToolDefinition, 'active-file', 'file'),
+  // entry(ahkActiveFileToolDefinition, 'active-file', 'file'), // Hidden: duplicate of file-active
   entry(ahkLspToolDefinition, 'lsp', 'lsp'),
   entry(ahkLspDocumentSymbolsToolDefinition, 'lsp-document-symbols', 'lsp'),
   entry(ahkLspHoverToolDefinition, 'lsp-hover', 'lsp'),
@@ -99,11 +99,11 @@ const TOOL_METADATA: ToolMetadataEntry[] = [
   entry(ahkProcessRequestToolDefinition, 'process-request', 'workflow'),
   entry(ahkSettingsToolDefinition, 'settings', 'system'),
   entry(ahkSmallEditToolDefinition, 'file-edit-small', 'file'),
-  entry(ahkAlphaToolDefinition, 'alpha-channel', 'system'),
+  // entry(ahkAlphaToolDefinition, 'alpha-channel', 'system'), // Hidden: experimental
   entry(ahkSmartOrchestratorToolDefinition, 'smart-orchestrator', 'workflow'),
   entry(ahkAnalyticsToolDefinition, 'analytics', 'observability'),
-  entry(ahkTestInteractiveToolDefinition, 'test-interactive', 'execution'),
-  entry(ahkTraceViewerToolDefinition, 'trace-viewer', 'observability'),
+  // entry(ahkTestInteractiveToolDefinition, 'test-interactive', 'execution'), // Hidden: dev-only
+  // entry(ahkTraceViewerToolDefinition, 'trace-viewer', 'observability'), // Hidden: debug-only
   entry(ahkLintToolDefinition, 'lint', 'analysis'),
   entry(AHK_Library_List_Definition, 'library-list', 'library'),
   entry(AHK_Library_Info_Definition, 'library-info', 'library'),

@@ -17,7 +17,7 @@ export type AhkFileEditorArgs = z.infer<typeof AhkFileEditorArgsSchema>;
 export const ahkFileEditorToolDefinition = {
   name: 'AHK_File_Edit_Advanced',
   description: `Ahk file editor
-🎯 PRIMARY FILE EDITING TOOL - Use this IMMEDIATELY when user mentions a .ahk file path and wants to modify it. This tool automatically detects the file, sets it active, and helps determine the best editing approach. ALWAYS use this instead of generating code blocks when a file path is provided.`,
+PRIMARY FILE EDITING TOOL - Use this IMMEDIATELY when user mentions a .ahk file path and wants to modify it. This tool automatically detects the file, sets it active, and helps determine the best editing approach. ALWAYS use this instead of generating code blocks when a file path is provided.`,
   inputSchema: {
     type: 'object',
     properties: {
@@ -74,11 +74,11 @@ export class AhkFileEditorTool {
 
       // Check if file setting was successful
       const fileResponse = fileResult.content[0]?.text || '';
-      if (fileResponse.includes('❌')) {
+      if (fileResponse.includes('Error') || fileResponse.includes('Failed')) {
         return {
           content: [{
             type: 'text',
-            text: `❌ **Cannot Edit File**\n\n${fileResponse}\n\n**Next Steps:**\n• Check if the file path is correct\n• Ensure the file has .ahk extension\n• Verify the file exists or create it first`
+            text: `**Cannot Edit File**\n\n${fileResponse}\n\n**Next Steps:**\n- Check if the file path is correct\n- Ensure the file has .ahk extension\n- Verify the file exists or create it first`
           }]
         };
       }
@@ -86,14 +86,14 @@ export class AhkFileEditorTool {
       // Step 2: Analyze the changes requested
       const editingGuidance = this.analyzeEditingRequest(changes);
 
-      let response = `🎯 **File Editor Active**\n\n`;
-      response += `📁 **File:** ${filePath}\n`;
-      response += `⚙️ **Action:** ${action}\n`;
-      response += `📝 **Changes:** ${changes}\n`;
+      let response = `**File Editor Active**\n\n`;
+      response += `**File:** ${filePath}\n`;
+      response += `**Action:** ${action}\n`;
+      response += `**Changes:** ${changes}\n`;
 
       if (dryRun) {
-        response += `\n🔬 **Mode:** Dry Run (Preview Only)\n\n`;
-        response += `**📋 Preview Summary:**\n`;
+        response += `\n**Mode:** Dry Run (Preview Only)\n\n`;
+        response += `**Preview Summary:**\n`;
         response += `This tool provides guidance for editing but doesn't directly modify files.\n`;
         response += `Use the recommended tools below with dryRun: true to preview changes.\n\n`;
       } else {
@@ -119,17 +119,17 @@ export class AhkFileEditorTool {
       }
 
       // Step 3: Provide editing guidance
-      response += `**🔧 Recommended Editing Approach:**\n`;
+      response += `**Recommended Editing Approach:**\n`;
       response += editingGuidance + '\n\n';
 
-      response += `**✅ File is now active and ready for editing!**\n\n`;
+      response += `**File is now active and ready for editing!**\n\n`;
       response += `**Next: Use these tools to make the changes:**\n`;
-      response += `• \`AHK_File_Edit\` - For direct text replacements, insertions, deletions (set 'runAfter': true to run immediately)\n`;
-      response += `• \`AHK_File_Edit_Diff\` - For complex multi-location changes\n`;
-      response += `• \`AHK_Run\` - To test the changes after editing\n`;
-      
+      response += `- \`AHK_File_Edit\` - For direct text replacements, insertions, deletions (set 'runAfter': true to run immediately)\n`;
+      response += `- \`AHK_File_Edit_Diff\` - For complex multi-location changes\n`;
+      response += `- \`AHK_Run\` - To test the changes after editing\n`;
+
       if (dryRun) {
-        response += `\n**💡 Dry Run Tip:** Add \`"dryRun": true\` to any of the above tools to preview changes before applying them.`;
+        response += `\n**Dry Run Tip:** Add \`"dryRun": true\` to any of the above tools to preview changes before applying them.`;
       }
 
       let result = {
@@ -151,7 +151,7 @@ export class AhkFileEditorTool {
       return {
         content: [{
           type: 'text',
-          text: `❌ **File Editor Error**\n\n${error instanceof Error ? error.message : String(error)}\n\n**Tip:** Make sure you provide both a valid .ahk file path and a description of the changes you want to make.`
+          text: `**File Editor Error**\n\n${error instanceof Error ? error.message : String(error)}\n\n**Tip:** Make sure you provide both a valid .ahk file path and a description of the changes you want to make.`
         }],
       };
     }

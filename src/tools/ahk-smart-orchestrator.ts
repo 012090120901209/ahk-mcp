@@ -14,14 +14,7 @@ export type AhkSmartOrchestratorArgs = z.infer<typeof AhkSmartOrchestratorArgsSc
 
 export const ahkSmartOrchestratorToolDefinition = {
   name: 'AHK_Smart_Orchestrator',
-  description: `Intelligently orchestrates file detection, analysis, and viewing operations to minimize redundant tool calls. Automatically chains detect → analyze → read → edit workflow with smart caching. Reduces tool calls from 7-10 down to 3-4 by maintaining session context.
-
-Use this tool when you want to efficiently work with AHK files without manually coordinating multiple tools.
-
-Examples:
-- "view the _Dark class" - Auto-detects file, analyzes, shows class code
-- "edit ColorCheckbox method in _Dark" - Finds method, prepares for editing
-- "analyze file structure" - Shows all classes and functions`,
+  description: `Orchestrates AHK file operations with smart caching. Chains detect→analyze→view/edit. Operations: view, edit, analyze.`,
   inputSchema: {
     type: 'object',
     properties: {
@@ -103,7 +96,7 @@ export class AhkSmartOrchestratorTool {
       return {
         content: [{
           type: 'text',
-          text: `❌ **Orchestration Error**\n\n${error instanceof Error ? error.message : String(error)}\n\n**Tip:** Ensure you provide a valid intent and, if needed, an explicit file path.`
+          text: `[ERROR] **Orchestration Error**\n\n${error instanceof Error ? error.message : String(error)}\n\n**Tip:** Ensure you provide a valid intent and, if needed, an explicit file path.`
         }],
         isError: true
       };
@@ -112,8 +105,8 @@ export class AhkSmartOrchestratorTool {
 
   private formatErrorResponse(result: any): string {
     const lines: string[] = [
-      '❌ **Orchestration Failed**\n',
-      `📊 Tool calls made: ${result.toolCallsMade}\n`
+      '[ERROR] **Orchestration Failed**\n',
+      `Tool calls made: ${result.toolCallsMade}\n`
     ];
 
     if (result.errors && result.errors.length > 0) {
@@ -122,7 +115,7 @@ export class AhkSmartOrchestratorTool {
       lines.push('');
     }
 
-    lines.push('**💡 Suggestions:**');
+    lines.push('**Suggestions:**');
     lines.push('• Provide explicit filePath parameter if detection fails');
     lines.push('• Use operation: "analyze" to see available entities');
     lines.push('• Check that file exists and has .ahk extension');

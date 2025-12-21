@@ -8,7 +8,8 @@
       "env": {
         "NODE_ENV": "production",
         "AHK_MCP_DATA_MODE": "full",
-        "AHK_MCP_LIGHT": "0"
+        "AHK_MCP_LIGHT": "0",
+        "AHK_MCP_SCRIPT_DIR": "C:\\Users\\uphol\\Documents\\Design\\Coding\\AHK\\!Running"
       },
       "alwaysAllow": [
         "AHK_File_Edit"

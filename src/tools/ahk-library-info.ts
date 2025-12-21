@@ -216,7 +216,7 @@ export async function handleAHK_Library_Info(
         const resolution = resolver.resolve(library.name);
 
         if (resolution.cycles.length > 0) {
-          lines.push('### ⚠️ Circular Dependencies Detected');
+          lines.push('### [WARN] Circular Dependencies Detected');
           lines.push('');
           for (const cycle of resolution.cycles) {
             lines.push(`- ${cycle.join(' → ')}`);
@@ -225,7 +225,7 @@ export async function handleAHK_Library_Info(
         }
 
         if (resolution.missing.length > 0) {
-          lines.push('### ❌ Missing Dependencies');
+          lines.push('### [ERROR] Missing Dependencies');
           lines.push('');
           for (const missing of resolution.missing) {
             lines.push(`- ${missing}`);

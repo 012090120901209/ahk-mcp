@@ -1,11 +1,11 @@
 import { z } from 'zod';
 import { AhkAnalyzeTool } from './ahk-analyze-code.js';
-import { AhkDiagnosticsTool } from './ahk-analyze-diagnostics.js';
-import { AhkLspTool } from './ahk-analyze-lsp.js';
 import { AhkVSCodeProblemsTool } from './ahk-analyze-vscode.js';
+import { AhkDiagnosticProvider } from '../lsp/diagnostics.js';
+import { AhkFixService } from '../lsp/fix-service.js';
+import { AhkCompiler } from '../compiler/ahk-compiler.js';
 import logger from '../logger.js';
 import { safeParse } from '../core/validation-middleware.js';
-import { createErrorResponse } from '../utils/response-helpers.js';
 
 export const AhkAnalyzeUnifiedArgsSchema = z.object({
   code: z.string().min(1, 'AutoHotkey code is required'),
@@ -133,7 +133,7 @@ interface UnifiedAnalysisResult {
     vscodeTime?: number;
   };
   analysis?: any;
-  diagnostics?: any;
+  diagnostics?: any[];
   fixes?: {
     applied: number;
     remaining: number;
@@ -157,15 +157,15 @@ interface UnifiedAnalysisResult {
 
 export class AhkAnalyzeUnifiedTool {
   private analyzeTool: AhkAnalyzeTool;
-  private diagnosticsTool: AhkDiagnosticsTool;
-  private lspTool: AhkLspTool;
   private vscodeTool: AhkVSCodeProblemsTool;
+  private diagnosticProvider: AhkDiagnosticProvider;
+  private fixService: AhkFixService;
 
   constructor() {
     this.analyzeTool = new AhkAnalyzeTool();
-    this.diagnosticsTool = new AhkDiagnosticsTool();
-    this.lspTool = new AhkLspTool();
     this.vscodeTool = new AhkVSCodeProblemsTool();
+    this.diagnosticProvider = new AhkDiagnosticProvider();
+    this.fixService = new AhkFixService();
   }
 
   async execute(args: unknown) {
@@ -176,7 +176,7 @@ export class AhkAnalyzeUnifiedTool {
 
     try {
       const validatedArgs = parsed.data;
-      const { mode, code } = validatedArgs;
+      const { mode } = validatedArgs;
 
       logger.info(`Running unified AHK analysis in ${mode} mode`);
 
@@ -216,7 +216,7 @@ export class AhkAnalyzeUnifiedTool {
       return {
         content: [{
           type: 'text',
-          text: `❌ **Unified Analysis Error**\n\n${errorMessage}`
+          text: `[ERROR] **Unified Analysis Error**\n\n${errorMessage}`
         }],
 
       };
@@ -238,23 +238,26 @@ export class AhkAnalyzeUnifiedTool {
 
     // Phase 1: Always run diagnostics for issue detection
     const diagStart = performance.now();
-    const diagnosticsResult = await this.diagnosticsTool.execute({
-      code: args.code,
-      enableClaudeStandards: args.enableClaudeStandards,
-      severity: args.severityFilter
-    });
-    result.performance.diagnosticsTime = Math.round(performance.now() - diagStart);
-    result.diagnostics = diagnosticsResult;
+    const diagnostics = await this.diagnosticProvider.getDiagnostics(args.code);
 
-    // Extract issue count for summary
-    const diagText = diagnosticsResult.content[0]?.text || '';
-    const issueMatch = diagText.match(/Found (\d+) issue\(s\)/);
-    result.summary.totalIssues = issueMatch ? parseInt(issueMatch[1]) : 0;
+    // Filter by severity if needed
+    const filteredDiagnostics = diagnostics.filter((d: any) => {
+      if (args.severityFilter === 'all') return true;
+      const severityMap: Record<number, string> = { 1: 'error', 2: 'warning', 3: 'info' };
+      return severityMap[d.severity] === args.severityFilter;
+    });
+
+    result.performance.diagnosticsTime = Math.round(performance.now() - diagStart);
+    result.diagnostics = filteredDiagnostics;
+    result.summary.totalIssues = filteredDiagnostics.length;
 
     // Phase 2: Run based on mode
     switch (args.mode) {
       case 'quick':
         // Just diagnostics (already done)
+        // Calculate complexity quickly for summary
+        const quickStats = AhkCompiler.getStatistics(args.code);
+        result.summary.complexity = quickStats.complexity;
         break;
 
       case 'deep':
@@ -278,10 +281,10 @@ export class AhkAnalyzeUnifiedTool {
         result.analysis = await this.analyzeTool.execute(analysisArgs);
         result.performance.analysisTime = Math.round(performance.now() - analysisStart);
 
-        // Extract complexity for summary
-        const analysisText = result.analysis.content[0]?.text || '';
-        const complexityMatch = analysisText.match(/Complexity Score:\*\* (\d+)/);
-        result.summary.complexity = complexityMatch ? parseInt(complexityMatch[1]) : 0;
+        // Extract complexity from analysis result or recalculate
+        // Since AhkAnalyzeTool returns text, we might as well recalculate it reliably
+        const deepStats = AhkCompiler.getStatistics(args.code);
+        result.summary.complexity = deepStats.complexity;
 
         if (args.mode === 'complete') {
           // Fall through to fix mode
@@ -290,29 +293,17 @@ export class AhkAnalyzeUnifiedTool {
         }
 
       case 'fix':
-        // Apply fixes using LSP tool
+        // Apply fixes using FixService
         const fixStart = performance.now();
-        const lspResult = await this.lspTool.execute({
-          code: args.code,
-          mode: 'fix',
-          autoFix: args.autoFix,
-          fixLevel: args.fixLevel,
-          enableClaudeStandards: args.enableClaudeStandards,
-          returnFixedCode: args.returnFixedCode,
-          showPerformance: args.showPerformance
-        });
+        const fixResult = this.fixService.applyFixes(args.code, filteredDiagnostics, args.fixLevel);
+
         result.performance.fixTime = Math.round(performance.now() - fixStart);
 
-        // Parse LSP results for fixes
-        const lspText = lspResult.content[0]?.text || '';
-        const fixesMatch = lspText.match(/Fixes applied: (\d+)/);
-        const remainingMatch = lspText.match(/Remaining issues: (\d+)/);
-
         result.fixes = {
-          applied: fixesMatch ? parseInt(fixesMatch[1]) : 0,
-          remaining: remainingMatch ? parseInt(remainingMatch[1]) : result.summary.totalIssues,
-          details: this.extractFixDetails(lspText),
-          fixedCode: this.extractFixedCode(lspText)
+          applied: fixResult.fixes.length,
+          remaining: result.summary.totalIssues - fixResult.fixes.length,
+          details: fixResult.fixes,
+          fixedCode: fixResult.code
         };
 
         result.summary.issuesFixed = result.fixes.applied;
@@ -336,30 +327,6 @@ export class AhkAnalyzeUnifiedTool {
     result.summary.recommendations = this.generateRecommendations(result);
 
     return result;
-  }
-
-  private extractFixDetails(lspText: string): Array<{ line: number; description: string; before: string; after: string }> {
-    const fixes: Array<{ line: number; description: string; before: string; after: string }> = [];
-    const fixSection = lspText.match(/Applied Fixes.*?(?=\n\n|\n(?:[🔍📝💡]|$))/s);
-
-    if (fixSection) {
-      const fixMatches = fixSection[0].matchAll(/\*\*(\d+)\.\*\* Line (\d+): (.+?)\n.*?Before: `(.+?)`\n.*?After: `(.+?)`/g);
-      for (const match of fixMatches) {
-        fixes.push({
-          line: parseInt(match[2]),
-          description: match[3],
-          before: match[4],
-          after: match[5]
-        });
-      }
-    }
-
-    return fixes;
-  }
-
-  private extractFixedCode(lspText: string): string | undefined {
-    const codeMatch = lspText.match(/```autohotkey\n([\s\S]*?)\n```/);
-    return codeMatch ? codeMatch[1] : undefined;
   }
 
   private assessCodeQuality(result: UnifiedAnalysisResult): 'excellent' | 'good' | 'needs-work' | 'poor' {
@@ -413,30 +380,30 @@ export class AhkAnalyzeUnifiedTool {
 
   private formatSummaryOutput(result: UnifiedAnalysisResult): string {
     const { summary, performance } = result;
-    const qualityEmoji = {
-      excellent: '🎉',
-      good: '✅',
-      'needs-work': '⚠️',
-      poor: '❌'
+    const qualityLabel = {
+      excellent: '[EXCELLENT]',
+      good: '[GOOD]',
+      'needs-work': '[NEEDS WORK]',
+      poor: '[POOR]'
     }[summary.codeQuality];
 
-    return `${qualityEmoji} **Code Quality: ${summary.codeQuality.toUpperCase()}**
+    return `${qualityLabel} **Code Quality: ${summary.codeQuality.toUpperCase()}**
 
-📊 **Quick Stats**
+**Quick Stats**
 - Issues found: ${summary.totalIssues}
 - Issues fixed: ${summary.issuesFixed}
 - Complexity: ${summary.complexity}
 - Analysis time: ${performance.totalTime}ms
 
-${summary.recommendations.length > 0 ? `💡 **Recommendations**\n${summary.recommendations.map(r => `- ${r}`).join('\n')}` : '🎯 **No additional recommendations**'}`;
+${summary.recommendations.length > 0 ? `**Recommendations**\n${summary.recommendations.map(r => `- ${r}`).join('\n')}` : '**No additional recommendations**'}`;
   }
 
   private formatDetailedOutput(result: UnifiedAnalysisResult): string {
-    let output = `🔬 **Unified AutoHotkey Analysis** (${result.mode} mode)\n\n`;
+    let output = `**Unified AutoHotkey Analysis** (${result.mode} mode)\n\n`;
 
     // Performance section
     if (result.performance.totalTime) {
-      output += `⚡ **Performance**\n`;
+      output += `**Performance**\n`;
       output += `- Total time: ${result.performance.totalTime}ms\n`;
       if (result.performance.analysisTime) output += `- Analysis: ${result.performance.analysisTime}ms\n`;
       if (result.performance.diagnosticsTime) output += `- Diagnostics: ${result.performance.diagnosticsTime}ms\n`;
@@ -446,22 +413,22 @@ ${summary.recommendations.length > 0 ? `💡 **Recommendations**\n${summary.reco
     }
 
     // Summary section
-    const qualityEmoji = {
-      excellent: '🎉',
-      good: '✅',
-      'needs-work': '⚠️',
-      poor: '❌'
+    const qualityLabel = {
+      excellent: '[EXCELLENT]',
+      good: '[GOOD]',
+      'needs-work': '[NEEDS WORK]',
+      poor: '[POOR]'
     }[result.summary.codeQuality];
 
-    output += `${qualityEmoji} **Code Quality Assessment: ${result.summary.codeQuality.toUpperCase()}**\n\n`;
-    output += `📈 **Summary**\n`;
+    output += `${qualityLabel} **Code Quality Assessment: ${result.summary.codeQuality.toUpperCase()}**\n\n`;
+    output += `**Summary**\n`;
     output += `- Total issues: ${result.summary.totalIssues}\n`;
     output += `- Issues fixed: ${result.summary.issuesFixed}\n`;
     output += `- Code complexity: ${result.summary.complexity}\n\n`;
 
     // Fixes section
     if (result.fixes && result.fixes.applied > 0) {
-      output += `🔧 **Applied Fixes** (${result.fixes.applied})\n\n`;
+      output += `**Applied Fixes** (${result.fixes.applied})\n\n`;
       result.fixes.details.forEach((fix, i) => {
         output += `**${i + 1}.** Line ${fix.line}: ${fix.description}\n`;
         output += `   Before: \`${fix.before}\`\n`;
@@ -471,23 +438,28 @@ ${summary.recommendations.length > 0 ? `💡 **Recommendations**\n${summary.reco
 
     // Include relevant sections from individual tools
     if (result.analysis) {
-      output += `\n---\n\n📊 **Detailed Analysis**\n\n`;
+      output += `\n---\n\n**Detailed Analysis**\n\n`;
       output += result.analysis.content[0]?.text + '\n';
     }
 
-    if (result.diagnostics) {
-      output += `\n---\n\n🔍 **Diagnostics**\n\n`;
-      output += result.diagnostics.content[0]?.text + '\n';
+    if (result.diagnostics && result.diagnostics.length > 0) {
+      output += `\n---\n\n**Diagnostics**\n\n`;
+      result.diagnostics.forEach((d: any) => {
+        const icon = d.severity === 1 ? '[ERROR]' : d.severity === 2 ? '[WARN]' : '[INFO]';
+        output += `${icon} Line ${d.range.start.line + 1}: ${d.message}\n`;
+      });
+    } else if (result.diagnostics) {
+      output += `\n---\n\n**Diagnostics**\n\n[OK] No issues found.\n`;
     }
 
     if (result.vscode) {
-      output += `\n---\n\n🔗 **VS Code Integration**\n\n`;
+      output += `\n---\n\n**VS Code Integration**\n\n`;
       output += result.vscode.content[0]?.text + '\n';
     }
 
     // Fixed code
     if (result.fixes?.fixedCode) {
-      output += `\n📝 **Fixed Code**\n\n`;
+      output += `\n**Fixed Code**\n\n`;
       output += '```autohotkey\n';
       output += result.fixes.fixedCode;
       output += '\n```\n\n';
@@ -495,7 +467,7 @@ ${summary.recommendations.length > 0 ? `💡 **Recommendations**\n${summary.reco
 
     // Recommendations
     if (result.summary.recommendations.length > 0) {
-      output += `💡 **Recommendations**\n`;
+      output += `**Recommendations**\n`;
       result.summary.recommendations.forEach(rec => {
         output += `- ${rec}\n`;
       });

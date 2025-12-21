@@ -378,30 +378,5 @@ export class FastSyntaxChecker {
   }
 }
 
-// ===== Usage Example =====
-
-async function exampleUsage() {
-  const checker = new FastSyntaxChecker();
-
-  // Check a file
-  const result = await checker.checkFile('MyScript.ahk');
-
-  console.log(`Checked ${result.linesChecked} lines in ${result.duration}ms`);
-  console.log(`Found ${result.errors.length} errors and ${result.warnings.length} warnings`);
-
-  // Display errors
-  for (const error of result.errors) {
-    console.log(`[ERROR] Line ${error.line}: ${error.message}`);
-    if (error.fixable && error.fix) {
-      console.log(`  Fix: ${error.fix}`);
-    }
-  }
-
-  // Display warnings
-  for (const warning of result.warnings) {
-    console.log(`[WARN] Line ${warning.line}: ${warning.message}`);
-  }
-}
-
 // Export singleton
 export const fastSyntaxChecker = new FastSyntaxChecker();

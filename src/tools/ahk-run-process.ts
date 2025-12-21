@@ -148,7 +148,7 @@ export class AhkProcessRequestTool {
             return {
               content: [{
                 type: 'text',
-                text: `❌ Failed to set active file: ${resolved}`
+                text: `Failed to set active file: ${resolved}`
               }],
 
             };
@@ -159,7 +159,7 @@ export class AhkProcessRequestTool {
           return {
             content: [{
               type: 'text',
-              text: `❌ File not found: ${parsedRequest.filePath}\n\nPlease check the file path and try again.`
+              text: `File not found: ${parsedRequest.filePath}\n\nPlease check the file path and try again.`
             }],
 
           };
@@ -171,7 +171,7 @@ export class AhkProcessRequestTool {
           return {
             content: [{
               type: 'text',
-              text: '❌ No file path detected in input and no active file set.\n\nPlease provide a file path or set an active file first.'
+              text: 'No file path detected in input and no active file set.\n\nPlease provide a file path or set an active file first.'
             }],
     
           };
@@ -188,16 +188,16 @@ export class AhkProcessRequestTool {
         return {
           content: [{
             type: 'text',
-            text: `❌ Failed to read file: ${parsedRequest.filePath}\n\nError: ${error}`
+            text: `Failed to read file: ${parsedRequest.filePath}\n\nError: ${error}`
           }],
 
         };
       }
 
       // Build response
-      let response = `📄 **File:** ${parsedRequest.filePath}\n`;
-      response += `📝 **Request:** ${parsedRequest.instruction}\n`;
-      response += `⚙️ **Action:** ${parsedRequest.action}\n\n`;
+      let response = `**File:** ${parsedRequest.filePath}\n`;
+      response += `**Request:** ${parsedRequest.instruction}\n`;
+      response += `**Action:** ${parsedRequest.action}\n\n`;
       
       // Execute the action if autoExecute is true
       if (autoExecute) {
@@ -205,7 +205,7 @@ export class AhkProcessRequestTool {
 
         switch (parsedRequest.action) {
           case 'run':
-            response += '🚀 **Running script...**\n\n';
+            response += '**Running script...**\n\n';
             actionResult = await this.runTool.execute({
               mode: 'run',
               filePath: parsedRequest.filePath,
@@ -221,7 +221,7 @@ export class AhkProcessRequestTool {
             break;
             
           case 'diagnose':
-            response += '🔍 **Running diagnostics...**\n\n';
+            response += '**Running diagnostics...**\n\n';
             actionResult = await this.diagnosticsTool.execute({
               code: codeContent,
               enableClaudeStandards: true,
@@ -230,7 +230,7 @@ export class AhkProcessRequestTool {
             break;
             
           case 'analyze':
-            response += '📊 **Analyzing script...**\n\n';
+            response += '**Analyzing script...**\n\n';
             actionResult = await this.analyzeTool.execute({
               code: codeContent,
               includeDocumentation: true,
@@ -240,7 +240,7 @@ export class AhkProcessRequestTool {
             break;
             
           case 'edit':
-            response += '✏️ **Ready to edit...**\n\n';
+            response += '**Ready to edit...**\n\n';
             response += 'The file is now set as active. You can:\n';
             response += '• Use edit tools to modify the script\n';
             response += '• Run diagnostics to check for issues\n';
@@ -248,7 +248,7 @@ export class AhkProcessRequestTool {
             break;
             
           case 'view':
-            response += '👁️ **File content:**\n\n';
+            response += '**File content:**\n\n';
             response += '```autohotkey\n' + codeContent + '\n```\n';
             break;
         }

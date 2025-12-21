@@ -48,90 +48,7 @@ export const AhkLintArgsSchema = z.object({
 
 export const ahkLintToolDefinition = {
   name: 'AHK_Lint',
-  description: `Comprehensive code quality analysis for AutoHotkey v2 scripts with tiered linting levels and intelligent caching.
-
-**Quick Start:**
-\`\`\`json
-{ "filePath": "MyScript.ahk" }
-\`\`\`
-
-**Lint Levels:**
-
-🏃 **fast** (15ms): Basic syntax validation
-- Balanced braces/parentheses
-- Unterminated strings
-- V1 syntax detection
-
-🚶 **standard** (45ms): Syntax + Structure (default)
-- All fast checks
-- Class/function extraction
-- Code metrics
-- Complexity analysis
-
-🔍 **thorough** (180ms): Full semantic analysis
-- All standard checks
-- Deep complexity warnings
-- Maintainability suggestions
-- Large class detection
-
-**Examples:**
-
-Fast syntax check:
-\`\`\`json
-{
-  "filePath": "MyScript.ahk",
-  "level": "fast"
-}
-\`\`\`
-
-Full analysis with structure map:
-\`\`\`json
-{
-  "filePath": "MyScript.ahk",
-  "level": "thorough",
-  "includeStructure": true
-}
-\`\`\`
-
-Force fresh analysis (bypass cache):
-\`\`\`json
-{
-  "filePath": "MyScript.ahk",
-  "forceRefresh": true
-}
-\`\`\`
-
-**Auto-Fix:**
-Preview fixes (dry-run):
-\`\`\`json
-{
-  "filePath": "MyScript.ahk",
-  "autoFix": true,
-  "dryRun": true
-}
-\`\`\`
-
-Apply fixes automatically:
-\`\`\`json
-{
-  "filePath": "MyScript.ahk",
-  "autoFix": true
-}
-\`\`\`
-
-Fixable issues:
-- Unterminated strings
-- Invalid escape sequences (\\n → \`n)
-- Function call spacing
-- Keyword spacing
-
-**Performance:**
-- Cached results: ~5ms
-- Uncached: 15-180ms depending on level
-- Auto-fix: +50-150ms (creates backup)
-- Cache automatically invalidates on file changes
-
-**See also:** AHK_Diagnostics, AHK_File_View, AHK_Smart_Orchestrator`,
+  description: `Lint AHK v2 scripts. Levels: fast (syntax), standard (default, +structure), thorough (+semantics). Supports autoFix with dryRun preview.`,
 
   inputSchema: {
     type: 'object',
@@ -198,7 +115,7 @@ export class AhkLintTool {
         return {
           content: [{
             type: 'text',
-            text: '❌ **No File Specified**\n\nPlease provide a `filePath` parameter or set an active file first using AHK_File_Active.'
+            text: '**No File Specified**\n\nPlease provide a `filePath` parameter or set an active file first using AHK_File_Active.'
           }],
           isError: true
         };
@@ -209,7 +126,7 @@ export class AhkLintTool {
         return {
           content: [{
             type: 'text',
-            text: `❌ **Invalid File Type**\n\nFile must have .ahk extension. Got: ${filePath}`
+            text: `**Invalid File Type**\n\nFile must have .ahk extension. Got: ${filePath}`
           }],
           isError: true
         };
@@ -245,7 +162,7 @@ export class AhkLintTool {
             }]
           };
         } else {
-          let output = `# 🔧 Auto-Fix Results\n\n`;
+          let output = `# Auto-Fix Results\n\n`;
           output += `**File:** ${filePath}\n`;
           output += `**Duration:** ${totalDuration}ms\n\n`;
           output += fixResult.summary;
@@ -307,7 +224,7 @@ export class AhkLintTool {
 
       // Add cache info
       content += '\n---\n\n';
-      content += `**Analysis Time:** ${totalDuration}ms ${report.cached ? '⚡ (from cache)' : ''}`;
+      content += `**Analysis Time:** ${totalDuration}ms ${report.cached ? '(from cache)' : ''}`;
 
       return {
         content: [{
@@ -322,7 +239,7 @@ export class AhkLintTool {
       return {
         content: [{
           type: 'text',
-          text: `❌ **Linting Failed**\n\n${error instanceof Error ? error.message : String(error)}`
+          text: `**Linting Failed**\n\n${error instanceof Error ? error.message : String(error)}`
         }],
         isError: true
       };

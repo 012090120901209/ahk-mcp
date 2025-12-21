@@ -134,7 +134,7 @@ OutputDebug := (text) => {
 try {
     ${scriptContent}
 } catch Error as err {
-    OutputDebug("❌ ERROR: " . err.Message)
+    OutputDebug("[ERROR]: " . err.Message)
     OutputDebug("   Line: " . err.Line)
     OutputDebug("   File: " . err.File)
 }
@@ -160,20 +160,20 @@ TestGui.AddText("w500 xs Section", "Manual Verification Required:")
 TestGui.AddText("w500 xs", "Did the test execute correctly?")
 
 ; Buttons
-PassBtn := TestGui.AddButton("w240 h40 xs", "✅ PASS")
+PassBtn := TestGui.AddButton("w240 h40 xs", "PASS")
 PassBtn.OnEvent("Click", (*) => {
     global TestPassed := 1
     ExitApp(0)
 })
 
-FailBtn := TestGui.AddButton("w240 h40 x+20", "❌ FAIL")
+FailBtn := TestGui.AddButton("w240 h40 x+20", "FAIL")
 FailBtn.OnEvent("Click", (*) => {
     global TestPassed := 0
     ExitApp(1)
 })
 
 ; Refresh button
-RefreshBtn := TestGui.AddButton("w500 xs", "🔄 Refresh Output")
+RefreshBtn := TestGui.AddButton("w500 xs", "Refresh Output")
 RefreshBtn.OnEvent("Click", (*) => {
     global OutputEdit
     global OutputCapture
@@ -249,7 +249,7 @@ TestGui.Show()
         }
 
         // Format result
-        const statusIcon = result.passed ? '✅' : '❌';
+        const statusIcon = result.passed ? '[PASS]' : '[FAIL]';
         const statusText = result.passed ? 'PASSED' : 'FAILED';
 
         return {
@@ -260,15 +260,15 @@ TestGui.Show()
             },
             {
               type: 'text' as const,
-              text: `📋 Test: ${testDescription}`
+              text: `Test: ${testDescription}`
             },
             {
               type: 'text' as const,
-              text: `🔢 Exit Code: ${result.exitCode}`
+              text: `Exit Code: ${result.exitCode}`
             },
             ...(result.output ? [{
               type: 'text' as const,
-              text: `📤 Output:\n${result.output}`
+              text: `Output:\n${result.output}`
             }] : [])
           ]
         };
@@ -298,7 +298,7 @@ TestGui.Show()
       }
 
       return {
-        content: [{ type: 'text', text: `❌ Error: ${errorMessage}` }]
+        content: [{ type: 'text', text: `[ERROR]: ${errorMessage}` }]
       };
     }
   }

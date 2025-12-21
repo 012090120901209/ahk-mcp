@@ -26,7 +26,7 @@ export const AhkSmallEditArgsSchema = z.object({
     'line_delete',
     'line_insert_before',
     'line_insert_after',
-  ] as const).default('replace_regex'),
+  ] as const).default('replace_literal'),
   file: z.string().optional().describe('Target file to edit. Defaults to the active file when omitted.'),
   files: z.array(z.string()).optional().describe('Apply the same edit to multiple files.'),
   find: z.string().optional().describe('Text (or pattern) to search for when using replace actions.'),
@@ -81,9 +81,9 @@ export const ahkSmallEditToolDefinition = {
 \`\`\`
 
 **What to Avoid**
-- ❌ Mixing deprecated "content" parameter with newContent → prefer newContent
-- ❌ Running multi-file edits without \`dryRun: true\` to preview
-- ❌ Forgetting \`backup: true\` when touching critical scripts
+- Mixing deprecated "content" parameter with newContent - prefer newContent
+- Running multi-file edits without \`dryRun: true\` to preview
+- Forgetting \`backup: true\` when touching critical scripts
 
 **See also:** AHK_File_Edit (full-featured editor), AHK_File_Edit_Diff (complex diffs), AHK_File_Edit_Advanced`,
   inputSchema: {
@@ -99,8 +99,8 @@ export const ahkSmallEditToolDefinition = {
           'line_insert_before',
           'line_insert_after',
         ],
-        default: 'replace_regex',
-        description: 'Edit action to perform',
+        default: 'replace_literal',
+        description: 'Edit action to perform (default: replace_literal for safe string matching)',
       },
       file: {
         type: 'string',
@@ -235,14 +235,14 @@ export class AhkSmallEditTool {
        try {
          original = await fs.readFile(absolutePath, 'utf-8');
        } catch (error) {
-         reports.push(`❌ ${absolutePath}: failed to read file (${error instanceof Error ? error.message : String(error)})`);
+         reports.push(`[ERROR] ${absolutePath}: failed to read file (${error instanceof Error ? error.message : String(error)})`);
          continue;
        }
 
        const result = this.applyEdit(absolutePath, original, normalizedArgs);
 
        if (!result.changed) {
-         reports.push(`⚠️ ${absolutePath}: no changes detected`);
+         reports.push(`[WARN] ${absolutePath}: no changes detected`);
          continue;
        }
 
@@ -255,7 +255,7 @@ export class AhkSmallEditTool {
            switch (args.action as EditAction) {
              case 'replace_regex':
                if (!args.find) {
-                 reports.push(`❌ ${absolutePath}: Missing "find" pattern for regex replace.`);
+                 reports.push(`[ERROR] ${absolutePath}: Missing "find" pattern for regex replace.`);
                  continue;
                }
                preview = previewGenerator.generatePreview(original, args.find, args.replace ?? '', {
@@ -265,7 +265,7 @@ export class AhkSmallEditTool {
                break;
              case 'replace_literal':
                if (!args.find) {
-                 reports.push(`❌ ${absolutePath}: Missing "find" text for literal replace.`);
+                 reports.push(`[ERROR] ${absolutePath}: Missing "find" text for literal replace.`);
                  continue;
                }
                preview = previewGenerator.generatePreview(original, args.find, args.replace ?? '', {
@@ -275,7 +275,7 @@ export class AhkSmallEditTool {
                break;
              case 'line_replace': {
                if (!normalizedArgs.content) {
-                 reports.push(`❌ ${absolutePath}: Line replace requires "content" to provide new text.`);
+                 reports.push(`[ERROR] ${absolutePath}: Line replace requires "content" to provide new text.`);
                  continue;
                }
                const { line, startLine, endLine } = normalizedArgs;
@@ -309,11 +309,11 @@ export class AhkSmallEditTool {
              case 'line_insert_before':
              case 'line_insert_after': {
                if (!normalizedArgs.line) {
-                 reports.push(`❌ ${absolutePath}: Line insert actions require a specific line number.`);
+                 reports.push(`[ERROR] ${absolutePath}: Line insert actions require a specific line number.`);
                  continue;
                }
                if (!normalizedArgs.content) {
-                 reports.push(`❌ ${absolutePath}: Line insert actions require "content".`);
+                 reports.push(`[ERROR] ${absolutePath}: Line insert actions require "content".`);
                  continue;
                }
                const insertLine = args.action === 'line_insert_before' ? normalizedArgs.line : normalizedArgs.line + 1;
@@ -321,19 +321,19 @@ export class AhkSmallEditTool {
                break;
              }
              default:
-               reports.push(`❌ ${absolutePath}: Unsupported action: ${args.action}`);
+               reports.push(`[ERROR] ${absolutePath}: Unsupported action: ${args.action}`);
                continue;
            }
            
-           reports.push(`🔬 ${absolutePath}: Dry run preview:\n${previewGenerator.formatPreview(preview, absolutePath)}`);
+           reports.push(`[DRY RUN] ${absolutePath}: Preview:\n${previewGenerator.formatPreview(preview, absolutePath)}`);
          } else {
            // Use the existing preview functionality
            const diff = createUnifiedDiff(original, result.newContent, `${absolutePath}.orig`, `${absolutePath}.preview`);
-           reports.push(`📝 ${absolutePath}: preview diff:\n${diff}`);
+           reports.push(`[PREVIEW] ${absolutePath}: diff:\n${diff}`);
          }
          
          if (runAfter && !runHandled) {
-           runMessages.push('⚠️ Run skipped during preview/dry-run mode. Apply changes without preview to execute the script.');
+           runMessages.push('[WARN] Run skipped during preview/dry-run mode. Apply changes without preview to execute the script.');
            runHandled = true;
          }
          continue;
@@ -343,21 +343,21 @@ export class AhkSmallEditTool {
           try {
             await fs.writeFile(`${absolutePath}.bak`, original, 'utf-8');
           } catch (error) {
-            reports.push(`❌ ${absolutePath}: failed to write backup (${error instanceof Error ? error.message : String(error)})`);
+            reports.push(`[ERROR] ${absolutePath}: failed to write backup (${error instanceof Error ? error.message : String(error)})`);
             continue;
           }
         }
 
         try {
           await fs.writeFile(absolutePath, result.newContent, 'utf-8');
-          reports.push(`✅ ${absolutePath}: ${result.summary}${args.backup ? ' (backup saved as .bak)' : ''}`);
+          reports.push(`[OK] ${absolutePath}: ${result.summary}${args.backup ? ' (backup saved as .bak)' : ''}`);
 
           if (runAfter && !runHandled) {
             if (targets.length > 1) {
-              runMessages.push('⚠️ Run skipped because multiple files were edited. Run the primary script manually if needed.');
+              runMessages.push('[WARN] Run skipped because multiple files were edited. Run the primary script manually if needed.');
               runHandled = true;
             } else if (!absolutePath.toLowerCase().endsWith('.ahk')) {
-              runMessages.push(`⚠️ Run skipped because ${absolutePath} is not an AutoHotkey script.`);
+              runMessages.push(`[WARN] Run skipped because ${absolutePath} is not an AutoHotkey script.`);
               runHandled = true;
             } else {
               try {
@@ -382,13 +382,13 @@ export class AhkSmallEditTool {
                   runMessages.push('Script executed successfully.');
                 }
               } catch (runError) {
-                runMessages.push(`⚠️ Failed to run script: ${runError instanceof Error ? runError.message : String(runError)}`);
+                runMessages.push(`[WARN] Failed to run script: ${runError instanceof Error ? runError.message : String(runError)}`);
               }
               runHandled = true;
             }
           }
         } catch (error) {
-          reports.push(`❌ ${absolutePath}: failed to write changes (${error instanceof Error ? error.message : String(error)})`);
+          reports.push(`[ERROR] ${absolutePath}: failed to write changes (${error instanceof Error ? error.message : String(error)})`);
         }
       }
 
@@ -411,7 +411,7 @@ export class AhkSmallEditTool {
       return {
         content: [{
           type: 'text',
-          text: `❌ Error: ${error instanceof Error ? error.message : String(error)}`,
+          text: `Error: ${error instanceof Error ? error.message : String(error)}`,
         }]
       };
     }

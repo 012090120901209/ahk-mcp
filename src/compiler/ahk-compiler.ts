@@ -168,17 +168,17 @@ export class AhkCompiler {
    */
   static formatDiagnostics(diagnostics: LintDiagnostic[]): string {
     if (diagnostics.length === 0) {
-      return '✅ No issues found!';
+      return '[OK] No issues found!';
     }
 
     const errors = diagnostics.filter(d => d.severity === 'error');
     const warnings = diagnostics.filter(d => d.severity === 'warning');
     const info = diagnostics.filter(d => d.severity === 'info');
 
-    let output = `🔍 Found ${diagnostics.length} issue(s):\n\n`;
+    let output = `Found ${diagnostics.length} issue(s):\n\n`;
 
     if (errors.length > 0) {
-      output += `❌ Errors (${errors.length}):\n`;
+      output += `[ERROR] Errors (${errors.length}):\n`;
       errors.forEach((diag, i) => {
         output += `${i + 1}. Line ${diag.range.start[0]}, Col ${diag.range.start[1]}: ${diag.message}\n`;
       });
@@ -186,7 +186,7 @@ export class AhkCompiler {
     }
 
     if (warnings.length > 0) {
-      output += `⚠️ Warnings (${warnings.length}):\n`;
+      output += `[WARN] Warnings (${warnings.length}):\n`;
       warnings.forEach((diag, i) => {
         output += `${i + 1}. Line ${diag.range.start[0]}, Col ${diag.range.start[1]}: ${diag.message}\n`;
       });
@@ -194,7 +194,7 @@ export class AhkCompiler {
     }
 
     if (info.length > 0) {
-      output += `ℹ️ Info (${info.length}):\n`;
+      output += `[INFO] Info (${info.length}):\n`;
       info.forEach((diag, i) => {
         output += `${i + 1}. Line ${diag.range.start[0]}, Col ${diag.range.start[1]}: ${diag.message}\n`;
       });
@@ -239,10 +239,17 @@ export class AhkCompiler {
           } else if (stmt.type === 'ClassDeclaration') {
             classes++;
             complexity += 1;
+            if (stmt.methods) {
+              countNodes(stmt.methods);
+            }
           } else if (stmt.type === 'IfStatement') {
             complexity += 1;
           } else if (stmt.type === 'WhileStatement' || stmt.type === 'ForStatement' || stmt.type === 'LoopStatement') {
             complexity += 2;
+          } else if (stmt.type === 'TryStatement') {
+            complexity += 2;
+          } else if (stmt.type === 'SwitchStatement') {
+            complexity += 1;
           }
           
           // Recursively count nested statements
@@ -254,6 +261,12 @@ export class AhkCompiler {
           }
           if (stmt.alternate && Array.isArray(stmt.alternate)) {
             countNodes(stmt.alternate);
+          }
+          if (stmt.cases && Array.isArray(stmt.cases)) {
+            // Handle switch cases if they have bodies
+            stmt.cases.forEach((c: any) => {
+              if (c.body) countNodes(c.body);
+            });
           }
         }
       };

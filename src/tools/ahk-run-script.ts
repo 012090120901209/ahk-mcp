@@ -440,18 +440,18 @@ export class AhkRunTool {
         
         // Provide consistent feedback structure
         const statusText = wait
-          ? `✅ AHK script completed: ${file} (exit code: ${response.exitCode})`
-          : `🚀 AHK script started: ${file} (PID: ${response.pid})`;
+          ? `AHK script completed: ${file} (exit code: ${response.exitCode})`
+          : `AHK script started: ${file} (PID: ${response.pid})`;
 
         const windowText = response.windowDetected
-          ? `✅ Window detected: ${response.windowInfo?.title}`
-          : (detectWindow ? '⏳ No window detected within timeout' : '');
+          ? `Window detected: ${response.windowInfo?.title}`
+          : (detectWindow ? 'No window detected within timeout' : '');
 
         return {
           content: [
             { type: 'text', text: statusText },
             ...(windowText ? [{ type: 'text', text: windowText }] : []),
-            { type: 'text', text: `📊 Execution details:\n${JSON.stringify(response, null, 2)}` }
+            { type: 'text', text: `Execution details:\n${JSON.stringify(response, null, 2)}` }
           ]
         };
       }
@@ -465,8 +465,8 @@ export class AhkRunTool {
         }
         return {
           content: [
-            { type: 'text', text: `🛑 File watcher stopped` },
-            { type: 'text', text: killOnExit ? `🔄 Cleaned up ${processCount} running process(es)` : '💡 Running processes left active' }
+            { type: 'text', text: `File watcher stopped` },
+            { type: 'text', text: killOnExit ? `Cleaned up ${processCount} running process(es)` : 'Running processes left active' }
           ]
         };
       }
@@ -510,10 +510,10 @@ export class AhkRunTool {
         
         return {
           content: [
-            { type: 'text', text: `👁️ File watcher started successfully` },
-            { type: 'text', text: `📁 Watching: ${file}` },
-            { type: 'text', text: `🔧 AutoHotkey: ${resolvedAhkPath}` },
-            { type: 'text', text: `⚙️ Config: ${runner} runner, ${killOnExit ? 'auto-kill enabled' : 'auto-kill disabled'}` }
+            { type: 'text', text: `File watcher started successfully` },
+            { type: 'text', text: `Watching: ${file}` },
+            { type: 'text', text: `AutoHotkey: ${resolvedAhkPath}` },
+            { type: 'text', text: `Config: ${runner} runner, ${killOnExit ? 'auto-kill enabled' : 'auto-kill disabled'}` }
           ]
         };
       } catch (watchErr) {

@@ -117,7 +117,8 @@
       "Bash(\"/mnt/c/Program Files/AutoHotkey/v2/AutoHotkey64.exe\" /ErrorStdOut \"/mnt/c/Users/uphol/Documents/Design/Coding/AHK/!Running/_Tableau.ahk\")",
       "Bash(\"/mnt/c/Program Files/AutoHotkey/v2/AutoHotkey64.exe\" /ErrorStdOut \"GUI_ButtonMaker.ahk\")",
       "SlashCommand(/ahk-orchestrator)",
-      "Bash(\"/mnt/c/Program Files/AutoHotkey/v2/AutoHotkey64.exe\" /ErrorStdOut \"TestPaddedButtons.ahk\")"
+      "Bash(\"/mnt/c/Program Files/AutoHotkey/v2/AutoHotkey64.exe\" /ErrorStdOut \"TestPaddedButtons.ahk\")",
+      "Bash(done)"
     ],
     "deny": [],
     "ask": [],

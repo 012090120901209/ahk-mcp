@@ -43,7 +43,7 @@ export class AhkActiveFileTool {
         }
         catch (error) {
             logger.error('Error in AHK_Active_File tool:', error);
-            return { content: [{ type: 'text', text: `❌ Error: ${error instanceof Error ? error.message : String(error)}` }] };
+            return { content: [{ type: 'text', text: `[ERROR]: ${error instanceof Error ? error.message : String(error)}` }] };
         }
     }
 }

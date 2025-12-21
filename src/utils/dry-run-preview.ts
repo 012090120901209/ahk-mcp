@@ -212,24 +212,24 @@ export class DryRunPreviewGenerator {
    * Format a preview as human-readable text
    */
   formatPreview(preview: DryRunPreview, filePath: string): string {
-    let output = '🔬 **DRY RUN - No changes made**\n\n';
-    output += `📄 **File:** ${filePath}\n`;
+    let output = '[DRY RUN] **DRY RUN - No changes made**\n\n';
+    output += `**File:** ${filePath}\n`;
 
     // Operation description
     const { totalChanges, operationType } = preview.summary;
 
     if (operationType === 'replace') {
       if (totalChanges === 0) {
-        output += `⚙️ **Operation:** Replace (no matches found)\n\n`;
-        output += `⚠️ **DRY RUN**: No changes would be made - pattern not found in file`;
+        output += `**Operation:** Replace (no matches found)\n\n`;
+        output += `[WARN] **DRY RUN**: No changes would be made - pattern not found in file`;
         return output;
       } else if (totalChanges === 1) {
-        output += `⚙️ **Operation:** Replace first occurrence\n\n`;
+        output += `**Operation:** Replace first occurrence\n\n`;
       } else {
-        output += `⚙️ **Operation:** Replace all occurrences\n\n`;
+        output += `**Operation:** Replace all occurrences\n\n`;
       }
     } else {
-      output += `⚙️ **Operation:** ${operationType}\n\n`;
+      output += `**Operation:** ${operationType}\n\n`;
     }
 
     // Show samples
@@ -261,13 +261,13 @@ export class DryRunPreviewGenerator {
 
     // Warnings
     if (preview.warnings.length > 0) {
-      output += `\n⚠️ **Warnings:**\n`;
+      output += `\n[WARN] **Warnings:**\n`;
       for (const warning of preview.warnings) {
         output += `- ${warning}\n`;
       }
     }
 
-    output += `\n⚠️ **DRY RUN**: File was NOT modified`;
+    output += `\n[WARN] **DRY RUN**: File was NOT modified`;
 
     return output;
   }

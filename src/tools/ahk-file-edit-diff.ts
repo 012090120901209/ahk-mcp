@@ -276,16 +276,16 @@ export class AhkDiffEditTool {
         return {
           content: [{
             type: 'text',
-            text: `❌ Failed to apply diff: ${error}\n\nMake sure the diff matches the current file content.`
+            text: `Failed to apply diff: ${error}\n\nMake sure the diff matches the current file content.`
           }],
           };
       }
 
       // Generate response
-      let response = `📝 **Diff Edit for:** ${targetFile}\n\n`;
-      
+      let response = `**Diff Edit for:** ${targetFile}\n\n`;
+
       if (dryRun) {
-        response += '**🔍 DRY RUN - Changes NOT applied**\n\n';
+        response += '**DRY RUN - Changes NOT applied**\n\n';
         response += '**Preview of changes:**\n```diff\n';
         response += this.createSimpleDiff(currentContent, newContent);
         response += '```\n\n';
@@ -293,20 +293,20 @@ export class AhkDiffEditTool {
         const linesChanged = Math.abs(newContent.split('\n').length - currentContent.split('\n').length);
         response += `**Summary:** ${parsedDiff.hunks.length} hunk(s), ~${linesChanged} line(s) changed`;
         if (runAfterEdit) {
-          response += '\n\n⚠️ Run skipped during dry run. Apply the diff to execute the script.';
+          response += '\n\n[WARN] Run skipped during dry run. Apply the diff to execute the script.';
         }
       } else {
         // Create backup if requested
         if (createBackup) {
           const backupPath = targetFile + '.bak';
           await fs.writeFile(backupPath, currentContent, 'utf-8');
-          response += `💾 Backup created: ${backupPath}\n`;
+          response += `Backup created: ${backupPath}\n`;
         }
 
         // Apply the changes
         await fs.writeFile(targetFile, newContent, 'utf-8');
-        
-        response += '✅ **Changes applied successfully!**\n\n';
+
+        response += '**Changes applied successfully!**\n\n';
         response += `**Summary:**\n`;
         response += `- Hunks applied: ${parsedDiff.hunks.length}\n`;
         response += `- Lines before: ${currentContent.split('\n').length}\n`;
@@ -316,7 +316,7 @@ export class AhkDiffEditTool {
         activeFile.setActiveFile(targetFile);
 
         if (runAfterEdit) {
-          response += '\n\n🚀 **Run Result:**\n';
+          response += '\n\n**Run Result:**\n';
           try {
             const runResult = await this.runTool.execute({
               mode: 'run',
@@ -339,7 +339,7 @@ export class AhkDiffEditTool {
               response += 'Script executed successfully.';
             }
           } catch (runError) {
-            response += `⚠️ Failed to run script: ${runError instanceof Error ? runError.message : String(runError)}`;
+            response += `[WARN] Failed to run script: ${runError instanceof Error ? runError.message : String(runError)}`;
           }
         }
       }
@@ -356,7 +356,7 @@ export class AhkDiffEditTool {
       return {
         content: [{
           type: 'text',
-          text: `❌ Error: ${error instanceof Error ? error.message : String(error)}`
+          text: `Error: ${error instanceof Error ? error.message : String(error)}`
         }],
       };
     }

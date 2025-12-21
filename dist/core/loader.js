@@ -38,7 +38,8 @@ export async function loadAhkData() {
     try {
         const mode = (process.env.AHK_MCP_DATA_MODE || '').toLowerCase();
         const lightMode = mode === 'light' || process.env.AHK_MCP_LIGHT === '1';
-        logger.info(`Loading AutoHotkey documentation data (mode=${lightMode ? 'light' : 'full'})...`);
+        // Use stderr to avoid polluting MCP stdout channel
+        process.stderr.write(`[INFO] Loading AutoHotkey documentation data (mode=${lightMode ? 'light' : 'full'})...\n`);
         // Always load the lightweight index first
         ahkIndex = (await dynamicJsonImport('ahk_index.json'));
         if (!lightMode) {
@@ -48,18 +49,12 @@ export async function loadAhkData() {
         else {
             ahkDocumentationFull = null;
         }
-        logger.info(`Loaded AHK index with ${ahkIndex.functions?.length || 0} functions, ${ahkIndex.classes?.length || 0} classes`);
-        if (!lightMode) {
-            logger.info('Loaded full AutoHotkey documentation and search index');
-        }
-        else {
-            logger.info('Light mode enabled: skipped loading full documentation datasets');
-        }
-        logger.info('AutoHotkey documentation data loaded successfully');
     }
-    catch (error) {
-        logger.error('Failed to load AutoHotkey documentation data:', error);
-        throw error;
+    catch (err) {
+        logger.error('Failed to load AutoHotkey documentation data:', err);
+        ahkIndex = null;
+        ahkDocumentationFull = null;
+        throw err;
     }
 }
 /**

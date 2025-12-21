@@ -129,12 +129,7 @@ export class AhkFileCreateTool {
 
       const directoryPath = path.dirname(resolvedPath);
       const directoryExists = await pathExists(directoryPath);
-      const fileAlreadyExists = await pathExists(resolvedPath);
       const directoriesWillBeCreated = !directoryExists && createDirectories;
-
-      if (fileAlreadyExists && !overwrite) {
-        throw new Error(`File already exists: ${resolvedPath}. Enable overwrite to replace it.`);
-      }
 
       if (!directoryExists && !createDirectories) {
         throw new Error(`Directory does not exist: ${directoryPath}. Enable createDirectories to create it automatically.`);
@@ -144,6 +139,7 @@ export class AhkFileCreateTool {
       const bytesToWrite = Buffer.byteLength(contentToWrite, UTF8_ENCODING);
       let directoriesCreated = false;
       let activeFileSet = false;
+      let fileAlreadyExists = false;
 
       if (!dryRun) {
         if (!directoryExists) {
@@ -151,11 +147,27 @@ export class AhkFileCreateTool {
           directoriesCreated = true;
         }
 
-        if (fileAlreadyExists && overwrite) {
-          logger.info(`Overwriting existing file: ${resolvedPath}`);
+        // Use atomic write to prevent TOCTOU race conditions
+        // 'wx' flag: exclusive write - fails if file exists
+        // Normal write when overwrite is true
+        try {
+          if (overwrite) {
+            // Check if file exists for logging purposes only
+            fileAlreadyExists = await pathExists(resolvedPath);
+            if (fileAlreadyExists) {
+              logger.info(`Overwriting existing file: ${resolvedPath}`);
+            }
+            await fs.writeFile(resolvedPath, contentToWrite, { encoding: UTF8_ENCODING });
+          } else {
+            // Atomic create-or-fail
+            await fs.writeFile(resolvedPath, contentToWrite, { encoding: UTF8_ENCODING, flag: 'wx' });
+          }
+        } catch (writeError) {
+          if ((writeError as NodeJS.ErrnoException).code === 'EEXIST') {
+            throw new Error(`File already exists: ${resolvedPath}. Enable overwrite to replace it.`);
+          }
+          throw writeError;
         }
-
-        await fs.writeFile(resolvedPath, contentToWrite, { encoding: UTF8_ENCODING });
 
         if (setActive) {
           activeFileSet = activeFile.setActiveFile(resolvedPath);
@@ -189,8 +201,8 @@ export class AhkFileCreateTool {
           {
             type: 'text',
             text: dryRun
-              ? '🔬 Dry run: AutoHotkey file creation preview.'
-              : '✅ AutoHotkey file created successfully.'
+              ? '[DRY RUN] AutoHotkey file creation preview.'
+              : 'AutoHotkey file created successfully.'
           },
           {
             type: 'text',

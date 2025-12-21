@@ -60,7 +60,7 @@ export const ahkEditToolDefinition = {
   "dryRun": true
 }
 \`\`\`
-Shows a 🔬 DRY RUN report instead of touching the file.
+Shows a DRY RUN report instead of touching the file.
 
 **Create New Script**
 \`\`\`json
@@ -72,9 +72,9 @@ Shows a 🔬 DRY RUN report instead of touching the file.
 \`\`\`
 
 **What to Avoid**
-- ❌ Using deprecated "content" parameter → migrate to "newContent"
-- ❌ Running batch replacements without \`dryRun: true\` first
-- ❌ Disabling backups on production files unless absolutely necessary
+- Using deprecated "content" parameter - migrate to "newContent"
+- Running batch replacements without \`dryRun: true\` first
+- Disabling backups on production files unless absolutely necessary
 
 **See also:** AHK_File_Edit_Advanced, AHK_File_Edit_Small, AHK_File_View, AHK_Smart_Orchestrator`,
   inputSchema: {
@@ -378,7 +378,7 @@ export class AhkEditTool {
         
         // Add deprecation warnings if any
         if (deprecatedUsed.length > 0) {
-          response = `⚠️ **Deprecated parameter(s)**: ${deprecatedUsed.join(', ')}\n` +
+          response = `**Deprecated parameter(s)**: ${deprecatedUsed.join(', ')}\n` +
             `Please update to new parameter names. See tool documentation for details.\n\n` + response;
         }
         
@@ -468,17 +468,7 @@ export class AhkEditTool {
           if (content === undefined) {
             throw new Error('Content is required for create action');
           }
-          
-          // Check if file already exists
-          try {
-            await fs.access(targetFile);
-            throw new Error(`File already exists: ${targetFile}`);
-          } catch (error) {
-            if ((error as any).code !== 'ENOENT') {
-              throw error; // Re-throw if it's not a "file not found" error
-            }
-          }
-          
+
           // Create parent directories if they don't exist
           const dir = path.dirname(targetFile);
           try {
@@ -486,10 +476,35 @@ export class AhkEditTool {
           } catch (error) {
             throw new Error(`Failed to create directory: ${dir}`);
           }
-          
+
+          // Atomic create-or-fail using 'wx' flag (exclusive write)
+          // This prevents TOCTOU race conditions
+          try {
+            await fs.writeFile(targetFile, content, { encoding: 'utf-8', flag: 'wx' });
+          } catch (error) {
+            if ((error as NodeJS.ErrnoException).code === 'EEXIST') {
+              throw new Error(`File already exists: ${targetFile}`);
+            }
+            throw error;
+          }
+
           newContent = content;
           operationSummary = `Created new file with content`;
-          break;
+
+          // Skip the normal writeFile at the end since we already wrote
+          if (backup) {
+            // No backup needed for new files
+          }
+
+          // Update active file
+          activeFile.setActiveFile(targetFile);
+
+          return {
+            content: [{
+              type: 'text',
+              text: `**File Created Successfully**\n\n- **File**: \`${targetFile}\`\n- **Operation**: ${operationSummary}\n- **Lines**: ${content.split('\n').length}`
+            }]
+          };
         }
           
         default:
@@ -510,9 +525,9 @@ export class AhkEditTool {
       activeFile.setActiveFile(targetFile);
 
       // Generate response
-      let response = `✅ **Edit Successful**\n\n`;
-      response += `📄 **File:** ${targetFile}\n`;
-      response += `⚙️ **Operation:** ${operationSummary}\n`;
+      let response = `**Edit Successful**\n\n`;
+      response += `**File:** ${targetFile}\n`;
+      response += `**Operation:** ${operationSummary}\n`;
       
       // Show statistics
       const oldLines = currentContent.split('\n').length;
@@ -529,11 +544,11 @@ export class AhkEditTool {
       }
       
       if (backup) {
-        response += `\n💾 Backup saved as: ${path.basename(targetFile)}.bak`;
+        response += `\nBackup saved as: ${path.basename(targetFile)}.bak`;
       }
 
       if (shouldRunAfterEdit) {
-        response += '\n\n🚀 **Run Result:**\n';
+        response += '\n\n**Run Result:**\n';
         try {
           const runResult = await this.runTool.execute({
             mode: 'run',
@@ -556,7 +571,7 @@ export class AhkEditTool {
             response += 'Script executed.';
           }
         } catch (runError) {
-          response += `⚠️ Failed to run script: ${runError instanceof Error ? runError.message : String(runError)}`;
+          response += `Failed to run script: ${runError instanceof Error ? runError.message : String(runError)}`;
         }
       }
 
@@ -591,7 +606,7 @@ export class AhkEditTool {
           return {
             content: [{
               type: 'text',
-              text: `⚠️ Edit failed. Alpha version created and set as active.\n\nOriginal error: ${error instanceof Error ? error.message : String(error)}\n\nYou can now retry the edit on the alpha version.`
+              text: `Edit failed. Alpha version created and set as active.\n\nOriginal error: ${error instanceof Error ? error.message : String(error)}\n\nYou can now retry the edit on the alpha version.`
             }]
           };
         }
@@ -600,7 +615,7 @@ export class AhkEditTool {
       return {
         content: [{
           type: 'text',
-          text: `❌ Error: ${error instanceof Error ? error.message : String(error)}`
+          text: `Error: ${error instanceof Error ? error.message : String(error)}`
         }]
       };
     }

@@ -4,6 +4,7 @@ import logger from '../logger.js';
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import { safeParse } from '../core/validation-middleware.js';
+import { AhkCompiler } from '../compiler/ahk-compiler.js';
 
 export const AhkContextInjectorArgsSchema = z.object({
   userPrompt: z.string().min(1, 'User prompt is required'),
@@ -389,6 +390,7 @@ export class AhkContextInjectorTool {
   }
 
   private extractKeywords(text: string): string[] {
+    logger.debug('extractKeywords called with:', text);
     const keywords: string[] = [];
     const normalizedText = text.toLowerCase();
 
@@ -399,7 +401,7 @@ export class AhkContextInjectorTool {
       }
     }
 
-    // Extract AutoHotkey-specific terms
+    // Extract AutoHotkey-specific terms using Regex
     const ahkPatterns = [
       /\b(msgbox|tooltip|send|click|hotkey|gui|window|file|array|map|loop)\b/gi,
       /\b(a_\w+)\b/gi,  // Built-in variables
@@ -413,7 +415,78 @@ export class AhkContextInjectorTool {
       }
     }
 
+    // 🚀 NEW: Smart AST-based extraction
+    // If the text looks like it contains code, try to parse it
+    if (text.includes('(') || text.includes(':=') || text.includes('{')) {
+      try {
+        const astKeywords = this.extractKeywordsFromAST(text);
+        keywords.push(...astKeywords);
+      } catch (e) {
+        logger.debug('Error in AST extraction:', e);
+        // Ignore parsing errors, it might just be natural language
+      }
+    }
+
     return [...new Set(keywords)]; // Remove duplicates
+  }
+
+  /**
+   * Use AhkCompiler to parse code and extract precise symbols
+   */
+  private extractKeywordsFromAST(text: string): string[] {
+    const keywords: string[] = [];
+
+    // Attempt to parse the text as AHK code
+    const result = AhkCompiler.parse(text);
+    logger.debug('AST Parse Result:', result.success, result.data ? 'Data present' : 'No data');
+
+    if (result.success && result.data) {
+      const ast = result.data;
+
+      // Recursive function to walk the AST
+      const walk = (node: any) => {
+        if (!node) return;
+
+        // Extract function calls
+        if (node.type === 'CallExpression' && node.callee) {
+          if (node.callee.type === 'Identifier') {
+            logger.debug('Found CallExpression Identifier:', node.callee.name);
+            keywords.push(node.callee.name.toLowerCase());
+          } else if (node.callee.type === 'MemberExpression' && node.callee.property) {
+            // Handle Object.Method() -> extract Method
+            logger.debug('Found CallExpression MemberExpression:', node.callee.property.name);
+            keywords.push(node.callee.property.name.toLowerCase());
+          }
+        }
+
+        // Extract identifiers (variables, classes)
+        if (node.type === 'Identifier') {
+          // Filter out short variables to reduce noise
+          if (node.name.length > 2) {
+            logger.debug('Found Identifier:', node.name);
+            keywords.push(node.name.toLowerCase());
+          }
+        }
+
+        // Recurse into children
+        for (const key in node) {
+          if (typeof node[key] === 'object' && node[key] !== null) {
+            if (Array.isArray(node[key])) {
+              node[key].forEach(walk);
+            } else {
+              walk(node[key]);
+            }
+          }
+        }
+      };
+
+      if (ast.body && Array.isArray(ast.body)) {
+        ast.body.forEach(walk);
+      }
+    }
+
+    logger.debug('Extracted Keywords from AST:', keywords);
+    return keywords;
   }
 
   /**
@@ -577,11 +650,17 @@ export class AhkContextInjectorTool {
    * Search through the comprehensive full documentation
    */
   private searchInFullDocumentation(keywords: string[], fullDocsData: any, contextType: string, matches: ContextMatch[]): void {
+    logger.debug('Searching Full Docs. Keys:', Object.keys(fullDocsData));
+    if (fullDocsData.BuiltInVariables) logger.debug('Variables count:', fullDocsData.BuiltInVariables.length);
+    if (fullDocsData.Classes) logger.debug('Classes count:', fullDocsData.Classes.length);
+    if (fullDocsData.Functions) logger.debug('Functions count:', fullDocsData.Functions.length);
+
     // Search Built-in Variables
     if ((contextType === 'auto' || contextType === 'variables') && fullDocsData.BuiltInVariables) {
       for (const item of fullDocsData.BuiltInVariables) {
         const relevance = this.calculateEnhancedRelevance(keywords, item);
         if (relevance > 0) {
+          logger.debug(`MATCH FOUND: ${item.Name} (Relevance: ${relevance})`);
           matches.push({
             type: 'variable',
             name: item.Name,
@@ -603,6 +682,7 @@ export class AhkContextInjectorTool {
       for (const item of fullDocsData.Classes) {
         const relevance = this.calculateEnhancedRelevance(keywords, item);
         if (relevance > 0) {
+          logger.debug(`MATCH FOUND: ${item.Name} (Relevance: ${relevance})`);
           const itemType = item.Type === 'Method' ? 'method' : 'class';
           matches.push({
             type: itemType,
@@ -647,6 +727,9 @@ export class AhkContextInjectorTool {
    * Search through index data as fallback
    */
   private searchInIndexData(keywords: string[], ahkIndex: any, contextType: string, matches: ContextMatch[]): void {
+    logger.debug('Searching Index Data...');
+    if (ahkIndex.methods) logger.debug('Index Methods count:', ahkIndex.methods.length);
+
     // Avoid duplicates by checking existing match names
     const existingNames = new Set(matches.map(m => m.name.toLowerCase()));
 
@@ -788,12 +871,12 @@ export class AhkContextInjectorTool {
         
         // Add source indicator
         const source = match.data.source === 'full_docs' ? '📚 Full Docs' : '📋 Index';
-        contextText += `\n*Source:* ${source}\n\n`;
+        contextText += `\n*Source: ${source}*\n\n`;
       }
     }
 
-    contextText += '\n*💡 This enhanced context uses comprehensive AutoHotkey v2 documentation for maximum accuracy.*\n';
+    contextText += '\n*💡 Use this context to write more accurate AutoHotkey v2 code.*\n';
     
     return contextText;
   }
-} 
+}

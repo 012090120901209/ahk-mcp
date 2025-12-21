@@ -41,7 +41,8 @@ export async function loadAhkData(): Promise<void> {
   try {
     const mode = (process.env.AHK_MCP_DATA_MODE || '').toLowerCase();
     const lightMode = mode === 'light' || process.env.AHK_MCP_LIGHT === '1';
-    logger.info(`Loading AutoHotkey documentation data (mode=${lightMode ? 'light' : 'full'})...`);
+    // Use stderr to avoid polluting MCP stdout channel
+    process.stderr.write(`[INFO] Loading AutoHotkey documentation data (mode=${lightMode ? 'light' : 'full'})...\n`);
 
     // Always load the lightweight index first
     ahkIndex = (await dynamicJsonImport<AhkIndex>('ahk_index.json')) as AhkIndex;
@@ -52,17 +53,11 @@ export async function loadAhkData(): Promise<void> {
     } else {
       ahkDocumentationFull = null;
     }
-
-    logger.info(`Loaded AHK index with ${ahkIndex.functions?.length || 0} functions, ${ahkIndex.classes?.length || 0} classes`);
-    if (!lightMode) {
-      logger.info('Loaded full AutoHotkey documentation and search index');
-    } else {
-      logger.info('Light mode enabled: skipped loading full documentation datasets');
-    }
-    logger.info('AutoHotkey documentation data loaded successfully');
-  } catch (error) {
-    logger.error('Failed to load AutoHotkey documentation data:', error);
-    throw error;
+  } catch (err) {
+    logger.error('Failed to load AutoHotkey documentation data:', err);
+    ahkIndex = null;
+    ahkDocumentationFull = null;
+    throw err;
   }
 }
 
@@ -86,7 +81,7 @@ export function getAhkDocumentationFull(): any {
  */
 export function searchFunctions(query: string): any[] {
   if (!ahkIndex) return [];
-  
+
   const normalizedQuery = query.toLowerCase();
   return ahkIndex.functions.filter(func =>
     func.Name.toLowerCase().includes(normalizedQuery) ||
@@ -99,7 +94,7 @@ export function searchFunctions(query: string): any[] {
  */
 export function searchClasses(query: string): any[] {
   if (!ahkIndex) return [];
-  
+
   const normalizedQuery = query.toLowerCase();
   return ahkIndex.classes.filter(cls =>
     cls.Name.toLowerCase().includes(normalizedQuery) ||
@@ -112,7 +107,7 @@ export function searchClasses(query: string): any[] {
  */
 export function searchVariables(query: string): any[] {
   if (!ahkIndex) return [];
-  
+
   const normalizedQuery = query.toLowerCase();
   return ahkIndex.variables.filter(variable =>
     variable.Name.toLowerCase().includes(normalizedQuery) ||
@@ -127,4 +122,4 @@ export function searchVariables(query: string): any[] {
  */
 export async function initializeDataLoader(): Promise<void> {
   await loadAhkData();
-} 
+}

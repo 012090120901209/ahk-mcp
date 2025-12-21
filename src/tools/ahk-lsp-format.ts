@@ -24,30 +24,7 @@ export type AhkLspFormatArgs = z.infer<typeof AhkLspFormatArgsSchema>;
 // Tool definition
 export const ahkLspFormatToolDefinition = {
   name: 'AHK_LSP_Format',
-  description: `Format AutoHotkey v2 code according to style rules
-
-Formats code with configurable options:
-- Indentation (spaces or tabs, configurable size)
-- Line length limits
-- Spacing around operators
-- Brace placement styles (K&R, Allman, Compact)
-- Trailing whitespace removal
-- Alignment options
-
-Perfect for cleaning up code before committing.
-Returns formatted code that follows best practices.
-
-**Example Usage:**
-\`\`\`
-// Format with default settings (2-space indent, K&R braces)
-{ code: "..." }
-
-// Format with tabs and Allman-style braces
-{ code: "...", options: { useTabs: true, braceStyle: "allman" } }
-
-// Format with 4-space indent and alignment
-{ code: "...", options: { indentSize: 4, alignAssignments: true } }
-\`\`\``,
+  description: `Format AHK v2 code. Options: indentSize, useTabs, braceStyle (k&r/allman/compact), alignAssignments.`,
   inputSchema: {
     type: 'object',
     properties: {

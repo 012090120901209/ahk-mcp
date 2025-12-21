@@ -1,5 +1,6 @@
 import { PathConverter, PathFormat, PathConversionResult } from '../utils/path-converter.js';
 import { z } from 'zod';
+import logger from '../logger.js';
 
 /**
  * Tool path configuration for path conversion
@@ -77,13 +78,17 @@ export class PathInterceptor {
       'get_file_info'
     ];
 
+    // Detect OS to determine target format
+    const isWindows = process.platform === 'win32';
+    const targetFormat = isWindows ? PathFormat.WINDOWS : PathFormat.WSL;
+
     fileSystemTools.forEach(toolName => {
       this.toolConfigs.set(toolName, {
         toolName,
         pathParameters: ['path', 'source', 'destination'],
         convertInput: true,
         convertOutput: false,
-        targetFormat: PathFormat.WSL
+        targetFormat: targetFormat
       });
     });
   }
@@ -181,7 +186,7 @@ export class PathInterceptor {
             conversions.push(conversionResult);
           } else {
             // Log the error but don't fail the entire operation
-            console.warn(`Path conversion failed for ${toolName}.${paramName}: ${conversionResult.error}`);
+            logger.warn(`Path conversion failed for ${toolName}.${paramName}: ${conversionResult.error}`);
           }
         }
       }

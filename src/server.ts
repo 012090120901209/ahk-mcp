@@ -8,6 +8,7 @@ import {
   GetPromptRequestSchema,
   ListResourcesRequestSchema,
   ReadResourceRequestSchema,
+  SetLevelRequestSchema,
 } from '@modelcontextprotocol/sdk/types.js';
 import { initializeDataLoader, getAhkIndex } from './core/loader.js';
 import logger from './logger.js';
@@ -119,6 +120,7 @@ export class AutoHotkeyMcpServer {
           prompts: {},
           resources: {},
           sampling: {},
+          logging: {},
         },
       }
     );
@@ -166,7 +168,8 @@ export class AutoHotkeyMcpServer {
     this.ahkWorkflowAnalyzeFixRunToolInstance = new AhkWorkflowAnalyzeFixRunTool(
       this.ahkAnalyzeToolInstance,
       this.ahkEditToolInstance,
-      this.ahkRunToolInstance
+      this.ahkRunToolInstance,
+      this.ahkLspToolInstance
     );
     
     // Initialize Smart Orchestrator after toolRegistry is created
@@ -178,6 +181,20 @@ export class AutoHotkeyMcpServer {
     this.setupToolHandlers();
     this.setupPromptHandlers();
     this.setupResourceHandlers();
+    this.setupLoggingHandlers();
+  }
+
+  /**
+   * Setup logging handlers to prevent "Method not found" errors
+   */
+  private setupLoggingHandlers(): void {
+    // Handle logging/setLevel requests (sent by some clients during initialization)
+    // We acknowledge the request but use our own server-side logging
+    this.server.setRequestHandler(SetLevelRequestSchema, async (request) => {
+      const level = request.params.level;
+      logger.debug(`Client requested log level: ${level} (using server-side logging)`);
+      return {};
+    });
   }
 
   /**
@@ -1416,19 +1433,63 @@ F12::hkManager.ToggleHotkey("F1", (*) => MsgBox("F1 pressed!"), "Example hotkey"
 
         app.use(express.default.json());
 
-        // Store active transports by session
-        const activeTransports = new Map();
+        // Store active transports by session with metadata for cleanup
+        interface TransportEntry {
+          transport: InstanceType<typeof SSEServerTransport>;
+          createdAt: number;
+          lastActivity: number;
+        }
+        const activeTransports = new Map<string, TransportEntry>();
+
+        // Configuration for transport management
+        const MAX_TRANSPORTS = 100;
+        const SESSION_TIMEOUT_MS = 30 * 60 * 1000; // 30 minutes
+        const CLEANUP_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
+
+        // Periodic cleanup of stale transports
+        const cleanupInterval = setInterval(() => {
+          const now = Date.now();
+          let cleaned = 0;
+          for (const [sessionId, entry] of activeTransports.entries()) {
+            if (now - entry.lastActivity > SESSION_TIMEOUT_MS) {
+              activeTransports.delete(sessionId);
+              cleaned++;
+              logger.info(`Cleaned up stale SSE session: ${sessionId}`);
+            }
+          }
+          if (cleaned > 0) {
+            logDebugEvent('transport.sse', {
+              status: 'info',
+              message: `Cleaned up ${cleaned} stale sessions, ${activeTransports.size} active`
+            });
+          }
+        }, CLEANUP_INTERVAL_MS);
+
+        // Ensure cleanup interval doesn't prevent process exit
+        cleanupInterval.unref();
 
         // Set up SSE endpoint
         app.get('/sse', (req, res) => {
           try {
+            // Enforce maximum transport limit
+            if (activeTransports.size >= MAX_TRANSPORTS) {
+              logger.warn(`Maximum SSE transports (${MAX_TRANSPORTS}) reached, rejecting new connection`);
+              res.status(503).json({ error: 'Server at capacity, try again later' });
+              return;
+            }
+
             // Create SSE transport for this specific response
             const transport = new SSEServerTransport('/message', res);
 
-            // Store the transport for handling POST messages
+            // Store the transport with metadata for timeout handling
             const sessionId = transport.sessionId;
-            activeTransports.set(sessionId, transport);
-            logDebugEvent('transport.sse', { status: 'start', message: `Session ${sessionId} connected` });
+            const now = Date.now();
+            activeTransports.set(sessionId, {
+              transport,
+              createdAt: now,
+              lastActivity: now
+            });
+            logDebugEvent('transport.sse', { status: 'start', message: `Session ${sessionId} connected (${activeTransports.size} active)` });
 
             // Connect MCP server to this transport
             this.server.connect(transport).then(() => {
@@ -1470,9 +1531,11 @@ F12::hkManager.ToggleHotkey("F1", (*) => MsgBox("F1 pressed!"), "Example hotkey"
             logger.debug('Received POST message:', req.body);
 
             // Try to find the appropriate transport and let it handle the message
-            for (const [sessionId, transport] of activeTransports.entries()) {
+            for (const [sessionId, entry] of activeTransports.entries()) {
               try {
-                await transport.handlePostMessage(req, res);
+                await entry.transport.handlePostMessage(req, res);
+                // Update last activity on successful message
+                entry.lastActivity = Date.now();
                 return; // Message handled successfully
               } catch (error) {
                 logger.debug(`Transport ${sessionId} couldn't handle message:`, error);

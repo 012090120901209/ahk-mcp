@@ -1,5 +1,6 @@
-import type { IToolServer } from './server-interface.js';
+import type { IToolServer, ToolArgs, ToolHandler } from './server-interface.js';
 import path from 'path';
+import { friendlyLogger, LogCategory } from './friendly-logger.js';
 
 /**
  * Get the project root directory (one level up from dist/)
@@ -15,7 +16,7 @@ function getProjectRoot(): string {
  * Tool registry for managing tool handler registration
  */
 export class ToolRegistry {
-  private toolHandlers = new Map<string, (args: any) => Promise<any>>();
+  private toolHandlers = new Map<string, ToolHandler>();
 
   constructor(private serverInstance: IToolServer) {
     this.registerCoreTools();
@@ -70,9 +71,10 @@ export class ToolRegistry {
     ];
 
     coreTools.forEach(tool => {
-      this.toolHandlers.set(tool.name, (args) =>
-        (this.serverInstance as any)[tool.instance].execute(args)
-      );
+      this.toolHandlers.set(tool.name, (args: unknown) => {
+        const instance = this.serverInstance[tool.instance as keyof IToolServer];
+        return instance.execute(args);
+      });
     });
 
     // Register library tools with custom handlers
@@ -99,16 +101,20 @@ export class ToolRegistry {
    * Register ChatGPT-compatible tools (SSE mode only)
    */
   private registerChatGPTTools(): void {
-    this.toolHandlers.set('search', (args) =>
-      (this.serverInstance as any).ahkDocSearchToolInstance.execute({
-        query: (args as any).query,
+    this.toolHandlers.set('search', (args: unknown) => {
+      const typedArgs = args as ToolArgs;
+      return this.serverInstance.ahkDocSearchToolInstance.execute({
+        query: typedArgs.query as string,
         category: 'auto',
         limit: 10
-      }));
+      });
+    });
 
-    this.toolHandlers.set('fetch', async (args) => {
-      const fetchResult = await (this.serverInstance as any).ahkDocSearchToolInstance.execute({
-        query: (args as any).id,
+    this.toolHandlers.set('fetch', async (args: unknown) => {
+      const typedArgs = args as ToolArgs;
+      const searchId = typedArgs.id as string;
+      const fetchResult = await this.serverInstance.ahkDocSearchToolInstance.execute({
+        query: searchId,
         category: 'auto',
         limit: 5
       });
@@ -116,7 +122,14 @@ export class ToolRegistry {
       if (fetchResult.content && fetchResult.content.length > 0 && fetchResult.content[0].text) {
         const searchData = JSON.parse(fetchResult.content[0].text);
         const results = searchData.results || [];
-        const firstResult = results.find((r: any) => r.id === (args as any).id) || results[0];
+        interface DocResult {
+          id: string;
+          title: string;
+          description?: string;
+          summary?: string;
+          url?: string;
+        }
+        const firstResult = results.find((r: DocResult) => r.id === searchId) || results[0];
 
         if (firstResult) {
           const docResponse = {
@@ -128,19 +141,19 @@ export class ToolRegistry {
           };
 
           return {
-            content: [{ type: 'text', text: JSON.stringify(docResponse) }]
+            content: [{ type: 'text' as const, text: JSON.stringify(docResponse) }]
           };
         }
       }
 
       return {
         content: [{
-          type: 'text',
+          type: 'text' as const,
           text: JSON.stringify({
-            id: (args as any).id,
+            id: searchId,
             title: 'AutoHotkey Documentation Item',
             text: 'Documentation not found for this item. Try searching for related terms.',
-            url: `https://www.autohotkey.com/docs/v2/search.htm?q=${(args as any).id}`,
+            url: `https://www.autohotkey.com/docs/v2/search.htm?q=${searchId}`,
             metadata: { source: 'autohotkey_docs', version: 'v2' }
           })
         }]
@@ -151,12 +164,55 @@ export class ToolRegistry {
   /**
    * Execute a tool by name with given arguments
    */
-  async executeTool(toolName: string, args: any): Promise<any> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  async executeTool(toolName: string, args: unknown): Promise<any> {
     const handler = this.toolHandlers.get(toolName);
     if (!handler) {
       throw new Error(`Unknown tool: ${toolName}`);
     }
-    return await handler(args);
+
+    // Friendly logging start
+    const category = this.getToolCategory(toolName);
+    const summary = this.getToolSummary(toolName, args);
+
+    try {
+      const result = await handler(args);
+
+      // Log success
+      if (category) {
+        friendlyLogger.log(category, `${toolName} completed`, summary);
+      }
+
+      return result;
+    } catch (error) {
+      // Log error
+      friendlyLogger.error(`${toolName} failed`, error instanceof Error ? error.message : String(error));
+      throw error;
+    }
+  }
+
+  private getToolCategory(toolName: string): LogCategory | null {
+    if (toolName.includes('Edit')) return LogCategory.EDIT;
+    if (toolName.includes('Run')) return LogCategory.RUN;
+    if (toolName.includes('Lint')) return LogCategory.LINT;
+    if (toolName.includes('Create')) return LogCategory.CREATE;
+    if (toolName.includes('Search') || toolName.includes('List') || toolName.includes('View')) return LogCategory.INFO;
+    return LogCategory.TOOL;
+  }
+
+  private getToolSummary(toolName: string, args: unknown): string {
+    if (!args || typeof args !== 'object') return '';
+    const typedArgs = args as ToolArgs;
+    const filePath = typedArgs.filePath as string | undefined;
+    const targetFile = typedArgs.targetFile as string | undefined;
+    const scriptPath = typedArgs.scriptPath as string | undefined;
+    const query = typedArgs.query as string | undefined;
+
+    if (filePath) return `File: ${path.basename(filePath)}`;
+    if (targetFile) return `File: ${path.basename(targetFile)}`;
+    if (scriptPath) return `Script: ${path.basename(scriptPath)}`;
+    if (query) return `Query: "${query}"`;
+    return '';
   }
 
   /**

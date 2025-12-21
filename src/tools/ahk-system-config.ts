@@ -54,14 +54,14 @@ export class AhkConfigTool {
 
       return {
         content: [
-          { type: 'text', text: '✅ Configuration updated.' },
+          { type: 'text', text: 'Configuration updated.' },
           { type: 'text', text: JSON.stringify({ config: cfg }, null, 2) },
         ],
       };
     } catch (error) {
       logger.error('Error in AHK_Config tool:', error);
       return {
-        content: [{ type: 'text', text: `❌ Runtime Error: ${error instanceof Error ? error.message : String(error)}` }],
+        content: [{ type: 'text', text: `Runtime Error: ${error instanceof Error ? error.message : String(error)}` }],
         isError: true
       };
     }

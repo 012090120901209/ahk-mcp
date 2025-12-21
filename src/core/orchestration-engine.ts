@@ -283,13 +283,13 @@ export class OrchestrationEngine {
     cacheHit: boolean
   ): OrchestrationResult {
     const lines: string[] = [
-      '🎯 **File Structure Analysis**\n',
-      `📊 Performance: ${toolCallsMade} tool call(s) | Cache: ${cacheHit ? 'HIT ✨' : 'MISS'}`,
-      `📁 File: ${analysis.filePath}\n`
+      '**File Structure Analysis**\n',
+      `Performance: ${toolCallsMade} tool call(s) | Cache: ${cacheHit ? 'HIT' : 'MISS'}`,
+      `File: ${analysis.filePath}\n`
     ];
 
     if (analysis.classes.length > 0) {
-      lines.push(`📦 **Classes (${analysis.classes.length}):**`);
+      lines.push(`**Classes (${analysis.classes.length}):**`);
       analysis.classes.forEach(cls => {
         lines.push(`• ${cls.name} (lines ${cls.startLine}-${cls.endLine})`);
       });
@@ -297,7 +297,7 @@ export class OrchestrationEngine {
     }
 
     if (analysis.functions.length > 0) {
-      lines.push(`🔧 **Functions (${analysis.functions.length}):**`);
+      lines.push(`**Functions (${analysis.functions.length}):**`);
       analysis.functions.forEach(fn => {
         lines.push(`• ${fn.name} (lines ${fn.startLine}-${fn.endLine})`);
       });
@@ -331,11 +331,11 @@ export class OrchestrationEngine {
     const analysisAge = Date.now() - analysisTimestamp;
 
     const lines: string[] = [
-      '🎯 **Smart Orchestrator Results**\n',
-      `📊 Performance: ${toolCallsMade} tool call(s) | Cache: ${cacheHit ? 'HIT ✨' : 'MISS'}`,
-      `📁 File: ${filePath}`,
-      targetEntity ? `🎯 Target: ${targetEntity} (lines ${linesRead.start}-${linesRead.end})` : '',
-      cacheHit ? `⏱️ Cache age: ${Math.round(analysisAge / 1000)}s` : '',
+      '**Smart Orchestrator Results**\n',
+      `Performance: ${toolCallsMade} tool call(s) | Cache: ${cacheHit ? 'HIT' : 'MISS'}`,
+      `File: ${filePath}`,
+      targetEntity ? `Target: ${targetEntity} (lines ${linesRead.start}-${linesRead.end})` : '',
+      cacheHit ? `Cache age: ${Math.round(analysisAge / 1000)}s` : '',
       '\n---\n',
       content
     ];

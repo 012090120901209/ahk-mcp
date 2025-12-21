@@ -32,26 +32,7 @@ export interface HoverInfo {
 // Tool definition
 export const ahkLspHoverToolDefinition = {
   name: 'AHK_LSP_Hover',
-  description: `Get hover information (documentation) for symbol at cursor position
-
-Returns detailed documentation for the symbol under the cursor:
-- Function signatures with parameter types and defaults
-- Variable types and scope information
-- Class and method documentation
-- Built-in AHK v2 function documentation
-- Usage examples (optional)
-
-Perfect for understanding code without reading full files.
-Reduces token usage by showing only relevant documentation.
-
-**Example Usage:**
-\`\`\`
-// Get info for symbol at line 10, character 15
-{ code: "...", line: 10, character: 15 }
-
-// Include usage examples
-{ code: "...", line: 10, character: 15, includeExamples: true }
-\`\`\``,
+  description: `Get documentation for symbol at cursor position. Returns signatures, types, and scope info.`,
   inputSchema: {
     type: 'object',
     properties: {
