@@ -75,29 +75,7 @@ export interface DocumentSymbol {
 // Tool definition
 export const ahkLspDocumentSymbolsToolDefinition = {
   name: 'AHK_LSP_Document_Symbols',
-  description: `Get document outline (symbol tree) for AutoHotkey v2 code
-
-Returns a structured list of all symbols in the code:
-- Functions with parameters
-- Classes with methods and properties
-- Global variables
-- Hotkeys and hotstrings
-- Directives
-
-Perfect for understanding code structure without reading the entire file.
-Reduces token usage by 80-90% compared to reading full files.
-
-**Example Usage:**
-\`\`\`
-// Get hierarchical outline (classes contain methods)
-{ code: "...", hierarchical: true }
-
-// Get flat list of all symbols
-{ code: "...", hierarchical: false }
-
-// Get only functions and classes
-{ code: "...", symbolTypes: ["function", "class"] }
-\`\`\``,
+  description: `Get code outline (symbol tree). Returns functions, classes, variables, hotkeys. Supports hierarchical or flat output.`,
   inputSchema: {
     type: 'object',
     properties: {

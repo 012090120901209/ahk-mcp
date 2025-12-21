@@ -151,4 +151,5 @@ test-output/
 .specify/specs/*-wip.md
 
 # Spec Kit - Archive remains in git
-# .specify/archive/ is tracked for historical reference
+# .specify/archive/ is tracked for historical reference.mcp.json
+memories.md

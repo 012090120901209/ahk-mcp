@@ -667,32 +667,5 @@ export class StructureAnalyzer {
 }
 
 // ===== Usage Example =====
-
-async function exampleUsage() {
-  const analyzer = new StructureAnalyzer();
-
-  // Analyze a file
-  const structure = await analyzer.analyzeFile('MyScript.ahk');
-
-  console.log('=== Code Structure ===');
-  console.log(`Classes: ${structure.classes.length}`);
-  console.log(`Functions: ${structure.functions.length}`);
-  console.log(`Hotkeys: ${structure.hotkeys.length}`);
-  console.log(`Complexity: ${structure.metrics.complexity}`);
-  console.log(`Maintainability: ${structure.metrics.maintainability}/100`);
-
-  // Generate outline
-  const outline = analyzer.generateOutline(structure);
-  console.log('\n' + outline);
-
-  // Access specific structures
-  for (const cls of structure.classes) {
-    console.log(`\nClass: ${cls.name}`);
-    for (const method of cls.methods) {
-      console.log(`  - ${method.name}(${method.params.join(', ')})`);
-    }
-  }
-}
-
 // Export singleton
 export const structureAnalyzer = new StructureAnalyzer();

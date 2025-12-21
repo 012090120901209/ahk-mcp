@@ -281,7 +281,7 @@ export class AutoFixEngine {
     let summary = `## Auto-Fix ${dryRun ? 'Preview' : 'Results'}\n\n`;
 
     if (appliedFixes.length > 0) {
-      summary += `✅ **${appliedFixes.length} Fix(es) ${dryRun ? 'Would Be' : ''} Applied:**\n\n`;
+      summary += `**${appliedFixes.length} Fix(es) ${dryRun ? 'Would Be' : ''} Applied:**\n\n`;
 
       // Group by rule
       const byRule = new Map<string, FixApplication[]>();
@@ -304,7 +304,7 @@ export class AutoFixEngine {
     }
 
     if (failedFixes.length > 0) {
-      summary += `❌ **${failedFixes.length} Fix(es) Failed:**\n\n`;
+      summary += `[ERROR] **${failedFixes.length} Fix(es) Failed:**\n\n`;
       for (const fix of failedFixes.slice(0, 5)) {
         summary += `- Line ${fix.line} (${fix.rule}): ${fix.error}\n`;
       }
@@ -315,7 +315,7 @@ export class AutoFixEngine {
     }
 
     if (appliedFixes.length === 0 && failedFixes.length === 0) {
-      summary += '✨ No fixes needed\n\n';
+      summary += 'No fixes needed\n\n';
     }
 
     if (dryRun) {

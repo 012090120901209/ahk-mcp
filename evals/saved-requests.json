@@ -1,0 +1,477 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "name": "AHK MCP Server - Saved Requests",
+  "version": "1.0.0",
+  "description": "Pre-configured tool call examples for manual testing and development",
+  "categories": {
+    "analysis": {
+      "name": "Code Analysis Tools",
+      "description": "Tools for analyzing and validating AutoHotkey code",
+      "requests": [
+        {
+          "id": "diag-basic",
+          "name": "Basic Diagnostics",
+          "description": "Run diagnostics on simple code",
+          "tool": "AHK_Diagnostics",
+          "input": {
+            "code": "MsgBox(\"Hello World\")",
+            "enableClaudeStandards": true,
+            "severity": "all"
+          }
+        },
+        {
+          "id": "diag-class",
+          "name": "Diagnostics - Class Validation",
+          "description": "Validate a class definition",
+          "tool": "AHK_Diagnostics",
+          "input": {
+            "code": "class MyClass {\n    value := 0\n    __New(val) {\n        this.value := val\n    }\n    GetValue() => this.value\n}",
+            "enableClaudeStandards": true
+          }
+        },
+        {
+          "id": "analyze-full",
+          "name": "Full Code Analysis",
+          "description": "Complete analysis with all options",
+          "tool": "AHK_Analyze",
+          "input": {
+            "code": "#Requires AutoHotkey v2.0\n\nclass Calculator {\n    static PI := 3.14159\n    result := 0\n    \n    Add(x) {\n        this.result += x\n        return this\n    }\n    \n    Multiply(x) {\n        this.result *= x\n        return this\n    }\n    \n    Reset() {\n        this.result := 0\n        return this\n    }\n}\n\n; Hotkey to show calculator result\n^+c::{\n    calc := Calculator()\n    calc.Add(10).Multiply(2).Add(5)\n    MsgBox(\"Result: \" calc.result)\n}",
+            "includeDocumentation": true,
+            "includeUsageExamples": true,
+            "analyzeComplexity": true,
+            "summaryOnly": false
+          }
+        },
+        {
+          "id": "analyze-summary",
+          "name": "Analysis Summary Only",
+          "description": "Quick summary analysis (minimal tokens)",
+          "tool": "AHK_Analyze",
+          "input": {
+            "code": "MsgBox(\"Test\")\nMyFunc() {\n    return 42\n}",
+            "summaryOnly": true
+          }
+        },
+        {
+          "id": "lint-fast",
+          "name": "Fast Lint Check",
+          "description": "Quick syntax validation",
+          "tool": "AHK_Lint",
+          "input": {
+            "filePath": "test.ahk",
+            "level": "fast"
+          }
+        },
+        {
+          "id": "lint-thorough",
+          "name": "Thorough Lint Analysis",
+          "description": "Deep code quality analysis with structure",
+          "tool": "AHK_Lint",
+          "input": {
+            "filePath": "test.ahk",
+            "level": "thorough",
+            "includeStructure": true,
+            "outputFormat": "markdown"
+          }
+        }
+      ]
+    },
+    "documentation": {
+      "name": "Documentation Tools",
+      "description": "Tools for searching and accessing AHK documentation",
+      "requests": [
+        {
+          "id": "doc-msgbox",
+          "name": "Search MsgBox",
+          "description": "Find MsgBox documentation",
+          "tool": "AHK_Doc_Search",
+          "input": {
+            "query": "MsgBox",
+            "maxResults": 5
+          }
+        },
+        {
+          "id": "doc-gui-class",
+          "name": "Search GUI Class",
+          "description": "Find Gui class documentation",
+          "tool": "AHK_Doc_Search",
+          "input": {
+            "query": "Gui",
+            "searchType": "class",
+            "maxResults": 10
+          }
+        },
+        {
+          "id": "doc-fileread",
+          "name": "Search File Operations",
+          "description": "Find file reading documentation",
+          "tool": "AHK_Doc_Search",
+          "input": {
+            "query": "FileRead FileAppend",
+            "maxResults": 8
+          }
+        },
+        {
+          "id": "context-gui",
+          "name": "GUI Context Injection",
+          "description": "Get context for GUI development",
+          "tool": "AHK_Context_Injector",
+          "input": {
+            "prompt": "Create a GUI window with buttons, edit controls, and a listview"
+          }
+        },
+        {
+          "id": "context-clipboard",
+          "name": "Clipboard Context",
+          "description": "Get context for clipboard operations",
+          "tool": "AHK_Context_Injector",
+          "input": {
+            "prompt": "How do I monitor and manipulate the clipboard?"
+          }
+        },
+        {
+          "id": "summary-builtin",
+          "name": "Built-in Reference Summary",
+          "description": "Get AHK v2 reference summary",
+          "tool": "AHK_Summary",
+          "input": {}
+        }
+      ]
+    },
+    "file_operations": {
+      "name": "File Operation Tools",
+      "description": "Tools for working with AHK files",
+      "requests": [
+        {
+          "id": "file-list",
+          "name": "List AHK Files",
+          "description": "List all AHK files in default directory",
+          "tool": "AHK_File_List",
+          "input": {
+            "recursive": true,
+            "extensions": [".ahk"],
+            "maxDepth": 3
+          }
+        },
+        {
+          "id": "file-view-structured",
+          "name": "View File (Structured)",
+          "description": "View file with structure analysis",
+          "tool": "AHK_File_View",
+          "input": {
+            "filePath": "test.ahk",
+            "mode": "structured"
+          }
+        },
+        {
+          "id": "file-view-outline",
+          "name": "View File Outline",
+          "description": "Get file outline only",
+          "tool": "AHK_File_View",
+          "input": {
+            "filePath": "test.ahk",
+            "mode": "outline"
+          }
+        },
+        {
+          "id": "file-edit-replace",
+          "name": "Edit - Replace Text",
+          "description": "Replace text in file",
+          "tool": "AHK_File_Edit",
+          "input": {
+            "filePath": "test.ahk",
+            "action": "replace",
+            "search": "oldFunction",
+            "newContent": "newFunction",
+            "all": true,
+            "backup": true,
+            "dryRun": true
+          }
+        },
+        {
+          "id": "file-edit-insert",
+          "name": "Edit - Insert at Line",
+          "description": "Insert content at specific line",
+          "tool": "AHK_File_Edit",
+          "input": {
+            "filePath": "test.ahk",
+            "action": "insert",
+            "line": 10,
+            "newContent": "; New comment line",
+            "dryRun": true
+          }
+        },
+        {
+          "id": "file-create",
+          "name": "Create New Script",
+          "description": "Create a new AHK script file",
+          "tool": "AHK_File_Create",
+          "input": {
+            "filePath": "C:\\Scripts\\NewScript.ahk",
+            "content": "#Requires AutoHotkey v2.0\n\n; New script created by MCP\nMsgBox(\"Hello from new script!\")",
+            "dryRun": true
+          }
+        },
+        {
+          "id": "smart-orch-view",
+          "name": "Smart Orchestrator - View",
+          "description": "View code with smart orchestration",
+          "tool": "AHK_Smart_Orchestrator",
+          "input": {
+            "intent": "view the main class definition",
+            "operation": "view",
+            "debugMode": true
+          }
+        },
+        {
+          "id": "smart-orch-edit",
+          "name": "Smart Orchestrator - Edit",
+          "description": "Prepare for editing with orchestration",
+          "tool": "AHK_Smart_Orchestrator",
+          "input": {
+            "intent": "edit the constructor method",
+            "targetEntity": "MyClass.__New",
+            "operation": "edit"
+          }
+        }
+      ]
+    },
+    "lsp_tools": {
+      "name": "LSP Tools",
+      "description": "Language Server Protocol features",
+      "requests": [
+        {
+          "id": "lsp-symbols-hier",
+          "name": "Document Symbols (Hierarchical)",
+          "description": "Get hierarchical symbol outline",
+          "tool": "AHK_LSP_Document_Symbols",
+          "input": {
+            "code": "class Parent {\n    __New() {}\n}\n\nclass Child extends Parent {\n    value := 0\n    Method() {\n        return this.value\n    }\n}\n\nGlobalFunc(x) {\n    return x * 2\n}",
+            "hierarchical": true
+          }
+        },
+        {
+          "id": "lsp-symbols-flat",
+          "name": "Document Symbols (Flat)",
+          "description": "Get flat list of all symbols",
+          "tool": "AHK_LSP_Document_Symbols",
+          "input": {
+            "code": "class MyClass {\n    prop := 0\n    Method() {}\n}\nMyFunc() {}",
+            "hierarchical": false
+          }
+        },
+        {
+          "id": "lsp-hover",
+          "name": "Hover Info",
+          "description": "Get hover information for symbol",
+          "tool": "AHK_LSP_Hover",
+          "input": {
+            "code": "result := MsgBox(\"Test\")",
+            "line": 1,
+            "character": 12,
+            "includeExamples": true
+          }
+        },
+        {
+          "id": "lsp-format-default",
+          "name": "Format Code (Default)",
+          "description": "Format code with default settings",
+          "tool": "AHK_LSP_Format",
+          "input": {
+            "code": "if(x=1){MsgBox(\"a\")}else if(x=2){MsgBox(\"b\")}else{MsgBox(\"c\")}"
+          }
+        },
+        {
+          "id": "lsp-format-allman",
+          "name": "Format Code (Allman Style)",
+          "description": "Format with Allman brace style",
+          "tool": "AHK_LSP_Format",
+          "input": {
+            "code": "if(x=1){MsgBox(\"test\")}",
+            "options": {
+              "indentSize": 4,
+              "useTabs": false,
+              "braceStyle": "allman"
+            }
+          }
+        },
+        {
+          "id": "lsp-completion",
+          "name": "Code Completion",
+          "description": "Get completion suggestions",
+          "tool": "AHK_LSP_Completion",
+          "input": {
+            "code": "Msg",
+            "line": 1,
+            "character": 3,
+            "includeBuiltIns": true
+          }
+        }
+      ]
+    },
+    "workflow": {
+      "name": "Workflow Tools",
+      "description": "Composite and workflow tools",
+      "requests": [
+        {
+          "id": "workflow-dryrun",
+          "name": "Analyze-Fix-Run (Dry Run)",
+          "description": "Preview workflow without changes",
+          "tool": "AHK_Workflow_Analyze_Fix_Run",
+          "input": {
+            "filePath": "test.ahk",
+            "autoFix": true,
+            "runAfterFix": false,
+            "dryRun": true,
+            "summaryOnly": true
+          }
+        },
+        {
+          "id": "workflow-full",
+          "name": "Full Workflow Execution",
+          "description": "Run complete analyze-fix-run workflow",
+          "tool": "AHK_Workflow_Analyze_Fix_Run",
+          "input": {
+            "filePath": "test.ahk",
+            "autoFix": true,
+            "runAfterFix": true,
+            "fixTypes": ["syntax", "style"],
+            "dryRun": false,
+            "summaryOnly": false
+          }
+        }
+      ]
+    },
+    "system": {
+      "name": "System Tools",
+      "description": "Configuration and system tools",
+      "requests": [
+        {
+          "id": "tools-search-all",
+          "name": "Search All Tools",
+          "description": "List all available tools",
+          "tool": "AHK_Tools_Search",
+          "input": {
+            "category": "all",
+            "detailLevel": "summary"
+          }
+        },
+        {
+          "id": "tools-search-file",
+          "name": "Search File Tools",
+          "description": "List file operation tools",
+          "tool": "AHK_Tools_Search",
+          "input": {
+            "category": "file",
+            "detailLevel": "full"
+          }
+        },
+        {
+          "id": "tools-search-keyword",
+          "name": "Search by Keyword",
+          "description": "Find tools by keyword",
+          "tool": "AHK_Tools_Search",
+          "input": {
+            "keyword": "edit",
+            "detailLevel": "summary"
+          }
+        },
+        {
+          "id": "settings-list",
+          "name": "List Settings",
+          "description": "View current settings",
+          "tool": "AHK_Settings",
+          "input": {
+            "action": "list"
+          }
+        },
+        {
+          "id": "config-get",
+          "name": "Get Configuration",
+          "description": "View current configuration",
+          "tool": "AHK_Config",
+          "input": {}
+        },
+        {
+          "id": "analytics-summary",
+          "name": "Analytics Summary",
+          "description": "View tool usage analytics",
+          "tool": "AHK_Analytics",
+          "input": {
+            "action": "summary"
+          }
+        },
+        {
+          "id": "analytics-recent",
+          "name": "Recent Tool Calls",
+          "description": "View recent tool call history",
+          "tool": "AHK_Analytics",
+          "input": {
+            "action": "recent",
+            "limit": 20
+          }
+        },
+        {
+          "id": "trace-list",
+          "name": "List Traces",
+          "description": "View recent execution traces",
+          "tool": "AHK_Trace_Viewer",
+          "input": {
+            "action": "list",
+            "limit": 10
+          }
+        },
+        {
+          "id": "trace-stats",
+          "name": "Trace Statistics",
+          "description": "View tracing system statistics",
+          "tool": "AHK_Trace_Viewer",
+          "input": {
+            "action": "stats"
+          }
+        }
+      ]
+    },
+    "library": {
+      "name": "Library Tools",
+      "description": "Library management tools",
+      "requests": [
+        {
+          "id": "lib-list",
+          "name": "List Libraries",
+          "description": "List available libraries",
+          "tool": "AHK_Library_List",
+          "input": {}
+        },
+        {
+          "id": "lib-search",
+          "name": "Search Libraries",
+          "description": "Search libraries by query",
+          "tool": "AHK_Library_List",
+          "input": {
+            "query": "gui"
+          }
+        },
+        {
+          "id": "lib-info",
+          "name": "Library Info",
+          "description": "Get detailed library information",
+          "tool": "AHK_Library_Info",
+          "input": {
+            "libraryName": "GuiForm"
+          }
+        },
+        {
+          "id": "lib-import",
+          "name": "Generate Import Statement",
+          "description": "Generate #Include for library",
+          "tool": "AHK_Library_Import",
+          "input": {
+            "libraryName": "JSON",
+            "format": "angle-brackets"
+          }
+        }
+      ]
+    }
+  }
+}

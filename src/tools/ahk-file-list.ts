@@ -9,6 +9,7 @@ import { checkToolAvailability } from '../core/tool-settings.js';
 
 export const AhkFileListArgsSchema = z.object({
   directory: z.string().optional().describe('Directory root to enumerate (defaults to active file directory or current working directory).'),
+  nameFilter: z.string().optional().describe('Filter files by name pattern. Supports * wildcards (e.g., "*Hotstring*", "GUI_*", "*Manager.ahk").'),
   recursive: z.boolean().optional().default(false).describe('Include files from subdirectories.'),
   includeDirectories: z.boolean().optional().default(false).describe('Include directories in the results.'),
   includeHidden: z.boolean().optional().default(false).describe('Include entries beginning with .'),
@@ -30,11 +31,12 @@ export const AhkFileListArgsSchema = z.object({
 
 export const ahkFileListToolDefinition = {
   name: 'AHK_File_List',
-  description: `Ahk file listing\nEnumerate AutoHotkey project files within a directory using native path policies. Supports recursion, extension filters, and lightweight metadata for downstream edits.`,
+  description: `List AHK files with optional name search. Use nameFilter with wildcards (e.g., "*Hotstring*") to find specific files.`,
   inputSchema: {
     type: 'object',
     properties: {
       directory: { type: 'string', description: 'Directory root to enumerate (defaults to active file directory or current working directory).' },
+      nameFilter: { type: 'string', description: 'Filter by filename pattern with * wildcards (e.g., "*Hotstring*", "GUI_*").' },
       recursive: { type: 'boolean', default: false, description: 'Include files from subdirectories.' },
       includeDirectories: { type: 'boolean', default: false, description: 'Include directories in the results.' },
       includeHidden: { type: 'boolean', default: false, description: 'Include entries beginning with .' },
@@ -77,6 +79,7 @@ export class AhkFileListTool {
 
       const {
         directory,
+        nameFilter,
         recursive = false,
         includeDirectories = false,
         includeHidden = false,
@@ -91,6 +94,7 @@ export class AhkFileListTool {
       const normalizedExtensions = this.normalizeExtensions(extensions);
 
       const entries = await this.collectEntries(rootDirectory, {
+        nameFilter,
         recursive,
         includeDirectories,
         includeHidden,
@@ -115,11 +119,12 @@ export class AhkFileListTool {
       });
 
       const summary = [
-        `📂 Directory: ${rootDirectory}`,
-        `📄 Files: ${fileCount}`,
-        includeDirectories ? `📁 Directories: ${dirCount}` : undefined,
-        recursive ? `🔁 Recursive (max depth ${maxDepth})` : '🔁 Recursive disabled',
-        normalizedExtensions.length ? `🎯 Extensions: ${normalizedExtensions.join(', ')}` : '🎯 Extensions: all',
+        `Directory: ${rootDirectory}`,
+        nameFilter ? `Filter: ${nameFilter}` : undefined,
+        `Files: ${fileCount}`,
+        includeDirectories ? `Directories: ${dirCount}` : undefined,
+        recursive ? `Recursive (max depth ${maxDepth})` : 'Recursive disabled',
+        normalizedExtensions.length ? `Extensions: ${normalizedExtensions.join(', ')}` : 'Extensions: all',
       ]
         .filter(Boolean)
         .join('\n');
@@ -132,6 +137,7 @@ export class AhkFileListTool {
             text: JSON.stringify(
               {
                 directory: rootDirectory,
+                nameFilter: nameFilter || null,
                 recursive,
                 includeDirectories,
                 includeHidden,
@@ -164,6 +170,11 @@ export class AhkFileListTool {
 
   private async resolveDirectory(explicitDir?: string): Promise<string> {
     let candidate: string | undefined = explicitDir;
+
+    // Priority: explicit > env var > active file dir > cwd
+    if (!candidate && process.env.AHK_MCP_SCRIPT_DIR) {
+      candidate = process.env.AHK_MCP_SCRIPT_DIR;
+    }
 
     if (!candidate) {
       const active = activeFile.getActiveFile();
@@ -202,6 +213,7 @@ export class AhkFileListTool {
   private async collectEntries(
     root: string,
     options: {
+      nameFilter?: string;
       recursive: boolean;
       includeDirectories: boolean;
       includeHidden: boolean;
@@ -264,6 +276,11 @@ export class AhkFileListTool {
           }
         }
 
+        // Apply name filter if provided
+        if (options.nameFilter && !this.matchesNameFilter(entry.name, options.nameFilter)) {
+          continue;
+        }
+
         const meta = options.includeStats ? await this.safeStat(fullPath) : undefined;
         results.push({
           name: entry.name,
@@ -288,6 +305,22 @@ export class AhkFileListTool {
       logger.debug('Failed to stat path', { fullPath, error: String(error) });
       return undefined;
     }
+  }
+
+  /**
+   * Match filename against a wildcard pattern (case-insensitive)
+   * Supports * as wildcard for any characters
+   * Examples: "*Hotstring*", "GUI_*", "*Manager.ahk"
+   */
+  private matchesNameFilter(filename: string, pattern: string): boolean {
+    // Convert wildcard pattern to regex
+    const regexPattern = pattern
+      .toLowerCase()
+      .replace(/[.+^${}()|[\]\\]/g, '\\$&')  // Escape regex special chars except *
+      .replace(/\*/g, '.*');  // Convert * to .*
+
+    const regex = new RegExp(`^${regexPattern}$`, 'i');
+    return regex.test(filename);
   }
 }
 

@@ -65,29 +65,7 @@ export interface CompletionItem {
 // Tool definition
 export const ahkLspCompletionToolDefinition = {
   name: 'AHK_LSP_Completion',
-  description: `Get code completion suggestions (IntelliSense) for AutoHotkey v2
-
-Returns context-aware completion suggestions:
-- Functions and methods available in scope
-- Variables and properties
-- Class members (after . or ::)
-- Built-in AHK v2 functions and commands
-- Keywords and control structures
-
-Perfect for code assistance and discovery.
-Reduces time spent looking up function names and signatures.
-
-**Example Usage:**
-\`\`\`
-// Get completions at cursor position
-{ code: "...", line: 10, character: 15 }
-
-// Get member completions (after typing "obj.")
-{ code: "obj.", line: 0, character: 4, triggerCharacter: "." }
-
-// Get only custom functions (exclude built-ins)
-{ code: "...", line: 10, character: 15, includeBuiltIns: false }
-\`\`\``,
+  description: `Get code completions (IntelliSense) at cursor. Returns functions, variables, class members, built-ins.`,
   inputSchema: {
     type: 'object',
     properties: {

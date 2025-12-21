@@ -325,21 +325,21 @@ export class CodeQualityManager {
 
     // Errors
     if (report.errors.length > 0) {
-      output += `### ❌ Errors (${report.errors.length})\n\n`;
+      output += `### [ERROR] Errors (${report.errors.length})\n\n`;
       for (const error of report.errors) {
         output += `- Line ${error.line}: ${error.message}\n`;
         if (error.fixable && error.fix) {
-          output += `  💡 Fix: ${error.fix}\n`;
+          output += `  Fix: ${error.fix}\n`;
         }
       }
       output += '\n';
     } else {
-      output += `### ✅ No Errors\n\n`;
+      output += `### [OK] No Errors\n\n`;
     }
 
     // Warnings
     if (report.warnings.length > 0) {
-      output += `### ⚠️ Warnings (${report.warnings.length})\n\n`;
+      output += `### [WARN] Warnings (${report.warnings.length})\n\n`;
       for (const warning of report.warnings.slice(0, 5)) {
         output += `- Line ${warning.line}: ${warning.message}\n`;
       }
@@ -351,7 +351,7 @@ export class CodeQualityManager {
 
     // Suggestions
     if (report.suggestions.length > 0) {
-      output += `### 💡 Suggestions (${report.suggestions.length})\n\n`;
+      output += `### Suggestions (${report.suggestions.length})\n\n`;
       for (const suggestion of report.suggestions.slice(0, 3)) {
         output += `- ${suggestion.message}\n`;
       }
@@ -363,7 +363,7 @@ export class CodeQualityManager {
 
     // Structure summary
     if (report.structure) {
-      output += `### 📊 Code Structure\n\n`;
+      output += `### Code Structure\n\n`;
       output += `- Classes: ${report.structure.classes.length}\n`;
       output += `- Functions: ${report.structure.functions.length}\n`;
       output += `- Hotkeys: ${report.structure.hotkeys.length}\n`;
@@ -375,11 +375,11 @@ export class CodeQualityManager {
     // Status summary
     const totalIssues = report.errors.length + report.warnings.length;
     if (totalIssues === 0) {
-      output += `✨ **Result:** Code quality looks good!\n`;
+      output += `**Result:** Code quality looks good!\n`;
     } else if (report.errors.length > 0) {
-      output += `❌ **Result:** ${report.errors.length} error(s) must be fixed\n`;
+      output += `[ERROR] **Result:** ${report.errors.length} error(s) must be fixed\n`;
     } else {
-      output += `⚠️ **Result:** ${report.warnings.length} warning(s) should be addressed\n`;
+      output += `[WARN] **Result:** ${report.warnings.length} warning(s) should be addressed\n`;
     }
 
     return output;
@@ -413,7 +413,7 @@ export class CodeQualityManager {
         fixedContent: '',
         appliedFixes: [],
         failedFixes: [],
-        summary: '✨ No fixable errors found'
+        summary: 'No fixable errors found'
       };
     }
 

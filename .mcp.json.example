@@ -1,0 +1,19 @@
+{
+  "mcpServers": {
+    "ahk": {
+      "command": "C:\\Program Files\\nodejs\\node.exe",
+      "args": [
+        "C:\\path\\to\\ahk-mcp\\dist\\index.js"
+      ],
+      "env": {
+        "NODE_ENV": "production",
+        "AHK_MCP_DATA_MODE": "full",
+        "AHK_MCP_LIGHT": "0",
+        "AHK_MCP_SCRIPT_DIR": "C:\\path\\to\\your\\ahk\\scripts"
+      },
+      "alwaysAllow": [
+        "AHK_File_Edit"
+      ]
+    }
+  }
+}

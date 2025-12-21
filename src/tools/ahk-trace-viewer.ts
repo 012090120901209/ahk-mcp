@@ -147,7 +147,7 @@ export class AhkTraceViewerTool {
 
           traces.forEach((trace, index) => {
             const summary = getTraceSummary(trace);
-            const status = summary.errorCount > 0 ? '❌' : '✓';
+            const status = summary.errorCount > 0 ? '[ERROR]' : '[OK]';
             const duration = trace.duration !== undefined ? `${trace.duration}ms` : 'running';
 
             response += `## ${index + 1}. ${trace.name} ${status}\n`;
@@ -189,7 +189,7 @@ export class AhkTraceViewerTool {
 
           traces.forEach((trace, index) => {
             const summary = getTraceSummary(trace);
-            const status = summary.errorCount > 0 ? '❌' : '✓';
+            const status = summary.errorCount > 0 ? '[ERROR]' : '[OK]';
             const duration = trace.duration !== undefined ? `${trace.duration}ms` : 'running';
 
             response += `## ${index + 1}. ${status} ${trace.name} (${duration})\n`;
@@ -209,7 +209,7 @@ export class AhkTraceViewerTool {
 
           response = `# Tracing System Statistics\n\n`;
           response += `## Status\n`;
-          response += `- **Tracing Enabled:** ${tracingEnabled ? '✓ Yes' : '❌ No'}\n`;
+          response += `- **Tracing Enabled:** ${tracingEnabled ? 'Yes' : 'No'}\n`;
           response += `- **Active Spans:** ${stats.activeSpans}\n`;
           response += `- **Total Traces:** ${stats.totalTraces}\n`;
           response += `- **Max Traces:** ${stats.maxTraces}\n`;
@@ -226,11 +226,11 @@ export class AhkTraceViewerTool {
           response += `- **Log Format:** ${process.env.AHK_MCP_LOG_FORMAT ?? 'text (default)'}\n`;
 
           if (!tracingEnabled) {
-            response += `\n⚠️ **Note:** Tracing is currently disabled. Set \`AHK_MCP_TRACING_ENABLED=true\` to enable.`;
+            response += `\n**Note:** Tracing is currently disabled. Set \`AHK_MCP_TRACING_ENABLED=true\` to enable.`;
           }
 
           if (stats.activeSpans > 0) {
-            response += `\n\n⚠️ **Warning:** ${stats.activeSpans} span(s) are still active (not ended).`;
+            response += `\n\n**Warning:** ${stats.activeSpans} span(s) are still active (not ended).`;
           }
           break;
         }
@@ -259,7 +259,7 @@ export class AhkTraceViewerTool {
         let output = `# Trace: ${trace.traceId}\n\n`;
         output += `**Root Span:** ${trace.name}\n`;
         output += `**Duration:** ${trace.duration !== undefined ? `${trace.duration}ms` : 'running'}\n`;
-        output += `**Status:** ${trace.status.code === 'OK' ? '✓ Success' : trace.status.code === 'ERROR' ? '❌ Error' : '○ Running'}\n`;
+        output += `**Status:** ${trace.status.code === 'OK' ? 'Success' : trace.status.code === 'ERROR' ? 'Error' : 'Running'}\n`;
         output += `**Started:** ${new Date(trace.startTime).toISOString()}\n`;
         output += `**Spans:** ${summary.spanCount}\n`;
         if (summary.errorCount > 0) {

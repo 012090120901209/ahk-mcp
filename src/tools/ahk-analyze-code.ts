@@ -179,10 +179,10 @@ export class AhkAnalyzeTool {
 
       // Parsing Results
       if (compilerResults.ast.success) {
-        report += '## ✅ Syntax Analysis\n';
+        report += '## Syntax Analysis\n';
         report += 'Code parsed successfully with no syntax errors.\n\n';
       } else {
-        report += '## ❌ Syntax Errors\n';
+        report += '## Syntax Errors\n';
         compilerResults.ast.errors.forEach(error => {
           report += `- Line ${error.line}, Column ${error.column}: ${error.message}\n`;
         });
@@ -193,11 +193,11 @@ export class AhkAnalyzeTool {
       if (compilerResults.diagnostics.success && compilerResults.diagnostics.data) {
         const diagnostics = compilerResults.diagnostics.data;
         if (diagnostics.length > 0) {
-          report += '## 🔍 Code Quality Issues\n';
+          report += '## Code Quality Issues\n';
           report += AhkCompiler.formatDiagnostics(diagnostics);
           report += '\n\n';
         } else {
-          report += '## ✅ Code Quality\n';
+          report += '## Code Quality\n';
           report += 'No issues found! Your code follows AutoHotkey v2 best practices.\n\n';
         }
       }
@@ -211,7 +211,7 @@ export class AhkAnalyzeTool {
       }
 
       if (syntaxIssues.length > 0) {
-        report += '## ⚠️ AutoHotkey v2 Syntax Issues (Enhanced Detection)\n';
+        report += '## AutoHotkey v2 Syntax Issues (Enhanced Detection)\n';
         syntaxIssues.forEach(issue => {
           report += `- **Line ${issue.line}:** ${issue.message}\n`;
           report += `  \`\`\`autohotkey\n  ${issue.code}\n  \`\`\`\n`;
@@ -221,7 +221,7 @@ export class AhkAnalyzeTool {
           report += '\n';
         });
       } else {
-        report += '## ✅ AutoHotkey v2 Syntax (Enhanced Detection)\n';
+        report += '## AutoHotkey v2 Syntax (Enhanced Detection)\n';
         report += 'No AutoHotkey v2 syntax issues detected by enhanced regex analysis.\n\n';
       }
 
@@ -230,7 +230,7 @@ export class AhkAnalyzeTool {
         const tokens = compilerResults.semanticTokens.data;
         const tokenCounts = this.countSemanticTokens(tokens);
 
-        report += '## 🎨 Code Structure\n';
+        report += '## Code Structure\n';
         Object.entries(tokenCounts).forEach(([type, count]) => {
           if (count > 0) {
             report += `- **${type}:** ${count}\n`;
@@ -241,7 +241,7 @@ export class AhkAnalyzeTool {
 
       // Complexity Analysis
       if (analyzeComplexity) {
-        report += '## 📊 Complexity Analysis\n';
+        report += '## Complexity Analysis\n';
         const complexityLevel = statistics.complexity <= 5 ? 'Low' :
           statistics.complexity <= 15 ? 'Medium' : 'High';
         report += `- **Complexity Level:** ${complexityLevel}\n`;
@@ -250,7 +250,7 @@ export class AhkAnalyzeTool {
       }
 
       // Recommendations
-      report += '## 💡 Recommendations\n';
+      report += '## Recommendations\n';
       if (statistics.complexity > 20) {
         report += '- Consider breaking down complex functions into smaller, more manageable pieces\n';
       }
@@ -265,12 +265,12 @@ export class AhkAnalyzeTool {
       }
 
       if (includeDocumentation) {
-        report += '\n## 📚 Documentation Support\n';
+        report += '\n## Documentation Support\n';
         report += 'Leverage the `AHK_Doc_Search` tool or ChatGPT `search`/`fetch` helpers to pull detailed reference material for the functions and directives found in this script.\n';
       }
 
       if (includeUsageExamples) {
-        report += '\n## 🧪 Usage Examples\n';
+        report += '\n## Usage Examples\n';
         report += 'Invoke `AHK_Sampling_Enhancer` to generate runnable usage samples for the highlighted APIs and hotkeys.\n';
       }
 
@@ -689,7 +689,7 @@ export class AhkAnalyzeTool {
     if (analysis.warnings.length > 0) {
       report += `## Warnings\n`;
       analysis.warnings.forEach(warning => {
-        report += `- ⚠️ ${warning}\n`;
+        report += `- ${warning}\n`;
       });
       report += `\n`;
     }

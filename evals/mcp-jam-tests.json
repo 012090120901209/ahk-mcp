@@ -1,0 +1,565 @@
+{
+  "name": "AutoHotkey MCP Server Evals",
+  "version": "2.0.0",
+  "description": "Comprehensive tool functionality tests for the AutoHotkey v2 MCP Server",
+  "tests": [
+    {
+      "id": "diagnostics-valid-code",
+      "name": "AHK_Diagnostics - Valid Code",
+      "description": "Test that valid AHK v2 code returns no errors",
+      "tool": "AHK_Diagnostics",
+      "input": {
+        "code": "MsgBox(\"Hello World\")"
+      },
+      "assertions": [
+        {
+          "type": "contains",
+          "path": "content[0].text",
+          "value": "diagnostics"
+        },
+        {
+          "type": "not_contains",
+          "path": "content[0].text",
+          "value": "error"
+        }
+      ]
+    },
+    {
+      "id": "diagnostics-invalid-syntax",
+      "name": "AHK_Diagnostics - Invalid Syntax",
+      "description": "Test that invalid AHK v2 syntax returns errors",
+      "tool": "AHK_Diagnostics",
+      "input": {
+        "code": "MsgBox \"Hello World\""
+      },
+      "assertions": [
+        {
+          "type": "contains",
+          "path": "content[0].text",
+          "value": "error"
+        }
+      ]
+    },
+    {
+      "id": "diagnostics-class-syntax",
+      "name": "AHK_Diagnostics - Class Definition",
+      "description": "Test that class syntax is validated correctly",
+      "tool": "AHK_Diagnostics",
+      "input": {
+        "code": "class MyClass {\n    __New() {\n        this.value := 42\n    }\n    GetValue() {\n        return this.value\n    }\n}"
+      },
+      "assertions": [
+        {
+          "type": "not_error",
+          "path": "isError"
+        }
+      ]
+    },
+    {
+      "id": "analyze-simple-script",
+      "name": "AHK_Analyze - Simple Script",
+      "description": "Test that code analysis returns expected structure",
+      "tool": "AHK_Analyze",
+      "input": {
+        "code": "MyFunc() {\n    return 42\n}\n\nresult := MyFunc()"
+      },
+      "assertions": [
+        {
+          "type": "contains",
+          "path": "content[0].text",
+          "value": "MyFunc"
+        }
+      ]
+    },
+    {
+      "id": "analyze-complex-script",
+      "name": "AHK_Analyze - Complex Script with Class",
+      "description": "Test analysis of a script with class, methods, and hotkeys",
+      "tool": "AHK_Analyze",
+      "input": {
+        "code": "#Requires AutoHotkey v2.0\n\nclass Calculator {\n    result := 0\n    \n    Add(x) {\n        this.result += x\n        return this\n    }\n    \n    Reset() {\n        this.result := 0\n        return this\n    }\n}\n\n^+c::{\n    calc := Calculator()\n    calc.Add(10).Add(5)\n    MsgBox(calc.result)\n}",
+        "analyzeComplexity": true
+      },
+      "assertions": [
+        {
+          "type": "contains",
+          "path": "content[0].text",
+          "value": "Calculator"
+        },
+        {
+          "type": "contains",
+          "path": "content[0].text",
+          "value": "Complexity"
+        }
+      ]
+    },
+    {
+      "id": "docs-search-msgbox",
+      "name": "AHK_Doc_Search - MsgBox",
+      "description": "Test that documentation search finds MsgBox",
+      "tool": "AHK_Doc_Search",
+      "input": {
+        "query": "MsgBox"
+      },
+      "assertions": [
+        {
+          "type": "contains",
+          "path": "content[0].text",
+          "value": "MsgBox"
+        }
+      ]
+    },
+    {
+      "id": "docs-search-gui",
+      "name": "AHK_Doc_Search - Gui Class",
+      "description": "Test documentation search for GUI class",
+      "tool": "AHK_Doc_Search",
+      "input": {
+        "query": "Gui",
+        "searchType": "class"
+      },
+      "assertions": [
+        {
+          "type": "contains",
+          "path": "content[0].text",
+          "value": "Gui"
+        }
+      ]
+    },
+    {
+      "id": "docs-search-hotkey",
+      "name": "AHK_Doc_Search - Hotkey Function",
+      "description": "Test documentation search for Hotkey function",
+      "tool": "AHK_Doc_Search",
+      "input": {
+        "query": "Hotkey",
+        "maxResults": 5
+      },
+      "assertions": [
+        {
+          "type": "contains",
+          "path": "content[0].text",
+          "value": "Hotkey"
+        }
+      ]
+    },
+    {
+      "id": "context-injector-clipboard",
+      "name": "AHK_Context_Injector - Clipboard",
+      "description": "Test that context injection works for clipboard keywords",
+      "tool": "AHK_Context_Injector",
+      "input": {
+        "prompt": "How do I access the clipboard in AutoHotkey?"
+      },
+      "assertions": [
+        {
+          "type": "contains",
+          "path": "content[0].text",
+          "value": "A_Clipboard"
+        }
+      ]
+    },
+    {
+      "id": "context-injector-gui",
+      "name": "AHK_Context_Injector - GUI Keywords",
+      "description": "Test context injection for GUI-related prompts",
+      "tool": "AHK_Context_Injector",
+      "input": {
+        "prompt": "Create a GUI with buttons and text controls"
+      },
+      "assertions": [
+        {
+          "type": "contains",
+          "path": "content[0].text",
+          "value": "Gui"
+        }
+      ]
+    },
+    {
+      "id": "file-list-default",
+      "name": "AHK_File_List - Default Directory",
+      "description": "Test that file listing works",
+      "tool": "AHK_File_List",
+      "input": {},
+      "assertions": [
+        {
+          "type": "not_error",
+          "path": "isError"
+        }
+      ]
+    },
+    {
+      "id": "file-list-recursive",
+      "name": "AHK_File_List - Recursive with Filter",
+      "description": "Test recursive file listing with extension filter",
+      "tool": "AHK_File_List",
+      "input": {
+        "recursive": true,
+        "extensions": [".ahk"],
+        "maxDepth": 2
+      },
+      "assertions": [
+        {
+          "type": "not_error",
+          "path": "isError"
+        }
+      ]
+    },
+    {
+      "id": "smart-orchestrator-view",
+      "name": "AHK_Smart_Orchestrator - View Intent",
+      "description": "Test smart orchestrator with view operation",
+      "tool": "AHK_Smart_Orchestrator",
+      "input": {
+        "intent": "view the current file structure",
+        "operation": "analyze"
+      },
+      "assertions": [
+        {
+          "type": "not_error",
+          "path": "isError"
+        }
+      ]
+    },
+    {
+      "id": "smart-orchestrator-analyze",
+      "name": "AHK_Smart_Orchestrator - Analyze Operation",
+      "description": "Test smart orchestrator analyze mode",
+      "tool": "AHK_Smart_Orchestrator",
+      "input": {
+        "intent": "analyze the code structure",
+        "operation": "analyze",
+        "debugMode": true
+      },
+      "assertions": [
+        {
+          "type": "not_error",
+          "path": "isError"
+        }
+      ]
+    },
+    {
+      "id": "settings-list",
+      "name": "AHK_Settings - List Settings",
+      "description": "Test that settings can be listed",
+      "tool": "AHK_Settings",
+      "input": {
+        "action": "list"
+      },
+      "assertions": [
+        {
+          "type": "not_error",
+          "path": "isError"
+        },
+        {
+          "type": "contains",
+          "path": "content[0].text",
+          "value": "settings"
+        }
+      ]
+    },
+    {
+      "id": "tools-search-file-category",
+      "name": "AHK_Tools_Search - File Category",
+      "description": "Test tool search by category",
+      "tool": "AHK_Tools_Search",
+      "input": {
+        "category": "file",
+        "detailLevel": "summary"
+      },
+      "assertions": [
+        {
+          "type": "contains",
+          "path": "content[0].text",
+          "value": "AHK_File"
+        }
+      ]
+    },
+    {
+      "id": "tools-search-keyword",
+      "name": "AHK_Tools_Search - Keyword Search",
+      "description": "Test tool search by keyword",
+      "tool": "AHK_Tools_Search",
+      "input": {
+        "keyword": "edit",
+        "detailLevel": "names"
+      },
+      "assertions": [
+        {
+          "type": "contains",
+          "path": "content[0].text",
+          "value": "Edit"
+        }
+      ]
+    },
+    {
+      "id": "analytics-summary",
+      "name": "AHK_Analytics - Summary",
+      "description": "Test analytics summary action",
+      "tool": "AHK_Analytics",
+      "input": {
+        "action": "summary"
+      },
+      "assertions": [
+        {
+          "type": "not_error",
+          "path": "isError"
+        }
+      ]
+    },
+    {
+      "id": "config-get",
+      "name": "AHK_Config - Get Configuration",
+      "description": "Test getting current configuration",
+      "tool": "AHK_Config",
+      "input": {},
+      "assertions": [
+        {
+          "type": "not_error",
+          "path": "isError"
+        }
+      ]
+    },
+    {
+      "id": "summary-builtin",
+      "name": "AHK_Summary - Built-in Reference",
+      "description": "Test getting built-in reference summary",
+      "tool": "AHK_Summary",
+      "input": {},
+      "assertions": [
+        {
+          "type": "contains",
+          "path": "content[0].text",
+          "value": "AutoHotkey"
+        }
+      ]
+    },
+    {
+      "id": "library-list",
+      "name": "AHK_Library_List - List Libraries",
+      "description": "Test library listing",
+      "tool": "AHK_Library_List",
+      "input": {},
+      "assertions": [
+        {
+          "type": "not_error",
+          "path": "isError"
+        }
+      ]
+    },
+    {
+      "id": "lsp-document-symbols",
+      "name": "AHK_LSP_Document_Symbols - Code Outline",
+      "description": "Test LSP document symbols for code outline",
+      "tool": "AHK_LSP_Document_Symbols",
+      "input": {
+        "code": "class TestClass {\n    prop := 0\n    Method() {\n        return this.prop\n    }\n}\n\nTestFunc(x) {\n    return x * 2\n}",
+        "hierarchical": true
+      },
+      "assertions": [
+        {
+          "type": "contains",
+          "path": "content[0].text",
+          "value": "TestClass"
+        },
+        {
+          "type": "contains",
+          "path": "content[0].text",
+          "value": "TestFunc"
+        }
+      ]
+    },
+    {
+      "id": "lsp-format",
+      "name": "AHK_LSP_Format - Code Formatting",
+      "description": "Test code formatting",
+      "tool": "AHK_LSP_Format",
+      "input": {
+        "code": "if(x=1){MsgBox(\"test\")}",
+        "options": {
+          "indentSize": 4,
+          "useTabs": false
+        }
+      },
+      "assertions": [
+        {
+          "type": "not_error",
+          "path": "isError"
+        }
+      ]
+    },
+    {
+      "id": "workflow-analyze-dryrun",
+      "name": "AHK_Workflow_Analyze_Fix_Run - Dry Run",
+      "description": "Test workflow tool in dry run mode",
+      "tool": "AHK_Workflow_Analyze_Fix_Run",
+      "input": {
+        "filePath": "test.ahk",
+        "autoFix": true,
+        "dryRun": true,
+        "summaryOnly": true
+      },
+      "assertions": [
+        {
+          "type": "not_error",
+          "path": "isError"
+        }
+      ]
+    },
+    {
+      "id": "lint-fast",
+      "name": "AHK_Lint - Fast Level",
+      "description": "Test fast lint level",
+      "tool": "AHK_Lint",
+      "input": {
+        "code": "MsgBox(\"Test\")",
+        "level": "fast"
+      },
+      "assertions": [
+        {
+          "type": "not_error",
+          "path": "isError"
+        }
+      ]
+    }
+  ],
+  "resources": [
+    {
+      "id": "resource-docs-functions",
+      "name": "Resource - Functions Documentation",
+      "description": "Test that functions documentation resource is accessible",
+      "uri": "ahk://docs/functions",
+      "assertions": [
+        {
+          "type": "valid_json",
+          "path": "contents[0].text"
+        }
+      ]
+    },
+    {
+      "id": "resource-docs-classes",
+      "name": "Resource - Classes Documentation",
+      "description": "Test that classes documentation resource is accessible",
+      "uri": "ahk://docs/classes",
+      "assertions": [
+        {
+          "type": "valid_json",
+          "path": "contents[0].text"
+        }
+      ]
+    },
+    {
+      "id": "resource-docs-variables",
+      "name": "Resource - Variables Documentation",
+      "description": "Test that variables documentation resource is accessible",
+      "uri": "ahk://docs/variables",
+      "assertions": [
+        {
+          "type": "valid_json",
+          "path": "contents[0].text"
+        }
+      ]
+    }
+  ],
+  "savedRequests": {
+    "description": "Pre-configured tool call examples for quick testing",
+    "requests": [
+      {
+        "id": "quick-diagnostics",
+        "name": "Quick Diagnostics Check",
+        "tool": "AHK_Diagnostics",
+        "input": {
+          "code": "MsgBox(\"Hello World\")",
+          "enableClaudeStandards": true
+        }
+      },
+      {
+        "id": "analyze-with-docs",
+        "name": "Full Analysis with Documentation",
+        "tool": "AHK_Analyze",
+        "input": {
+          "code": "class MyGui extends Gui {\n    __New() {\n        super.__New()\n        this.AddButton(, \"Click Me\").OnEvent(\"Click\", (*) => MsgBox(\"Clicked!\"))\n        this.Show()\n    }\n}",
+          "includeDocumentation": true,
+          "includeUsageExamples": true,
+          "analyzeComplexity": true
+        }
+      },
+      {
+        "id": "search-file-tools",
+        "name": "Search File Tools",
+        "tool": "AHK_Tools_Search",
+        "input": {
+          "category": "file",
+          "detailLevel": "full"
+        }
+      },
+      {
+        "id": "doc-search-gui",
+        "name": "Search GUI Documentation",
+        "tool": "AHK_Doc_Search",
+        "input": {
+          "query": "Gui Add Button",
+          "maxResults": 10
+        }
+      },
+      {
+        "id": "context-inject-file-ops",
+        "name": "Inject File Operations Context",
+        "tool": "AHK_Context_Injector",
+        "input": {
+          "prompt": "Read a file and process each line"
+        }
+      },
+      {
+        "id": "lsp-symbols-sample",
+        "name": "Get Document Symbols",
+        "tool": "AHK_LSP_Document_Symbols",
+        "input": {
+          "code": "class App {\n    static version := \"1.0\"\n    Run() {\n        MsgBox(\"Running v\" App.version)\n    }\n}\n\nApp().Run()",
+          "hierarchical": true,
+          "symbolTypes": ["class", "function", "property"]
+        }
+      },
+      {
+        "id": "format-code",
+        "name": "Format Code Sample",
+        "tool": "AHK_LSP_Format",
+        "input": {
+          "code": "if(x=1){MsgBox(\"a\")}else{MsgBox(\"b\")}",
+          "options": {
+            "indentSize": 4,
+            "braceStyle": "allman"
+          }
+        }
+      },
+      {
+        "id": "smart-orch-edit",
+        "name": "Smart Orchestrator - Edit Mode",
+        "tool": "AHK_Smart_Orchestrator",
+        "input": {
+          "intent": "edit the main class constructor",
+          "operation": "edit",
+          "debugMode": true
+        }
+      },
+      {
+        "id": "trace-recent",
+        "name": "View Recent Traces",
+        "tool": "AHK_Trace_Viewer",
+        "input": {
+          "action": "list",
+          "limit": 5
+        }
+      },
+      {
+        "id": "analytics-recent",
+        "name": "View Recent Tool Calls",
+        "tool": "AHK_Analytics",
+        "input": {
+          "action": "recent",
+          "limit": 10
+        }
+      }
+    ]
+  }
+}

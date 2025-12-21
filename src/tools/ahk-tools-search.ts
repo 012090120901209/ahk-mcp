@@ -178,7 +178,7 @@ export class AhkToolsSearchTool {
           response += tools.map(t => `- ${t.name}`).join('\n') + '\n\n';
         });
 
-        response += `\n**💡 Tip:** Use detailLevel: "summary" to see descriptions, or "full" for complete definitions.`;
+        response += `\n**Tip:** Use detailLevel: "summary" to see descriptions, or "full" for complete definitions.`;
       } else if (detailLevel === 'summary') {
         Object.entries(groupedTools).forEach(([cat, tools]) => {
           response += `## ${cat.charAt(0).toUpperCase() + cat.slice(1)} Tools\n\n`;
@@ -188,7 +188,7 @@ export class AhkToolsSearchTool {
           });
         });
 
-        response += `\n**💡 Tip:** Use detailLevel: "full" to see complete parameter schemas, or call the specific tool for full details.`;
+        response += `\n**Tip:** Use detailLevel: "full" to see complete parameter schemas, or call the specific tool for full details.`;
       } else {
         // Full detail level - provide complete information
         Object.entries(groupedTools).forEach(([cat, tools]) => {
@@ -220,7 +220,7 @@ export class AhkToolsSearchTool {
       return {
         content: [{
           type: 'text',
-          text: `❌ **Tool Search Error**\n\n${error instanceof Error ? error.message : String(error)}\n\n**Tip:** Try using category: "all" and detailLevel: "names" to see all available tools.`
+          text: `**Tool Search Error**\n\n${error instanceof Error ? error.message : String(error)}\n\n**Tip:** Try using category: "all" and detailLevel: "names" to see all available tools.`
         }],
         isError: true
       };

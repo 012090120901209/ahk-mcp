@@ -227,7 +227,7 @@ export class AhkSamplingEnhancer {
     const config = this.contextLevels[contextLevel as keyof typeof this.contextLevels];
     const keywords = this.extractKeywords(prompt);
     
-    let context = '## 🎯 AutoHotkey v2 Context (Auto-Enhanced)\n\n';
+    let context = '## AutoHotkey v2 Context (Auto-Enhanced)\n\n';
     context += '*This context was automatically injected based on detected AutoHotkey keywords.*\n\n';
 
     // Add relevant functions
@@ -354,20 +354,20 @@ export class AhkSamplingEnhancer {
   }
 
   private formatSamplingRequest(request: SamplingRequest, context: string): string {
-    let output = '## 🚀 Enhanced Sampling Request (MCP Standard)\n\n';
+    let output = '## Enhanced Sampling Request (MCP Standard)\n\n';
     output += '**AutoHotkey content detected!** Your prompt has been enhanced with relevant documentation.\n\n';
     
-    output += '### 📋 Sampling Request Details\n\n';
+    output += '### Sampling Request Details\n\n';
     output += `- **Model Preferences**: Intelligence priority ${request.modelPreferences?.intelligencePriority}, Cost priority ${request.modelPreferences?.costPriority}\n`;
     output += `- **Max Tokens**: ${request.maxTokens}\n`;
     output += `- **Temperature**: ${request.temperature} (optimized for code generation)\n`;
     output += `- **Context Inclusion**: ${request.includeContext}\n\n`;
     
-    output += '### 🎯 Enhanced Context Added\n\n';
+    output += '### Enhanced Context Added\n\n';
     output += 'The following AutoHotkey v2 documentation has been automatically injected:\n\n';
     output += context;
     
-    output += '\n### 🔄 Next Steps\n\n';
+    output += '\n### Next Steps\n\n';
     output += '1. The client will review this enhanced prompt\n';
     output += '2. User can modify or approve the enhanced context\n';
     output += '3. LLM will generate AutoHotkey code with improved accuracy\n';

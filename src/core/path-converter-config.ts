@@ -4,6 +4,7 @@ import { ToolPathConfig } from './path-interceptor.js';
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import { fileURLToPath } from 'url';
+import logger from '../logger.js';
 
 const moduleDirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -121,7 +122,7 @@ export class PathConverterConfigManager {
 
     try {
       if (!(await this.fileExists(targetPath))) {
-        console.info(`Configuration file not found at ${targetPath}, using defaults`);
+        logger.info(`Configuration file not found at ${targetPath}, using defaults`);
         await this.saveConfig(targetPath);
         return this.config;
       }
@@ -135,12 +136,12 @@ export class PathConverterConfigManager {
       // Merge with defaults to ensure all properties are present
       this.config = this.mergeWithDefaults(validatedConfig);
 
-      console.info(`Configuration loaded from ${targetPath}`);
+      logger.info(`Configuration loaded from ${targetPath}`);
       return this.config;
 
     } catch (error) {
-      console.error(`Failed to load configuration from ${targetPath}:`, error);
-      console.info('Using default configuration');
+      logger.error(`Failed to load configuration from ${targetPath}:`, error);
+      logger.info('Using default configuration');
       return this.config;
     }
   }
@@ -165,11 +166,11 @@ export class PathConverterConfigManager {
       const configData = JSON.stringify(validatedConfig, null, 2);
       await fs.writeFile(targetPath, configData, 'utf-8');
 
-      console.info(`Configuration saved to ${targetPath}`);
+      logger.info(`Configuration saved to ${targetPath}`);
       return true;
 
     } catch (error) {
-      console.error(`Failed to save configuration to ${targetPath}:`, error);
+      logger.error(`Failed to save configuration to ${targetPath}:`, error);
       return false;
     }
   }
@@ -194,7 +195,7 @@ export class PathConverterConfigManager {
       this.config = validatedConfig;
       return true;
     } catch (error) {
-      console.error('Failed to update configuration:', error);
+      logger.error('Failed to update configuration:', error);
       return false;
     }
   }
@@ -306,7 +307,7 @@ export class PathConverterConfigManager {
 
     // Note: In a real implementation, you would use fs.watch or chokidar
     // For now, we'll just store the callback for future implementation
-    console.info(`Configuration watcher registered for ${this.configPath}`);
+    logger.info(`Configuration watcher registered for ${this.configPath}`);
   }
 
   /**
@@ -350,7 +351,7 @@ export class PathConverterConfigManager {
       ConfigSchema.parse(config);
       return true;
     } catch (error) {
-      console.error('Configuration validation failed:', error);
+      logger.error('Configuration validation failed:', error);
       return false;
     }
   }

@@ -70,7 +70,7 @@ export class AhkAnalyticsTool {
           }
 
           if (summary.problematicTools.length > 0) {
-            response += `## ⚠️ Problematic Tools (High Failure Rate)\n`;
+            response += `## [WARN] Problematic Tools (High Failure Rate)\n`;
             summary.problematicTools.forEach((tool) => {
               response += `- **${tool.toolName}**: ${tool.failureRate.toFixed(2)}% failure rate\n`;
             });
@@ -124,7 +124,7 @@ export class AhkAnalyticsTool {
           response = `# Recent Tool Calls (Last ${recent.length})\n\n`;
 
           recent.reverse().forEach((metric, index) => {
-            const status = metric.success ? '✅' : '❌';
+            const status = metric.success ? '[OK]' : '[ERROR]';
             const timestamp = new Date(metric.timestamp).toISOString();
             response += `${index + 1}. ${status} **${metric.toolName}** - ${metric.duration}ms (${timestamp})\n`;
             if (!metric.success && metric.errorMessage) {

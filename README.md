@@ -224,6 +224,35 @@ Add the server to your Claude Desktop configuration file (`claude_desktop_config
 - Use double backslashes (`\\`) in Windows paths for proper JSON escaping
 - Set `AHK_MCP_LOG_LEVEL` to `debug` for troubleshooting, `warn` for normal use
 
+### MCP Jam Configuration
+
+To add this server in [MCP Jam](https://mcpjam.com):
+
+1. Click **Add MCP Server**
+2. Fill in the fields:
+
+| Field | Value |
+|-------|-------|
+| **Server Name** | `ahk-mcp` |
+| **Connection Type** | `STDIO` |
+| **Command** | `node C:\Users\YourUsername\path\to\ahk-mcp\dist\server.js` |
+
+> **Important:** The command must point to `dist/server.js` (not `server.js` in root)
+
+3. **Environment Variables** (optional):
+
+| Variable | Value | Description |
+|----------|-------|-------------|
+| `NODE_ENV` | `production` | Production mode |
+| `AHK_MCP_LOG_LEVEL` | `warn` | Log level (`debug`, `info`, `warn`, `error`) |
+
+4. Click **Add Server**
+
+**Alternative using npx** (if published to npm):
+```
+npx ahk-mcp-server
+```
+
 ## MCP Tools
 
 ### Tool Naming Convention

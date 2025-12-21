@@ -138,7 +138,7 @@ export function createValidationErrorResponse(errors: ValidationError[]): ToolRe
   const content: Array<{ type: 'text'; text: string }> = [
     {
       type: 'text',
-      text: `❌ **Validation Error**\n\n${errorList}`
+      text: `[ERROR] **Validation Error**\n\n${errorList}`
     }
   ];
 

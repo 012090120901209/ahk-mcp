@@ -478,10 +478,10 @@ export const tracer = new Tracer();
  */
 export function formatTraceTree(span: Span, indent = 0): string {
   const prefix = '  '.repeat(indent);
-  const icon = span.status.code === 'ERROR' ? '❌' : span.status.code === 'OK' ? '✓' : '○';
+  const icon = span.status.code === 'ERROR' ? '[ERROR]' : span.status.code === 'OK' ? '[OK]' : '';
   const duration = span.duration !== undefined ? `${span.duration}ms` : 'running';
 
-  let output = `${prefix}${indent === 0 ? '📊' : '├─'} ${span.name} [${duration}] ${icon}\n`;
+  let output = `${prefix}${indent === 0 ? '' : '├─'} ${span.name} [${duration}] ${icon}\n`;
 
   if (span.status.code === 'ERROR' && span.status.message) {
     output += `${prefix}   Error: ${span.status.message}\n`;
