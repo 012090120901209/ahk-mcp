@@ -3,6 +3,7 @@ import logger from '../logger.js';
 import { loadConfig } from '../core/config.js';
 import { getActiveFilePath, setActiveFilePath } from '../core/active-file.js';
 import { safeParse } from '../core/validation-middleware.js';
+import type { McpToolResponse } from '../types/mcp-types.js';
 
 export const AhkActiveFileArgsSchema = z.object({
   action: z.enum(['get', 'set']).default('get'),
@@ -23,7 +24,7 @@ Get or set the active AHK file path used as a default when invoking tools.`,
 };
 
 export class AhkActiveFileTool {
-  async execute(args: unknown): Promise<any> {
+  async execute(args: unknown): Promise<McpToolResponse> {
     const parsed = safeParse(args, AhkActiveFileArgsSchema, 'AHK_Active_File');
     if (!parsed.success) return parsed.error;
 

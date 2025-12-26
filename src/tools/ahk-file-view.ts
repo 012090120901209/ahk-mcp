@@ -4,9 +4,22 @@ import path from 'path';
 import { activeFile, getActiveFilePath } from '../core/active-file.js';
 import { resolveFilePath } from '../core/config.js';
 import { AhkCompiler } from '../compiler/ahk-compiler.js';
+import type {
+  ClassDeclaration,
+  FunctionDeclaration,
+  Program,
+  Statement,
+} from '../compiler/ahk-parser.js';
 import logger from '../logger.js';
 import { safeParse } from '../core/validation-middleware.js';
 import { createToolDefinition } from '../utils/schema-generator.js';
+
+type FileViewArgs = z.infer<typeof AhkFileViewArgsSchema>;
+
+type HotkeyStatementNode = Statement & {
+  type: 'HotkeyStatement';
+  trigger?: string;
+};
 
 export const AhkFileViewArgsSchema = z.object({
   file: z.string().optional().describe('Path to AutoHotkey file to view (defaults to active file)'),
@@ -70,7 +83,8 @@ export class AhkFileViewTool {
     if (!parsed.success) return parsed.error;
 
     try {
-      const validatedArgs = parsed.data;
+      // Ensure schema defaults are applied (and the inferred output type matches)
+      const validatedArgs = AhkFileViewArgsSchema.parse(parsed.data);
       const { file, mode } = validatedArgs;
 
       logger.info(`Viewing AutoHotkey file in ${mode} mode`);
@@ -134,7 +148,7 @@ export class AhkFileViewTool {
     }
   }
 
-  private async generateView(filePath: string, args: any): Promise<ViewResult> {
+  private async generateView(filePath: string, args: FileViewArgs): Promise<ViewResult> {
     // Read file content
     const content = await fs.readFile(filePath, 'utf-8');
     const lines = content.split('\n');
@@ -225,37 +239,41 @@ export class AhkFileViewTool {
     return structure;
   }
 
-  private extractStructureFromAST(ast: any, structure: CodeStructure): void {
-    if (!ast.body) return;
-
+  private extractStructureFromAST(ast: Program, structure: CodeStructure): void {
     for (const statement of ast.body) {
       switch (statement.type) {
-        case 'ClassDeclaration':
+        case 'ClassDeclaration': {
+          const cls = statement as ClassDeclaration;
+          const methods = cls.body.filter(s => s.type === 'FunctionDeclaration').length;
           structure.classes.push({
-            name: statement.name || 'Unknown',
-            line: (statement.line || 0) + 1,
-            methods: statement.methods?.length || 0,
+            name: cls.name || 'Unknown',
+            line: cls.line + 1,
+            methods,
           });
           structure.complexity += 2;
           break;
+        }
 
-        case 'FunctionDeclaration':
+        case 'FunctionDeclaration': {
+          const fn = statement as FunctionDeclaration;
           structure.functions.push({
-            name: statement.name || 'Unknown',
-            line: (statement.line || 0) + 1,
-            params: statement.params?.map((p: any) => p.name).join(', ') || '',
+            name: fn.name || 'Unknown',
+            line: fn.line + 1,
+            params: fn.params?.join(', ') || '',
           });
           structure.complexity += 1;
           break;
+        }
 
-        case 'HotkeyStatement':
+        case 'HotkeyStatement': {
+          const hk = statement as HotkeyStatementNode;
           structure.hotkeys.push({
-            key: statement.key || 'Unknown',
-            line: (statement.line || 0) + 1,
-            description: statement.description,
+            key: hk.trigger || 'Unknown',
+            line: hk.line + 1,
           });
           structure.complexity += 1;
           break;
+        }
       }
     }
   }
@@ -351,16 +369,18 @@ export class AhkFileViewTool {
     };
   }
 
-  private formatOutput(result: ViewResult, args: any): string {
+  private formatOutput(result: ViewResult, args: FileViewArgs): string {
     const { metadata, structure, content, displayInfo } = result;
 
     switch (args.mode) {
       case 'raw':
         return this.formatRawMode(content);
       case 'summary':
-        return this.formatSummaryMode(metadata, structure!, displayInfo);
+        if (!structure) throw new Error('Internal error: structure missing for summary mode');
+        return this.formatSummaryMode(metadata, structure, displayInfo);
       case 'outline':
-        return this.formatOutlineMode(metadata, structure!, displayInfo);
+        if (!structure) throw new Error('Internal error: structure missing for outline mode');
+        return this.formatOutlineMode(metadata, structure, displayInfo);
       case 'structured':
       default:
         return this.formatStructuredMode(metadata, structure, content, displayInfo, args);
@@ -374,7 +394,7 @@ export class AhkFileViewTool {
   private formatSummaryMode(
     metadata: FileMetadata,
     structure: CodeStructure,
-    displayInfo: any
+    _displayInfo: unknown
   ): string {
     let output = `📄 **File Summary: ${metadata.name}**\n\n`;
 
@@ -413,7 +433,7 @@ export class AhkFileViewTool {
   private formatOutlineMode(
     metadata: FileMetadata,
     structure: CodeStructure,
-    displayInfo: any
+    _displayInfo: unknown
   ): string {
     let output = `📋 **Code Outline: ${metadata.name}**\n\n`;
 
@@ -460,8 +480,8 @@ export class AhkFileViewTool {
     metadata: FileMetadata,
     structure: CodeStructure | undefined,
     content: string,
-    displayInfo: any,
-    args: any
+    displayInfo: ViewResult['displayInfo'],
+    args: FileViewArgs
   ): string {
     let output = '';
 
