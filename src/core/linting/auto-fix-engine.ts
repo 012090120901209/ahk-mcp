@@ -54,9 +54,7 @@ export class AutoFixEngine {
       const lines = content.split('\n');
 
       // Filter to fixable errors only
-      const fixableErrors = errors
-        .filter(e => e.fixable && e.fix)
-        .slice(0, maxFixes);
+      const fixableErrors = errors.filter(e => e.fixable && e.fix).slice(0, maxFixes);
 
       if (fixableErrors.length === 0) {
         return {
@@ -64,11 +62,13 @@ export class AutoFixEngine {
           fixedContent: content,
           appliedFixes: [],
           failedFixes: [],
-          summary: 'No fixable errors found'
+          summary: 'No fixable errors found',
         };
       }
 
-      logger.info(`Auto-fixing ${fixableErrors.length} error(s) in ${filePath} (dryRun: ${dryRun})`);
+      logger.info(
+        `Auto-fixing ${fixableErrors.length} error(s) in ${filePath} (dryRun: ${dryRun})`
+      );
 
       // Sort errors by line number (descending) to avoid line number shifts
       const sortedErrors = [...fixableErrors].sort((a, b) => b.line - a.line);
@@ -86,7 +86,7 @@ export class AutoFixEngine {
               line: error.line,
               rule: error.rule,
               message: error.message,
-              applied: true
+              applied: true,
             });
           } else {
             failedFixes.push({
@@ -94,7 +94,7 @@ export class AutoFixEngine {
               rule: error.rule,
               message: error.message,
               applied: false,
-              error: result.error
+              error: result.error,
             });
           }
         } catch (err) {
@@ -106,7 +106,7 @@ export class AutoFixEngine {
             rule: error.rule,
             message: error.message,
             applied: false,
-            error: errorMsg
+            error: errorMsg,
           });
         }
       }
@@ -134,7 +134,7 @@ export class AutoFixEngine {
         fixedContent,
         appliedFixes,
         failedFixes,
-        summary
+        summary,
       };
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : String(error);
@@ -145,7 +145,7 @@ export class AutoFixEngine {
         fixedContent: '',
         appliedFixes: [],
         failedFixes: [],
-        summary: `Auto-fix failed: ${errorMsg}`
+        summary: `Auto-fix failed: ${errorMsg}`,
       };
     }
   }
@@ -153,16 +153,13 @@ export class AutoFixEngine {
   /**
    * Apply a single fix to the code
    */
-  private applyFix(
-    lines: string[],
-    error: LintError
-  ): { success: boolean; error?: string } {
+  private applyFix(lines: string[], error: LintError): { success: boolean; error?: string } {
     const lineIndex = error.line - 1;
 
     if (lineIndex < 0 || lineIndex >= lines.length) {
       return {
         success: false,
-        error: `Invalid line number: ${error.line}`
+        error: `Invalid line number: ${error.line}`,
       };
     }
 
@@ -185,7 +182,7 @@ export class AutoFixEngine {
       default:
         return {
           success: false,
-          error: `No fix handler for rule: ${error.rule}`
+          error: `No fix handler for rule: ${error.rule}`,
         };
     }
   }

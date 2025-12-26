@@ -2,16 +2,24 @@
 
 ## Overview
 
-The AutoHotkey MCP Server now includes comprehensive file creation capabilities that solve the common "No result received from client-side tool execution" errors. This guide explains how to use the new file creation workflow and automatic path conversion system.
+The AutoHotkey MCP Server now includes comprehensive file creation capabilities
+that solve the common "No result received from client-side tool execution"
+errors. This guide explains how to use the new file creation workflow and
+automatic path conversion system.
 
 ## The Original Problem
 
-Previously, users encountered errors when trying to create new AutoHotkey files because:
+Previously, users encountered errors when trying to create new AutoHotkey files
+because:
 
-1. **Path Format Mismatches**: Windows paths (e.g., `C:\Scripts\myfile.ahk`) weren't compatible with WSL environments
-2. **Missing File Creation**: Tools could only edit existing files, not create new ones
-3. **Manual Path Conversion**: Users had to manually convert paths between formats
-4. **Tool Execution Failures**: "No result received from client-side tool execution" errors were common
+1. **Path Format Mismatches**: Windows paths (e.g., `C:\Scripts\myfile.ahk`)
+   weren't compatible with WSL environments
+2. **Missing File Creation**: Tools could only edit existing files, not create
+   new ones
+3. **Manual Path Conversion**: Users had to manually convert paths between
+   formats
+4. **Tool Execution Failures**: "No result received from client-side tool
+   execution" errors were common
 
 ## The Solution
 
@@ -20,7 +28,8 @@ Our comprehensive solution includes:
 - **File Creation Action**: New "create" action in `AHK_File_Edit` tool
 - **Automatic Path Conversion**: Seamless Windows-WSL path conversion
 - **Path Interception**: Automatic path format detection and conversion
-- **Cross-Platform Compatibility**: Works in Windows, WSL, and mixed environments
+- **Cross-Platform Compatibility**: Works in Windows, WSL, and mixed
+  environments
 
 ## Using the File Creation Workflow
 
@@ -42,26 +51,32 @@ Create a new AutoHotkey file with the `AHK_File_Edit` tool:
 ### Key Features
 
 #### 1. Automatic Directory Creation
+
 - Parent directories are created automatically if they don't exist
 - No need to manually create folder structures
 
 #### 2. Path Validation
+
 - Only `.ahk` files can be created (security feature)
 - Paths are automatically validated and converted
 
 #### 3. Backup Protection
+
 - Existing files are protected from accidental overwrite
 - Error thrown if file already exists
 
 #### 4. Cross-Platform Path Conversion
-- Windows paths (`C:\Scripts\file.ahk`) automatically convert to WSL paths (`/mnt/c/Scripts/file.ahk`)
+
+- Windows paths (`C:\Scripts\file.ahk`) automatically convert to WSL paths
+  (`/mnt/c/Scripts/file.ahk`)
 - No manual path conversion required
 
 ## Path Conversion System
 
 ### How It Works
 
-The path conversion system automatically detects and converts paths between formats:
+The path conversion system automatically detects and converts paths between
+formats:
 
 1. **Detection**: Automatically identifies Windows, WSL, and Unix path formats
 2. **Conversion**: Seamlessly converts between formats based on the target tool
@@ -70,28 +85,31 @@ The path conversion system automatically detects and converts paths between form
 
 ### Supported Path Formats
 
-| Format | Example | Description |
-|--------|---------|-------------|
-| Windows | `C:\Scripts\myfile.ahk` | Standard Windows paths with backslashes |
-| WSL | `/mnt/c/Scripts/myfile.ahk` | WSL mount point paths |
-| Unix | `/home/user/scripts/myfile.ahk` | Standard Unix/Linux paths |
-| UNC | `\\server\share\myfile.ahk` | Windows network paths |
+| Format  | Example                         | Description                             |
+| ------- | ------------------------------- | --------------------------------------- |
+| Windows | `C:\Scripts\myfile.ahk`         | Standard Windows paths with backslashes |
+| WSL     | `/mnt/c/Scripts/myfile.ahk`     | WSL mount point paths                   |
+| Unix    | `/home/user/scripts/myfile.ahk` | Standard Unix/Linux paths               |
+| UNC     | `\\server\share\myfile.ahk`     | Windows network paths                   |
 
 ### Automatic Conversion Examples
 
 #### Windows to WSL
+
 ```
 Input:  C:\Users\John\Documents\script.ahk
 Output: /mnt/c/Users/John/Documents/script.ahk
 ```
 
 #### WSL to Windows
+
 ```
 Input:  /mnt/c/Scripts/test.ahk
 Output: C:\Scripts\test.ahk
 ```
 
 #### UNC to WSL
+
 ```
 Input:  \\fileserver\scripts\utility.ahk
 Output: /mnt/share/fileserver/scripts/utility.ahk
@@ -205,26 +223,33 @@ The `AHK_File_Edit_Advanced` tool also supports file creation:
 ### Common Issues and Solutions
 
 #### 1. "File already exists" Error
-**Problem**: Trying to create a file that already exists
-**Solution**: Use a different filename or delete the existing file first
+
+**Problem**: Trying to create a file that already exists **Solution**: Use a
+different filename or delete the existing file first
 
 #### 2. "Can only edit .ahk files" Error
-**Problem**: Trying to create a file without `.ahk` extension
-**Solution**: Ensure the filename ends with `.ahk`
+
+**Problem**: Trying to create a file without `.ahk` extension **Solution**:
+Ensure the filename ends with `.ahk`
 
 #### 3. Path Conversion Failures
-**Problem**: Path format not recognized
-**Solution**: Use full absolute paths with proper format:
+
+**Problem**: Path format not recognized **Solution**: Use full absolute paths
+with proper format:
+
 - Windows: `C:\path\to\file.ahk`
 - WSL: `/mnt/c/path/to/file.ahk`
 
 #### 4. "Failed to create directory" Error
-**Problem**: Insufficient permissions to create parent directories
-**Solution**: Check directory permissions or create directories manually
+
+**Problem**: Insufficient permissions to create parent directories **Solution**:
+Check directory permissions or create directories manually
 
 #### 5. "No result received from client-side tool execution"
-**Problem**: This error should now be resolved with the new system
-**Solution**: If it still occurs, check:
+
+**Problem**: This error should now be resolved with the new system **Solution**:
+If it still occurs, check:
+
 - Path format is correct
 - File has `.ahk` extension
 - Sufficient disk space
@@ -268,26 +293,34 @@ Use the path conversion utilities directly:
 ## Best Practices
 
 ### 1. Use Absolute Paths
+
 Always use full absolute paths for reliable file creation:
+
 - ✅ `C:\Scripts\myfile.ahk`
 - ❌ `myfile.ahk`
 - ❌ `.\myfile.ahk`
 
 ### 2. Validate File Extensions
+
 Ensure all AutoHotkey files end with `.ahk`:
+
 - ✅ `myscript.ahk`
 - ❌ `myscript.txt`
 - ❌ `myscript`
 
 ### 3. Use Descriptive Names
+
 Create meaningful filenames that describe the script's purpose:
+
 - ✅ `clipboard-manager.ahk`
 - ✅ `window-snap.ahk`
 - ❌ `script1.ahk`
 - ❌ `temp.ahk`
 
 ### 4. Organize in Directories
+
 Keep scripts organized in logical directories:
+
 ```
 C:\Scripts\
 ├── hotkeys\
@@ -297,6 +330,7 @@ C:\Scripts\
 ```
 
 ### 5. Use Dry Run for Testing
+
 Always test complex file creation with `dryRun: true` first:
 
 ```json
@@ -314,22 +348,28 @@ Always test complex file creation with `dryRun: true` first:
 ## Migration from Old Workflows
 
 ### From Manual File Creation
+
 **Old way**:
+
 1. Manually create file in text editor
 2. Save with .ahk extension
 3. Use edit tools to modify
 
 **New way**:
+
 1. Use `AHK_File_Edit` with `action: "create"`
 2. File is created and ready immediately
 
 ### From Manual Path Conversion
+
 **Old way**:
+
 1. Manually convert `C:\Scripts\file.ahk` to `/mnt/c/Scripts/file.ahk`
 2. Use converted path in tools
 3. Handle conversion errors manually
 
 **New way**:
+
 1. Use any path format
 2. Automatic conversion handles everything
 3. No manual intervention needed
@@ -347,11 +387,13 @@ The file creation workflow integrates seamlessly with existing tools:
 ## Performance Considerations
 
 ### Path Conversion Caching
+
 - Path conversions are cached for improved performance
 - Cache timeout: 5 minutes (configurable)
 - Maximum cache size: 1000 entries (configurable)
 
 ### File Creation Optimization
+
 - Directory creation is batched when possible
 - File operations use async I/O for better performance
 - Backup creation is optional for faster operations
@@ -403,11 +445,16 @@ Configure file creation behavior:
 
 ## Conclusion
 
-The file creation workflow and path conversion system eliminate the common "No result received from client-side tool execution" errors by providing:
+The file creation workflow and path conversion system eliminate the common "No
+result received from client-side tool execution" errors by providing:
 
-1. **Seamless File Creation**: Direct file creation with automatic directory setup
+1. **Seamless File Creation**: Direct file creation with automatic directory
+   setup
 2. **Automatic Path Conversion**: No manual path format conversion required
-3. **Cross-Platform Compatibility**: Works in Windows, WSL, and mixed environments
-4. **Error Prevention**: Built-in validation and protection against common issues
+3. **Cross-Platform Compatibility**: Works in Windows, WSL, and mixed
+   environments
+4. **Error Prevention**: Built-in validation and protection against common
+   issues
 
-This solution makes AutoHotkey development more efficient and reliable across different environments and platforms.
+This solution makes AutoHotkey development more efficient and reliable across
+different environments and platforms.

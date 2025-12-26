@@ -1,7 +1,7 @@
 # Remote Access Guide - AHK MCP Server
 
-**Date:** October 20, 2025
-**Purpose:** Configure Claude Desktop and remote access via SSE/HTTPS
+**Date:** October 20, 2025 **Purpose:** Configure Claude Desktop and remote
+access via SSE/HTTPS
 
 ---
 
@@ -20,11 +20,13 @@
 ### Current Configuration ✅
 
 Your Claude Desktop is **already configured** at:
+
 ```
 C:\Users\uphol\AppData\Roaming\Claude\claude_desktop_config.json
 ```
 
 **Configuration:**
+
 ```json
 {
   "mcpServers": {
@@ -50,6 +52,7 @@ C:\Users\uphol\AppData\Roaming\Claude\claude_desktop_config.json
 ### Why Local (Not Docker)?
 
 Claude Desktop requires **stdio transport**:
+
 - ✅ Local: Direct stdin/stdout communication
 - ❌ Docker: Containers don't expose stdio easily
 - ✅ Best Performance: No network overhead
@@ -72,6 +75,7 @@ npm run build
 ### Verify Connection
 
 After restarting Claude Desktop, ask Claude:
+
 ```
 Can you use the AHK_Config tool to show me your configuration?
 ```
@@ -83,11 +87,13 @@ If successful, you'll see server details and available tools.
 **Issue: "MCP server not responding"**
 
 Check logs:
+
 ```
 C:\Users\uphol\AppData\Roaming\Claude\logs\mcp*.log
 ```
 
 Common fixes:
+
 - Ensure `dist/index.js` exists: `ls dist/index.js`
 - Check Node.js path: `where node`
 - Verify build: `npm run build`
@@ -99,7 +105,8 @@ Common fixes:
 
 ### Overview
 
-For **remote access** (ChatGPT, other LLMs, network access), use the **SSE Docker container**:
+For **remote access** (ChatGPT, other LLMs, network access), use the **SSE
+Docker container**:
 
 ```
 Local:    C:\Users\...\dist\index.js  (stdio - Claude Desktop)
@@ -117,6 +124,7 @@ ahk-mcp-sse   Up and healthy           0.0.0.0:3000->3000/tcp
 ```
 
 **SSE Endpoint:**
+
 ```
 http://localhost:3000/sse
 ```
@@ -135,6 +143,7 @@ http://<YOUR_IP>:3000/sse
 ```
 
 **Example:**
+
 ```
 http://192.168.1.100:3000/sse
 ```
@@ -144,6 +153,7 @@ http://192.168.1.100:3000/sse
 Configure ChatGPT to use your MCP server:
 
 **ChatGPT Action Configuration:**
+
 ```json
 {
   "openapi": "3.0.0",
@@ -172,7 +182,8 @@ Configure ChatGPT to use your MCP server:
 }
 ```
 
-**Note:** ChatGPT can only access public IPs or use ngrok/cloudflare tunnels for local development.
+**Note:** ChatGPT can only access public IPs or use ngrok/cloudflare tunnels for
+local development.
 
 #### 3. Test Connection
 
@@ -204,6 +215,7 @@ data: /message?sessionId=abc123...
 ### Why HTTPS?
 
 For **production remote access**, you need HTTPS:
+
 - ✅ Encrypted communication
 - ✅ Required for ChatGPT Actions
 - ✅ Browser security requirements
@@ -216,6 +228,7 @@ Use **nginx** or **Caddy** as a reverse proxy with automatic HTTPS:
 #### Using Caddy (Easiest)
 
 **Install Caddy:**
+
 ```bash
 # Windows (via Chocolatey)
 choco install caddy
@@ -224,6 +237,7 @@ choco install caddy
 ```
 
 **Caddyfile:**
+
 ```caddy
 ahk-mcp.yourdomain.com {
     reverse_proxy localhost:3000
@@ -240,16 +254,19 @@ ahk-mcp.yourdomain.com {
 ```
 
 **Start Caddy:**
+
 ```bash
 caddy run --config Caddyfile
 ```
 
 Caddy automatically:
+
 - Gets SSL certificate from Let's Encrypt
 - Renews certificates
 - Redirects HTTP → HTTPS
 
 **Result:**
+
 ```
 https://ahk-mcp.yourdomain.com/sse
 ```
@@ -257,6 +274,7 @@ https://ahk-mcp.yourdomain.com/sse
 #### Using nginx
 
 **nginx.conf:**
+
 ```nginx
 server {
     listen 443 ssl http2;
@@ -290,6 +308,7 @@ server {
 For **development/testing** without a domain:
 
 **Install Cloudflare Tunnel:**
+
 ```bash
 # Download from: https://developers.cloudflare.com/cloudflare-one/connections/connect-apps/install-and-setup/installation/
 
@@ -298,23 +317,27 @@ npm install -g cloudflared
 ```
 
 **Start Tunnel:**
+
 ```bash
 cloudflared tunnel --url http://localhost:3000
 ```
 
 **Output:**
+
 ```
 Your quick Tunnel has been created! Visit it at:
 https://random-name-1234.trycloudflare.com
 ```
 
 **Benefits:**
+
 - ✅ Free HTTPS
 - ✅ No domain needed
 - ✅ No port forwarding
 - ✅ Works behind firewalls
 
 **Limitations:**
+
 - ⚠️ Random URL changes each restart
 - ⚠️ Not for production use
 
@@ -329,6 +352,7 @@ ngrok http 3000
 ```
 
 **Output:**
+
 ```
 Forwarding: https://abc123.ngrok.io → http://localhost:3000
 ```
@@ -342,6 +366,7 @@ Forwarding: https://abc123.ngrok.io → http://localhost:3000
 To allow remote access, configure Windows Firewall:
 
 **PowerShell (Admin):**
+
 ```powershell
 # Allow port 3000 inbound
 New-NetFirewallRule -DisplayName "AHK MCP Server" `
@@ -352,6 +377,7 @@ New-NetFirewallRule -DisplayName "AHK MCP Server" `
 ```
 
 **Or via GUI:**
+
 1. Windows Defender Firewall → Advanced Settings
 2. Inbound Rules → New Rule
 3. Port → TCP → 3000 → Allow
@@ -369,6 +395,7 @@ For **internet access**, configure your router:
    - **Protocol:** TCP
 
 **Security Warning:** Only expose port 3000 if you:
+
 - Use HTTPS (via reverse proxy)
 - Have authentication enabled
 - Trust all network clients
@@ -398,6 +425,7 @@ The MCP server **does not have built-in authentication**. For production:
 #### Option 1: Reverse Proxy Auth
 
 **Caddy with Basic Auth:**
+
 ```caddy
 ahk-mcp.yourdomain.com {
     reverse_proxy localhost:3000
@@ -409,6 +437,7 @@ ahk-mcp.yourdomain.com {
 ```
 
 **Generate password:**
+
 ```bash
 caddy hash-password
 ```
@@ -432,13 +461,15 @@ app.use((req, res, next) => {
 ### Network Isolation
 
 **Development:**
+
 ```yaml
 # docker-compose.yml
 ports:
-  - "127.0.0.1:3000:3000"  # Localhost only
+  - '127.0.0.1:3000:3000' # Localhost only
 ```
 
 **Production:**
+
 ```yaml
 # Use reverse proxy on different port
 # Only expose HTTPS port 443 externally
@@ -447,6 +478,7 @@ ports:
 ### Input Validation
 
 Already implemented via Zod schemas:
+
 - ✅ All tool inputs validated
 - ✅ Path sanitization
 - ✅ Type checking
@@ -462,7 +494,7 @@ import rateLimit from 'express-rate-limit';
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 100, // limit each IP to 100 requests per windowMs
-  message: 'Too many requests'
+  message: 'Too many requests',
 });
 
 app.use('/sse', limiter);
@@ -546,25 +578,27 @@ https://ahk-mcp.yourdomain.com/sse
 
 ## Quick Reference
 
-| Access Method | URL | Security | Use Case |
-|---------------|-----|----------|----------|
-| **Claude Desktop** | N/A (stdio) | ✅ Local | Primary development |
-| **Local Network** | http://192.168.x.x:3000/sse | ⚠️ Trusted | Home network |
-| **Cloudflare Tunnel** | https://random.trycloudflare.com/sse | ⚠️ Temporary | Quick testing |
-| **ngrok** | https://abc123.ngrok.io/sse | ⚠️ Temporary | Quick testing |
-| **Reverse Proxy** | https://yourdomain.com/sse | ✅ Secure | Production |
+| Access Method         | URL                                  | Security     | Use Case            |
+| --------------------- | ------------------------------------ | ------------ | ------------------- |
+| **Claude Desktop**    | N/A (stdio)                          | ✅ Local     | Primary development |
+| **Local Network**     | http://192.168.x.x:3000/sse          | ⚠️ Trusted   | Home network        |
+| **Cloudflare Tunnel** | https://random.trycloudflare.com/sse | ⚠️ Temporary | Quick testing       |
+| **ngrok**             | https://abc123.ngrok.io/sse          | ⚠️ Temporary | Quick testing       |
+| **Reverse Proxy**     | https://yourdomain.com/sse           | ✅ Secure    | Production          |
 
 ---
 
 ## Testing Checklist
 
 ### Claude Desktop
+
 - [ ] Built latest changes: `npm run build`
 - [ ] Restarted Claude Desktop
 - [ ] Test tool: "Use AHK_Config to show configuration"
 - [ ] Verify tools load in Claude UI
 
 ### Remote SSE
+
 - [ ] SSE container running: `docker-compose ps`
 - [ ] Health check: `curl http://localhost:3000/health`
 - [ ] SSE endpoint: `curl http://localhost:3000/sse`
@@ -580,6 +614,7 @@ https://ahk-mcp.yourdomain.com/sse
 **Symptom:** "MCP server not responding"
 
 **Checks:**
+
 1. Build exists: `ls dist/index.js`
 2. Node works: `node dist/index.js` (should start server)
 3. Path in config correct
@@ -590,6 +625,7 @@ https://ahk-mcp.yourdomain.com/sse
 **Symptom:** Docker health check failing
 
 **Checks:**
+
 1. Health endpoint: `curl http://localhost:3000/health`
 2. Container logs: `docker logs ahk-mcp-sse`
 3. Restart: `docker-compose restart sse`
@@ -599,6 +635,7 @@ https://ahk-mcp.yourdomain.com/sse
 **Symptom:** Can't connect from other devices
 
 **Checks:**
+
 1. Container bound to 0.0.0.0: Check docker-compose.yml
 2. Firewall allows port 3000: Test with `telnet <YOUR_IP> 3000`
 3. Correct IP address: `ipconfig` (Windows) or `hostname -I` (Linux)
@@ -608,6 +645,7 @@ https://ahk-mcp.yourdomain.com/sse
 **Symptom:** "Certificate invalid" or "Not secure"
 
 **Checks:**
+
 1. Domain points to server IP: `nslookup yourdomain.com`
 2. Caddy/nginx running: Check process
 3. Certificate exists: Check reverse proxy logs
@@ -618,7 +656,8 @@ https://ahk-mcp.yourdomain.com/sse
 ## Related Documentation
 
 - [DOCKER_SETUP_SUMMARY.md](./DOCKER_SETUP_SUMMARY.md) - Docker optimization
-- [DOCKER_HEALTH_CHECK_FIX.md](./DOCKER_HEALTH_CHECK_FIX.md) - Health endpoint setup
+- [DOCKER_HEALTH_CHECK_FIX.md](./DOCKER_HEALTH_CHECK_FIX.md) - Health endpoint
+  setup
 - [SECURITY.md](../SECURITY.md) - Security policies
 - [README.md](../README.md) - General usage
 
@@ -643,11 +682,13 @@ https://ahk-mcp.yourdomain.com/sse
 ### Next Steps
 
 **For Claude Desktop:**
+
 1. `npm run build` (when you make changes)
 2. Restart Claude Desktop
 3. Test in Claude chat
 
 **For Remote Access:**
+
 1. Container already running ✅
 2. Choose security level:
    - Development: Cloudflare tunnel
@@ -657,5 +698,5 @@ https://ahk-mcp.yourdomain.com/sse
 
 ---
 
-*Last Updated: October 20, 2025*
-*Status: Both local and remote access configured*
+_Last Updated: October 20, 2025_ _Status: Both local and remote access
+configured_

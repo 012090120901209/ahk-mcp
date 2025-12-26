@@ -17,9 +17,16 @@ import { safeParse } from '../core/validation-middleware.js';
  */
 export const AHK_Library_Import_ArgsSchema = z.object({
   name: z.string().min(1).describe('Library name (without .ahk extension)'),
-  include_dependencies: z.boolean().optional().default(true).describe('Include all dependencies in import order'),
-  format: z.enum(['angle-brackets', 'relative', 'absolute']).optional().default('angle-brackets')
-    .describe('Format for #Include statements')
+  include_dependencies: z
+    .boolean()
+    .optional()
+    .default(true)
+    .describe('Include all dependencies in import order'),
+  format: z
+    .enum(['angle-brackets', 'relative', 'absolute'])
+    .optional()
+    .default('angle-brackets')
+    .describe('Format for #Include statements'),
 });
 
 export type AHK_Library_Import_Args = z.infer<typeof AHK_Library_Import_ArgsSchema>;
@@ -29,31 +36,32 @@ export type AHK_Library_Import_Args = z.infer<typeof AHK_Library_Import_ArgsSche
  */
 export const AHK_Library_Import_Definition = {
   name: 'AHK_Library_Import',
-  description: 'Generate #Include statements for importing a library. ' +
-               'Resolves dependencies and provides correct import order. ' +
-               'Supports different #Include formats (angle-brackets, relative, absolute).',
+  description:
+    'Generate #Include statements for importing a library. ' +
+    'Resolves dependencies and provides correct import order. ' +
+    'Supports different #Include formats (angle-brackets, relative, absolute).',
   inputSchema: {
     type: 'object',
     properties: {
       name: {
         type: 'string',
-        description: 'Library name (without .ahk extension)'
+        description: 'Library name (without .ahk extension)',
       },
       include_dependencies: {
         type: 'boolean',
         description: 'Include all dependencies in import order',
-        default: true
+        default: true,
       },
       format: {
         type: 'string',
         enum: ['angle-brackets', 'relative', 'absolute'],
         description: 'Format for #Include statements',
-        default: 'angle-brackets'
-      }
+        default: 'angle-brackets',
+      },
     },
     required: ['name'],
-    additionalProperties: false
-  }
+    additionalProperties: false,
+  },
 };
 
 /**
@@ -111,17 +119,16 @@ export async function handleAHK_Library_Import(
     if (!library) {
       // Provide "did you mean" suggestions
       const suggestions = catalog.findSimilar(name, 3);
-      const suggestionText = suggestions.length > 0
-        ? `\n\nDid you mean: ${suggestions.join(', ')}?`
-        : '';
+      const suggestionText =
+        suggestions.length > 0 ? `\n\nDid you mean: ${suggestions.join(', ')}?` : '';
 
       return {
         content: [
           {
             type: 'text',
-            text: `Library "${name}" not found.${suggestionText}\n\nUse AHK_Library_List to see all available libraries.`
-          }
-        ]
+            text: `Library "${name}" not found.${suggestionText}\n\nUse AHK_Library_List to see all available libraries.`,
+          },
+        ],
       };
     }
 
@@ -164,7 +171,9 @@ export async function handleAHK_Library_Import(
           lines.push(`- ${missing}`);
         }
         lines.push('');
-        lines.push('**Action Required:** Ensure all dependency files exist in the scripts directory.');
+        lines.push(
+          '**Action Required:** Ensure all dependency files exist in the scripts directory.'
+        );
         lines.push('');
       }
 
@@ -173,9 +182,11 @@ export async function handleAHK_Library_Import(
           content: [
             {
               type: 'text',
-              text: lines.join('\n') + '\n\n**Cannot generate import statements due to circular dependencies.**'
-            }
-          ]
+              text:
+                lines.join('\n') +
+                '\n\n**Cannot generate import statements due to circular dependencies.**',
+            },
+          ],
         };
       }
     }
@@ -222,7 +233,9 @@ export async function handleAHK_Library_Import(
       lines.push('');
 
       if (library.dependencies.length > 0) {
-        lines.push('> **Note:** This library has dependencies. Use `include_dependencies: true` to get the complete import order.');
+        lines.push(
+          '> **Note:** This library has dependencies. Use `include_dependencies: true` to get the complete import order.'
+        );
         lines.push('');
       }
     }
@@ -232,7 +245,7 @@ export async function handleAHK_Library_Import(
     lines.push('');
     lines.push('### Include Formats');
     lines.push('');
-    lines.push('- **angle-brackets** (`<Library>`): Uses AutoHotkey\'s library search path');
+    lines.push("- **angle-brackets** (`<Library>`): Uses AutoHotkey's library search path");
     lines.push('- **relative** (`path/to/Library.ahk`): Relative to your script location');
     lines.push('- **absolute** (`C:/full/path/Library.ahk`): Full absolute path');
     lines.push('');
@@ -262,9 +275,9 @@ export async function handleAHK_Library_Import(
       content: [
         {
           type: 'text',
-          text: lines.join('\n')
-        }
-      ]
+          text: lines.join('\n'),
+        },
+      ],
     };
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
@@ -273,9 +286,9 @@ export async function handleAHK_Library_Import(
       content: [
         {
           type: 'text',
-          text: `Error generating import statements: ${errorMessage}`
-        }
-      ]
+          text: `Error generating import statements: ${errorMessage}`,
+        },
+      ],
     };
   }
 }
@@ -368,7 +381,9 @@ export async function validateImport(
   const resolution = resolver.resolve(libraryName);
 
   if (resolution.cycles.length > 0) {
-    errors.push(`Circular dependencies detected: ${resolution.cycles.map(c => c.join(' → ')).join('; ')}`);
+    errors.push(
+      `Circular dependencies detected: ${resolution.cycles.map(c => c.join(' → ')).join('; ')}`
+    );
   }
 
   if (resolution.missing.length > 0) {
@@ -383,6 +398,6 @@ export async function validateImport(
   return {
     valid: errors.length === 0,
     errors,
-    warnings
+    warnings,
   };
 }

@@ -7,7 +7,7 @@ class StderrLogger {
     error: 0,
     warn: 1,
     info: 2,
-    debug: 3
+    debug: 3,
   };
 
   private useJsonFormat: boolean;
@@ -76,9 +76,7 @@ class StderrLogger {
     } else {
       // Human-readable format with trace context
       const message = args.map(arg => this.serialize(arg, level)).join(' ');
-      const traceInfo = context
-        ? ` [traceId: ${context.traceId}] [spanId: ${context.spanId}]`
-        : '';
+      const traceInfo = context ? ` [traceId: ${context.traceId}] [spanId: ${context.spanId}]` : '';
 
       process.stderr.write(`[${timestamp}] ${level.toUpperCase()}:${traceInfo} ${message}\n`);
     }
@@ -110,4 +108,4 @@ console.log = (...args: any[]) => {
   process.stderr.write('[CONSOLE.LOG REDIRECTED] ' + args.join(' ') + '\n');
 };
 
-export default logger; 
+export default logger;

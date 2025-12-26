@@ -13,7 +13,7 @@ export enum LogLevel {
   ERROR = 'error',
   WARN = 'warn',
   INFO = 'info',
-  DEBUG = 'debug'
+  DEBUG = 'debug',
 }
 
 /**
@@ -21,7 +21,7 @@ export enum LogLevel {
  */
 export enum DataMode {
   LIGHT = 'light',
-  FULL = 'full'
+  FULL = 'full',
 }
 
 /**
@@ -55,6 +55,42 @@ class EnvironmentConfig {
    */
   useSSEMode(): boolean {
     return process.argv.includes('--sse') || !!process.env.PORT;
+  }
+
+  /**
+   * Get the tool execution timeout in milliseconds
+   * Defaults to 45000ms; set to 0 to disable timeouts
+   */
+  getToolTimeoutMs(): number {
+    const raw = process.env.AHK_MCP_TOOL_TIMEOUT_MS;
+    if (!raw) return 45000;
+    const parsed = parseInt(raw, 10);
+    if (Number.isNaN(parsed) || parsed < 0) return 45000;
+    return parsed;
+  }
+
+  /**
+   * Get the polling interval for MCP tasks in milliseconds
+   * Defaults to 2000ms
+   */
+  getTaskPollIntervalMs(): number {
+    const raw = process.env.AHK_MCP_TASK_POLL_INTERVAL_MS;
+    if (!raw) return 2000;
+    const parsed = parseInt(raw, 10);
+    if (Number.isNaN(parsed) || parsed <= 0) return 2000;
+    return parsed;
+  }
+
+  /**
+   * Get the task execution timeout in milliseconds
+   * Defaults to 0 (no timeout)
+   */
+  getTaskTimeoutMs(): number {
+    const raw = process.env.AHK_MCP_TASK_TIMEOUT_MS;
+    if (!raw) return 0;
+    const parsed = parseInt(raw, 10);
+    if (Number.isNaN(parsed) || parsed < 0) return 0;
+    return parsed;
   }
 
   /**
@@ -197,6 +233,9 @@ class EnvironmentConfig {
       logLevel: this.getLogLevel(),
       port: this.getPort(),
       useSSEMode: this.useSSEMode(),
+      toolTimeoutMs: this.getToolTimeoutMs(),
+      taskPollIntervalMs: this.getTaskPollIntervalMs(),
+      taskTimeoutMs: this.getTaskTimeoutMs(),
       activeFilePath: this.getActiveFilePath(),
       configDir: this.getConfigDir(),
       settingsPath: this.getSettingsPath(),
@@ -206,7 +245,7 @@ class EnvironmentConfig {
       platform: this.getPlatform(),
       nodeEnv: this.getNodeEnv(),
       isDevelopment: this.isDevelopment(),
-      isProduction: this.isProduction()
+      isProduction: this.isProduction(),
     };
   }
 }

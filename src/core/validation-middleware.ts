@@ -45,20 +45,20 @@ export function formatZodError(error: z.ZodError): ValidationError[] {
 
     // Create human-readable code descriptions
     const codeMap: Record<string, string> = {
-      'invalid_type': 'Type mismatch',
-      'invalid_literal': 'Invalid value',
-      'custom': 'Validation failed',
-      'invalid_union': 'Not one of allowed values',
-      'invalid_enum': 'Not a valid enum value',
-      'unrecognized_keys': 'Unexpected properties',
-      'invalid_arguments': 'Invalid arguments',
-      'invalid_return_type': 'Invalid return value',
-      'invalid_date': 'Invalid date format',
-      'invalid_string': 'Invalid string format',
-      'too_small': 'Value too small',
-      'too_big': 'Value too large',
-      'not_multiple_of': 'Not a multiple of required value',
-      'not_finite': 'Must be a finite number'
+      invalid_type: 'Type mismatch',
+      invalid_literal: 'Invalid value',
+      custom: 'Validation failed',
+      invalid_union: 'Not one of allowed values',
+      invalid_enum: 'Not a valid enum value',
+      unrecognized_keys: 'Unexpected properties',
+      invalid_arguments: 'Invalid arguments',
+      invalid_return_type: 'Invalid return value',
+      invalid_date: 'Invalid date format',
+      invalid_string: 'Invalid string format',
+      too_small: 'Value too small',
+      too_big: 'Value too large',
+      not_multiple_of: 'Not a multiple of required value',
+      not_finite: 'Must be a finite number',
     };
 
     const codeLabel = codeMap[issue.code as keyof typeof codeMap] || issue.code;
@@ -67,7 +67,7 @@ export function formatZodError(error: z.ZodError): ValidationError[] {
       field: field || 'root',
       message: issue.message,
       code: codeLabel,
-      received: 'received' in issue ? issue.received : undefined
+      received: 'received' in issue ? issue.received : undefined,
     };
   });
 }
@@ -84,15 +84,12 @@ export function formatZodError(error: z.ZodError): ValidationError[] {
  * const validatedArgs = result.data;
  * ```
  */
-export function validateWithSchema<T>(
-  data: unknown,
-  schema: z.ZodType<T>
-): ValidationResult<T> {
+export function validateWithSchema<T>(data: unknown, schema: z.ZodType<T>): ValidationResult<T> {
   try {
     const validatedData = schema.parse(data);
     return {
       success: true,
-      data: validatedData
+      data: validatedData,
     };
   } catch (error) {
     if (error instanceof z.ZodError) {
@@ -101,7 +98,7 @@ export function validateWithSchema<T>(
       return {
         success: false,
         errors: formattedErrors,
-        rawError: error
+        rawError: error,
       };
     }
 
@@ -109,11 +106,13 @@ export function validateWithSchema<T>(
     logger.error('Unexpected error during validation:', error);
     return {
       success: false,
-      errors: [{
-        field: 'unknown',
-        message: error instanceof Error ? error.message : String(error),
-        code: 'unknown_error'
-      }]
+      errors: [
+        {
+          field: 'unknown',
+          message: error instanceof Error ? error.message : String(error),
+          code: 'unknown_error',
+        },
+      ],
     };
   }
 }
@@ -138,8 +137,8 @@ export function createValidationErrorResponse(errors: ValidationError[]): ToolRe
   const content: Array<{ type: 'text'; text: string }> = [
     {
       type: 'text',
-      text: `[ERROR] **Validation Error**\n\n${errorList}`
-    }
+      text: `[ERROR] **Validation Error**\n\n${errorList}`,
+    },
   ];
 
   // Add helpful hint if there are common errors
@@ -149,13 +148,13 @@ export function createValidationErrorResponse(errors: ValidationError[]): ToolRe
   if (hasTypeErrors || hasMissingFields) {
     content.push({
       type: 'text',
-      text: '**Tip:** Check that all required fields are provided with the correct data types.'
+      text: '**Tip:** Check that all required fields are provided with the correct data types.',
     });
   }
 
   return {
     content,
-    isError: true
+    isError: true,
   };
 }
 
@@ -185,7 +184,7 @@ export function safeParse<T>(
   if (result.success) {
     return {
       success: true,
-      data: result.data!
+      data: result.data!,
     };
   }
 
@@ -193,7 +192,7 @@ export function safeParse<T>(
 
   return {
     success: false,
-    error: createValidationErrorResponse(result.errors || [])
+    error: createValidationErrorResponse(result.errors || []),
   };
 }
 
@@ -214,11 +213,7 @@ export function safeParse<T>(
  * ```
  */
 export function validateArgs<T>(schema: z.ZodType<T>) {
-  return function decorator(
-    target: any,
-    propertyKey: string,
-    descriptor: PropertyDescriptor
-  ) {
+  return function decorator(target: any, propertyKey: string, descriptor: PropertyDescriptor) {
     const originalMethod = descriptor.value;
 
     descriptor.value = async function (this: any, args: unknown): Promise<ToolResponse> {
@@ -279,19 +274,19 @@ export function combineValidationResults<T1, T2>(
   if (allErrors.length > 0) {
     return {
       success: false,
-      errors: allErrors
+      errors: allErrors,
     };
   }
 
   if (!result1.success || !result2.success) {
     return {
       success: false,
-      errors: [{ field: 'unknown', message: 'Validation failed', code: 'unknown_error' }]
+      errors: [{ field: 'unknown', message: 'Validation failed', code: 'unknown_error' }],
     };
   }
 
   return {
     success: true,
-    data: [result1.data!, result2.data!]
+    data: [result1.data!, result2.data!],
   };
 }

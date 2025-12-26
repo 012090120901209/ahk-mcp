@@ -19,14 +19,32 @@ export interface Program extends ASTNode {
 }
 
 export interface Statement extends ASTNode {
-  type: 'Statement' | 'IfStatement' | 'WhileStatement' | 'ForStatement' | 'LoopStatement' | 
-        'ClassDeclaration' | 'FunctionDeclaration' | 'ExpressionStatement' | 'ReturnStatement' |
-        'BreakStatement' | 'ContinueStatement' | 'HotkeyStatement' | 'DirectiveStatement';
+  type:
+    | 'Statement'
+    | 'IfStatement'
+    | 'WhileStatement'
+    | 'ForStatement'
+    | 'LoopStatement'
+    | 'ClassDeclaration'
+    | 'FunctionDeclaration'
+    | 'ExpressionStatement'
+    | 'ReturnStatement'
+    | 'BreakStatement'
+    | 'ContinueStatement'
+    | 'HotkeyStatement'
+    | 'DirectiveStatement';
 }
 
 export interface Expression extends ASTNode {
-  type: 'Expression' | 'BinaryExpression' | 'UnaryExpression' | 'CallExpression' | 
-        'MemberExpression' | 'Identifier' | 'Literal' | 'AssignmentExpression';
+  type:
+    | 'Expression'
+    | 'BinaryExpression'
+    | 'UnaryExpression'
+    | 'CallExpression'
+    | 'MemberExpression'
+    | 'Identifier'
+    | 'Literal'
+    | 'AssignmentExpression';
   left?: Expression;
   right?: Expression;
   operator?: string;
@@ -123,22 +141,21 @@ export class AhkParser {
 
   constructor(source: string) {
     const lexer = new AhkLexer(source);
-    this.tokens = lexer.tokenize().filter(token => 
-      token.type !== TokenType.WHITESPACE && 
-      token.type !== TokenType.COMMENT
-    );
+    this.tokens = lexer
+      .tokenize()
+      .filter(token => token.type !== TokenType.WHITESPACE && token.type !== TokenType.COMMENT);
   }
 
   parse(): Program {
     const statements: Statement[] = [];
-    
+
     while (!this.isAtEnd()) {
       // Skip newlines at top level
       if (this.check(TokenType.NEWLINE)) {
         this.advance();
         continue;
       }
-      
+
       const stmt = this.statement();
       if (stmt) {
         statements.push(stmt);
@@ -151,7 +168,7 @@ export class AhkParser {
       line: 1,
       column: 1,
       start: 0,
-      end: this.tokens.length > 0 ? this.tokens[this.tokens.length - 1].end : 0
+      end: this.tokens.length > 0 ? this.tokens[this.tokens.length - 1].end : 0,
     };
   }
 
@@ -167,12 +184,12 @@ export class AhkParser {
       if (this.match(TokenType.CONTINUE)) return this.continueStatement();
       if (this.match(TokenType.HOTKEY)) return this.hotkeyStatement();
       if (this.match(TokenType.DIRECTIVE)) return this.directiveStatement();
-      
+
       // Check for function declaration
       if (this.checkFunctionDeclaration()) {
         return this.functionDeclaration();
       }
-      
+
       return this.expressionStatement();
     } catch (error) {
       if (error instanceof ParseError) {
@@ -187,12 +204,16 @@ export class AhkParser {
   private ifStatement(): IfStatement {
     const token = this.previous();
     const test = this.expression();
-    
+
     this.consumeNewlines();
-    
+
     const consequent: Statement[] = [];
-    while (!this.check(TokenType.ELSE) && !this.check(TokenType.ELSEIF) && 
-           !this.isAtEnd() && !this.checkBlockEnd()) {
+    while (
+      !this.check(TokenType.ELSE) &&
+      !this.check(TokenType.ELSEIF) &&
+      !this.isAtEnd() &&
+      !this.checkBlockEnd()
+    ) {
       if (this.check(TokenType.NEWLINE)) {
         this.advance();
         continue;
@@ -202,7 +223,7 @@ export class AhkParser {
     }
 
     let alternate: Statement[] | IfStatement | undefined;
-    
+
     if (this.match(TokenType.ELSEIF)) {
       alternate = this.ifStatement(); // Recursive for elseif chain
     } else if (this.match(TokenType.ELSE)) {
@@ -227,16 +248,16 @@ export class AhkParser {
       line: token.line,
       column: token.column,
       start: token.start,
-      end: this.previous().end
+      end: this.previous().end,
     };
   }
 
   private whileStatement(): WhileStatement {
     const token = this.previous();
     const test = this.expression();
-    
+
     this.consumeNewlines();
-    
+
     const body: Statement[] = [];
     while (!this.isAtEnd() && !this.checkBlockEnd()) {
       if (this.check(TokenType.NEWLINE)) {
@@ -254,7 +275,7 @@ export class AhkParser {
       line: token.line,
       column: token.column,
       start: token.start,
-      end: this.previous().end
+      end: this.previous().end,
     };
   }
 
@@ -262,9 +283,9 @@ export class AhkParser {
     const token = this.previous();
     // Simplified for statement parsing
     const test = this.expression();
-    
+
     this.consumeNewlines();
-    
+
     const body: Statement[] = [];
     while (!this.isAtEnd() && !this.checkBlockEnd()) {
       if (this.check(TokenType.NEWLINE)) {
@@ -282,21 +303,21 @@ export class AhkParser {
       line: token.line,
       column: token.column,
       start: token.start,
-      end: this.previous().end
+      end: this.previous().end,
     } as Statement;
   }
 
   private loopStatement(): Statement {
     const token = this.previous();
     let test: Expression | undefined;
-    
+
     // Loop can have optional count/condition
     if (!this.check(TokenType.NEWLINE) && !this.check(TokenType.LBRACE)) {
       test = this.expression();
     }
-    
+
     this.consumeNewlines();
-    
+
     const body: Statement[] = [];
     while (!this.isAtEnd() && !this.checkBlockEnd()) {
       if (this.check(TokenType.NEWLINE)) {
@@ -314,23 +335,23 @@ export class AhkParser {
       line: token.line,
       column: token.column,
       start: token.start,
-      end: this.previous().end
+      end: this.previous().end,
     } as Statement;
   }
 
   private classDeclaration(): ClassDeclaration {
     const token = this.previous();
-    const name = this.consume(TokenType.IDENTIFIER, "Expected class name").value;
-    
+    const name = this.consume(TokenType.IDENTIFIER, 'Expected class name').value;
+
     let superClass: string | undefined;
     if (this.match(TokenType.IDENTIFIER) && this.previous().value.toLowerCase() === 'extends') {
-      superClass = this.consume(TokenType.IDENTIFIER, "Expected superclass name").value;
+      superClass = this.consume(TokenType.IDENTIFIER, 'Expected superclass name').value;
     }
-    
+
     this.consumeNewlines();
     this.consume(TokenType.LBRACE, "Expected '{' after class declaration");
     this.consumeNewlines();
-    
+
     const body: Statement[] = [];
     while (!this.check(TokenType.RBRACE) && !this.isAtEnd()) {
       if (this.check(TokenType.NEWLINE)) {
@@ -340,7 +361,7 @@ export class AhkParser {
       const stmt = this.statement();
       if (stmt) body.push(stmt);
     }
-    
+
     this.consume(TokenType.RBRACE, "Expected '}' after class body");
 
     return {
@@ -351,7 +372,7 @@ export class AhkParser {
       line: token.line,
       column: token.column,
       start: token.start,
-      end: this.previous().end
+      end: this.previous().end,
     };
   }
 
@@ -361,24 +382,24 @@ export class AhkParser {
       // Consume the function name after static
       this.advance();
     }
-    
+
     const nameToken = this.previous();
     const name = nameToken.value;
-    
+
     this.consume(TokenType.LPAREN, "Expected '(' after function name");
-    
+
     const params: string[] = [];
     if (!this.check(TokenType.RPAREN)) {
       do {
-        params.push(this.consume(TokenType.IDENTIFIER, "Expected parameter name").value);
+        params.push(this.consume(TokenType.IDENTIFIER, 'Expected parameter name').value);
       } while (this.match(TokenType.COMMA));
     }
-    
+
     this.consume(TokenType.RPAREN, "Expected ')' after parameters");
     this.consumeNewlines();
     this.consume(TokenType.LBRACE, "Expected '{' before function body");
     this.consumeNewlines();
-    
+
     const body: Statement[] = [];
     while (!this.check(TokenType.RBRACE) && !this.isAtEnd()) {
       if (this.check(TokenType.NEWLINE)) {
@@ -388,7 +409,7 @@ export class AhkParser {
       const stmt = this.statement();
       if (stmt) body.push(stmt);
     }
-    
+
     this.consume(TokenType.RBRACE, "Expected '}' after function body");
 
     return {
@@ -400,14 +421,14 @@ export class AhkParser {
       line: nameToken.line,
       column: nameToken.column,
       start: nameToken.start,
-      end: this.previous().end
+      end: this.previous().end,
     };
   }
 
   private returnStatement(): Statement {
     const token = this.previous();
     let value: Expression | undefined;
-    
+
     if (!this.check(TokenType.NEWLINE) && !this.isAtEnd()) {
       value = this.expression();
     }
@@ -418,7 +439,7 @@ export class AhkParser {
       line: token.line,
       column: token.column,
       start: token.start,
-      end: this.previous().end
+      end: this.previous().end,
     } as Statement;
   }
 
@@ -429,7 +450,7 @@ export class AhkParser {
       line: token.line,
       column: token.column,
       start: token.start,
-      end: token.end
+      end: token.end,
     } as Statement;
   }
 
@@ -440,15 +461,15 @@ export class AhkParser {
       line: token.line,
       column: token.column,
       start: token.start,
-      end: token.end
+      end: token.end,
     } as Statement;
   }
 
   private hotkeyStatement(): Statement {
     const token = this.previous();
-    
+
     this.consumeNewlines();
-    
+
     const body: Statement[] = [];
     while (!this.isAtEnd() && !this.checkBlockEnd()) {
       if (this.check(TokenType.NEWLINE)) {
@@ -466,13 +487,13 @@ export class AhkParser {
       line: token.line,
       column: token.column,
       start: token.start,
-      end: this.previous().end
+      end: this.previous().end,
     } as Statement;
   }
 
   private directiveStatement(): Statement {
     const token = this.previous();
-    
+
     // Consume rest of line for directive
     let value = '';
     while (!this.check(TokenType.NEWLINE) && !this.isAtEnd()) {
@@ -486,20 +507,20 @@ export class AhkParser {
       line: token.line,
       column: token.column,
       start: token.start,
-      end: this.previous().end
+      end: this.previous().end,
     } as Statement;
   }
 
   private expressionStatement(): Statement {
     const expr = this.expression();
-    
+
     return {
       type: 'ExpressionStatement',
       expression: expr,
       line: expr.line,
       column: expr.column,
       start: expr.start,
-      end: expr.end
+      end: expr.end,
     } as Statement;
   }
 
@@ -513,7 +534,7 @@ export class AhkParser {
     if (this.match(TokenType.ASSIGN)) {
       const operator = this.previous().value;
       const right = this.assignment();
-      
+
       return {
         type: 'AssignmentExpression',
         left: expr,
@@ -522,7 +543,7 @@ export class AhkParser {
         line: expr.line,
         column: expr.column,
         start: expr.start,
-        end: right.end
+        end: right.end,
       };
     }
 
@@ -543,7 +564,7 @@ export class AhkParser {
         line: expr.line,
         column: expr.column,
         start: expr.start,
-        end: right.end
+        end: right.end,
       };
     }
 
@@ -564,7 +585,7 @@ export class AhkParser {
         line: expr.line,
         column: expr.column,
         start: expr.start,
-        end: right.end
+        end: right.end,
       };
     }
 
@@ -585,7 +606,7 @@ export class AhkParser {
         line: expr.line,
         column: expr.column,
         start: expr.start,
-        end: right.end
+        end: right.end,
       };
     }
 
@@ -595,8 +616,14 @@ export class AhkParser {
   private comparison(): Expression {
     let expr = this.term();
 
-    while (this.match(TokenType.GREATER_THAN, TokenType.GREATER_EQUAL, 
-                      TokenType.LESS_THAN, TokenType.LESS_EQUAL)) {
+    while (
+      this.match(
+        TokenType.GREATER_THAN,
+        TokenType.GREATER_EQUAL,
+        TokenType.LESS_THAN,
+        TokenType.LESS_EQUAL
+      )
+    ) {
       const operator = this.previous().value;
       const right = this.term();
       expr = {
@@ -607,7 +634,7 @@ export class AhkParser {
         line: expr.line,
         column: expr.column,
         start: expr.start,
-        end: right.end
+        end: right.end,
       };
     }
 
@@ -628,7 +655,7 @@ export class AhkParser {
         line: expr.line,
         column: expr.column,
         start: expr.start,
-        end: right.end
+        end: right.end,
       };
     }
 
@@ -649,7 +676,7 @@ export class AhkParser {
         line: expr.line,
         column: expr.column,
         start: expr.start,
-        end: right.end
+        end: right.end,
       };
     }
 
@@ -667,7 +694,7 @@ export class AhkParser {
         line: this.previous().line,
         column: this.previous().column,
         start: this.previous().start,
-        end: right.end
+        end: right.end,
       };
     }
 
@@ -692,12 +719,12 @@ export class AhkParser {
             line: name.line,
             column: name.column,
             start: name.start,
-            end: name.end
+            end: name.end,
           },
           line: expr.line,
           column: expr.column,
           start: expr.start,
-          end: name.end
+          end: name.end,
         } as Expression;
       } else {
         break;
@@ -709,7 +736,7 @@ export class AhkParser {
 
   private finishCall(callee: Expression): CallExpression {
     const args: Expression[] = [];
-    
+
     if (!this.check(TokenType.RPAREN)) {
       do {
         args.push(this.expression());
@@ -725,7 +752,7 @@ export class AhkParser {
       line: callee.line,
       column: callee.column,
       start: callee.start,
-      end: paren.end
+      end: paren.end,
     };
   }
 
@@ -739,7 +766,7 @@ export class AhkParser {
         line: token.line,
         column: token.column,
         start: token.start,
-        end: token.end
+        end: token.end,
       };
     }
 
@@ -752,7 +779,7 @@ export class AhkParser {
         line: token.line,
         column: token.column,
         start: token.start,
-        end: token.end
+        end: token.end,
       };
     }
 
@@ -765,7 +792,7 @@ export class AhkParser {
         line: token.line,
         column: token.column,
         start: token.start,
-        end: token.end
+        end: token.end,
       };
     }
 
@@ -778,7 +805,7 @@ export class AhkParser {
         line: token.line,
         column: token.column,
         start: token.start,
-        end: token.end
+        end: token.end,
       };
     }
 
@@ -791,7 +818,7 @@ export class AhkParser {
         line: token.line,
         column: token.column,
         start: token.start,
-        end: token.end
+        end: token.end,
       };
     }
 
@@ -803,7 +830,7 @@ export class AhkParser {
         line: token.line,
         column: token.column,
         start: token.start,
-        end: token.end
+        end: token.end,
       };
     }
 
@@ -814,12 +841,7 @@ export class AhkParser {
     }
 
     const token = this.peek();
-    throw new ParseError(
-      `Unexpected token: ${token.value}`,
-      token.line,
-      token.column,
-      token.start
-    );
+    throw new ParseError(`Unexpected token: ${token.value}`, token.line, token.column, token.start);
   }
 
   // Helper methods
@@ -831,9 +853,9 @@ export class AhkParser {
   }
 
   private checkBlockEnd(): boolean {
-    return this.check(TokenType.RBRACE) || 
-           this.check(TokenType.ELSE) || 
-           this.check(TokenType.ELSEIF);
+    return (
+      this.check(TokenType.RBRACE) || this.check(TokenType.ELSE) || this.check(TokenType.ELSEIF)
+    );
   }
 
   private consumeNewlines(): void {

@@ -5,14 +5,18 @@ import { McpToolResponse } from '../types/mcp-types.js';
 import { safeParse } from '../core/validation-middleware.js';
 
 export const MemoryContextArgsSchema = z.object({
-  memory_type: z.enum(['common-issues', 'all']).default('all').describe('Which memory to retrieve: common-issues or all'),
+  memory_type: z
+    .enum(['common-issues', 'all'])
+    .default('all')
+    .describe('Which memory to retrieve: common-issues or all'),
 });
 
 export type MemoryContextArgs = z.infer<typeof MemoryContextArgsSchema>;
 
 export const memoryContextDefinition = {
   name: 'AHK_Memory_Context',
-  description: 'Retrieve AutoHotkey v2 memory context for common issues, patterns, and best practices. These memories help identify and prevent typical AHK v2 problems.',
+  description:
+    'Retrieve AutoHotkey v2 memory context for common issues, patterns, and best practices. These memories help identify and prevent typical AHK v2 problems.',
   inputSchema: {
     type: 'object',
     properties: {
@@ -60,14 +64,13 @@ export class AhkMemoryContextTool {
       }
 
       // Define available memory files
-      const memoryFiles = [
-        { name: 'common-issues', file: 'ahk-v2-common-issues.md' },
-      ];
+      const memoryFiles = [{ name: 'common-issues', file: 'ahk-v2-common-issues.md' }];
 
       // Filter based on memory_type
-      const filesToLoad = validatedArgs.memory_type === 'all'
-        ? memoryFiles
-        : memoryFiles.filter(m => m.name === validatedArgs.memory_type);
+      const filesToLoad =
+        validatedArgs.memory_type === 'all'
+          ? memoryFiles
+          : memoryFiles.filter(m => m.name === validatedArgs.memory_type);
 
       // Load memory files
       for (const memFile of filesToLoad) {

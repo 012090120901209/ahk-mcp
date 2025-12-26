@@ -6,7 +6,11 @@
  */
 
 import path from 'path';
-import type { LibraryMetadata, DependencyResolution, VersionConflict } from '../types/library-types.js';
+import type {
+  LibraryMetadata,
+  DependencyResolution,
+  VersionConflict,
+} from '../types/library-types.js';
 
 /**
  * Resolves library dependencies and import order
@@ -219,7 +223,7 @@ export class DependencyResolver {
       importOrder,
       cycles,
       missing,
-      conflicts
+      conflicts,
     };
   }
 

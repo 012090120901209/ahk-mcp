@@ -29,12 +29,7 @@ class ToolAnalytics {
   /**
    * Record a tool call
    */
-  recordCall(
-    toolName: string,
-    success: boolean,
-    duration: number,
-    error?: Error
-  ): void {
+  recordCall(toolName: string, success: boolean, duration: number, error?: Error): void {
     // Capture current trace context
     const context = tracer.getCurrentContext();
 
@@ -59,7 +54,9 @@ class ToolAnalytics {
     // Update stats
     this.updateStats(metric);
 
-    logger.debug(`Tool analytics recorded: ${toolName} (${success ? 'success' : 'failure'}) in ${duration}ms`);
+    logger.debug(
+      `Tool analytics recorded: ${toolName} (${success ? 'success' : 'failure'}) in ${duration}ms`
+    );
   }
 
   /**
@@ -75,7 +72,7 @@ class ToolAnalytics {
         failedCalls: 0,
         averageDuration: 0,
         lastUsed: 0,
-        commonErrors: new Map()
+        commonErrors: new Map(),
       };
       this.stats.set(metric.toolName, stats);
     }
@@ -91,7 +88,8 @@ class ToolAnalytics {
       }
     }
 
-    stats.averageDuration = (stats.averageDuration * (stats.totalCalls - 1) + metric.duration) / stats.totalCalls;
+    stats.averageDuration =
+      (stats.averageDuration * (stats.totalCalls - 1) + metric.duration) / stats.totalCalls;
     stats.lastUsed = metric.timestamp;
   }
 
@@ -138,12 +136,15 @@ class ToolAnalytics {
   /**
    * Get tools with high failure rates
    */
-  getProblematicTools(minCalls: number = 5, minFailureRate: number = 30): Array<{ toolName: string; failureRate: number }> {
+  getProblematicTools(
+    minCalls: number = 5,
+    minFailureRate: number = 30
+  ): Array<{ toolName: string; failureRate: number }> {
     return Array.from(this.stats.entries())
       .filter(([_, stats]) => stats.totalCalls >= minCalls)
       .map(([toolName, stats]) => ({
         toolName,
-        failureRate: (stats.failedCalls / stats.totalCalls) * 100
+        failureRate: (stats.failedCalls / stats.totalCalls) * 100,
       }))
       .filter(item => item.failureRate >= minFailureRate)
       .sort((a, b) => b.failureRate - a.failureRate);
@@ -171,7 +172,7 @@ class ToolAnalytics {
       overallSuccessRate: totalCalls > 0 ? (totalSuccessful / totalCalls) * 100 : 0,
       averageDuration: this.metrics.length > 0 ? totalDuration / this.metrics.length : 0,
       topTools: this.getMostUsedTools(5),
-      problematicTools: this.getProblematicTools(5, 30)
+      problematicTools: this.getProblematicTools(5, 30),
     };
   }
 
@@ -179,15 +180,19 @@ class ToolAnalytics {
    * Export metrics for analysis
    */
   exportMetrics(): string {
-    return JSON.stringify({
-      metrics: this.metrics,
-      stats: Array.from(this.stats.entries()).map(([toolName, stats]) => ({
-        toolName,
-        ...stats,
-        commonErrors: Array.from(stats.commonErrors.entries())
-      })),
-      summary: this.getSummary()
-    }, null, 2);
+    return JSON.stringify(
+      {
+        metrics: this.metrics,
+        stats: Array.from(this.stats.entries()).map(([toolName, stats]) => ({
+          toolName,
+          ...stats,
+          commonErrors: Array.from(stats.commonErrors.entries()),
+        })),
+        summary: this.getSummary(),
+      },
+      null,
+      2
+    );
   }
 
   /**

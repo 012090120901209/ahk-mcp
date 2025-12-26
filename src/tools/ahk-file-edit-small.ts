@@ -9,6 +9,8 @@ import { AhkRunTool } from './ahk-run-script.js';
 import { resolveWithTracking, addDeprecationWarning } from '../core/parameter-aliases.js';
 import { createPreviewGenerator } from '../utils/dry-run-preview.js';
 import { safeParse } from '../core/validation-middleware.js';
+import { setLastEditedFile } from '../core/config.js';
+import { openFileInVSCode } from '../utils/vscode-open.js';
 
 type EditAction =
   | 'replace_regex'
@@ -19,29 +21,67 @@ type EditAction =
   | 'line_insert_after';
 
 export const AhkSmallEditArgsSchema = z.object({
-  action: z.enum([
-    'replace_regex',
-    'replace_literal',
-    'line_replace',
-    'line_delete',
-    'line_insert_before',
-    'line_insert_after',
-  ] as const).default('replace_literal'),
-  file: z.string().optional().describe('Target file to edit. Defaults to the active file when omitted.'),
+  action: z
+    .enum([
+      'replace_regex',
+      'replace_literal',
+      'line_replace',
+      'line_delete',
+      'line_insert_before',
+      'line_insert_after',
+    ] as const)
+    .default('replace_literal'),
+  file: z
+    .string()
+    .optional()
+    .describe('Target file to edit. Defaults to the active file when omitted.'),
   files: z.array(z.string()).optional().describe('Apply the same edit to multiple files.'),
-  find: z.string().optional().describe('Text (or pattern) to search for when using replace actions.'),
+  find: z
+    .string()
+    .optional()
+    .describe('Text (or pattern) to search for when using replace actions.'),
   replace: z.string().optional().describe('Replacement text for replace actions.'),
-  regexFlags: z.string().optional().describe('Additional RegExp flags (e.g. "i" for case-insensitive).'),
-  all: z.boolean().optional().default(true).describe('Replace all occurrences (false = first only).'),
+  regexFlags: z
+    .string()
+    .optional()
+    .describe('Additional RegExp flags (e.g. "i" for case-insensitive).'),
+  all: z
+    .boolean()
+    .optional()
+    .default(true)
+    .describe('Replace all occurrences (false = first only).'),
   line: z.number().optional().describe('Line number for line-based actions (1-based).'),
   startLine: z.number().optional().describe('Start line for range operations (1-based).'),
-  endLine: z.number().optional().describe('End line for range delete or replace (1-based, inclusive).'),
+  endLine: z
+    .number()
+    .optional()
+    .describe('End line for range delete or replace (1-based, inclusive).'),
   content: z.string().optional().describe('⚠️ Deprecated alias for newContent.'),
-  newContent: z.string().optional().describe('Primary text to insert or replace during line actions. Example: "MsgBox(\\"Updated\\")".'),
-  preview: z.boolean().optional().default(false).describe('Show a unified diff instead of writing to disk.'),
-  dryRun: z.boolean().optional().default(false).describe('Preview changes without modifying file. Shows affected lines and change count.'),
-  backup: z.boolean().optional().default(false).describe('Create a .bak backup before writing changes.'),
-  runAfter: z.boolean().optional().describe('Run the script after edits complete (single file only).'),
+  newContent: z
+    .string()
+    .optional()
+    .describe(
+      'Primary text to insert or replace during line actions. Example: "MsgBox(\\"Updated\\")".'
+    ),
+  preview: z
+    .boolean()
+    .optional()
+    .default(false)
+    .describe('Show a unified diff instead of writing to disk.'),
+  dryRun: z
+    .boolean()
+    .optional()
+    .default(false)
+    .describe('Preview changes without modifying file. Shows affected lines and change count.'),
+  backup: z
+    .boolean()
+    .optional()
+    .default(false)
+    .describe('Create a .bak backup before writing changes.'),
+  runAfter: z
+    .boolean()
+    .optional()
+    .describe('Run the script after edits complete (single file only).'),
 });
 
 export const ahkSmallEditToolDefinition = {
@@ -142,11 +182,12 @@ export const ahkSmallEditToolDefinition = {
       },
       content: {
         type: 'string',
-        description: '⚠️ Deprecated alias for newContent. Prefer newContent for new text.'
+        description: '⚠️ Deprecated alias for newContent. Prefer newContent for new text.',
       },
       newContent: {
         type: 'string',
-        description: 'Content to insert or replace when using line actions. Example: "MsgBox(\\"Done\\")".'
+        description:
+          'Content to insert or replace when using line actions. Example: "MsgBox(\\"Done\\")".',
       },
       preview: {
         type: 'boolean',
@@ -156,7 +197,8 @@ export const ahkSmallEditToolDefinition = {
       dryRun: {
         type: 'boolean',
         default: false,
-        description: 'Preview changes without modifying file. Shows affected lines and change count.',
+        description:
+          'Preview changes without modifying file. Shows affected lines and change count.',
       },
       backup: {
         type: 'boolean',
@@ -207,157 +249,220 @@ export class AhkSmallEditTool {
       }
 
       const args = parsed.data;
-      const runAfter = typeof args.runAfter === 'boolean' ? args.runAfter : toolSettings.shouldAutoRunAfterEdit();
-      
+      const runAfter =
+        typeof args.runAfter === 'boolean' ? args.runAfter : toolSettings.shouldAutoRunAfterEdit();
+
       // Apply parameter aliases for backward compatibility
       const { content: resolvedContent, deprecatedUsed } = resolveWithTracking(args);
-      
+
       // Use resolved content if available, otherwise use the original content parameter
       const normalizedArgs = {
         ...args,
-        content: resolvedContent !== undefined ? resolvedContent : args.content
+        content: resolvedContent !== undefined ? resolvedContent : args.content,
       };
-      
+
       const targets = await this.resolveTargets(normalizedArgs.file, normalizedArgs.files);
 
       if (targets.length === 0) {
         throw new Error('No target file provided and no active file set.');
       }
 
-     const reports: string[] = [];
-     const runMessages: string[] = [];
-     let runHandled = false;
+      const reports: string[] = [];
+      const runMessages: string[] = [];
+      let runHandled = false;
+      let lastEditedPath: string | undefined;
 
-     for (const target of targets) {
-       const absolutePath = path.resolve(target);
+      for (const target of targets) {
+        const absolutePath = path.resolve(target);
 
-       let original: string;
-       try {
-         original = await fs.readFile(absolutePath, 'utf-8');
-       } catch (error) {
-         reports.push(`[ERROR] ${absolutePath}: failed to read file (${error instanceof Error ? error.message : String(error)})`);
-         continue;
-       }
+        let original: string;
+        try {
+          original = await fs.readFile(absolutePath, 'utf-8');
+        } catch (error) {
+          reports.push(
+            `[ERROR] ${absolutePath}: failed to read file (${error instanceof Error ? error.message : String(error)})`
+          );
+          continue;
+        }
 
-       const result = this.applyEdit(absolutePath, original, normalizedArgs);
+        const result = this.applyEdit(absolutePath, original, normalizedArgs);
 
-       if (!result.changed) {
-         reports.push(`[WARN] ${absolutePath}: no changes detected`);
-         continue;
-       }
+        if (!result.changed) {
+          reports.push(`[WARN] ${absolutePath}: no changes detected`);
+          continue;
+        }
 
-       if (args.preview || args.dryRun) {
-         if (args.dryRun) {
-           // Use the new dry-run preview generator
-           const previewGenerator = createPreviewGenerator();
-           let preview;
-           
-           switch (args.action as EditAction) {
-             case 'replace_regex':
-               if (!args.find) {
-                 reports.push(`[ERROR] ${absolutePath}: Missing "find" pattern for regex replace.`);
-                 continue;
-               }
-               preview = previewGenerator.generatePreview(original, args.find, args.replace ?? '', {
-                 regex: true,
-                 all: args.all
-               });
-               break;
-             case 'replace_literal':
-               if (!args.find) {
-                 reports.push(`[ERROR] ${absolutePath}: Missing "find" text for literal replace.`);
-                 continue;
-               }
-               preview = previewGenerator.generatePreview(original, args.find, args.replace ?? '', {
-                 regex: false,
-                 all: args.all
-               });
-               break;
-             case 'line_replace': {
-               if (!normalizedArgs.content) {
-                 reports.push(`[ERROR] ${absolutePath}: Line replace requires "content" to provide new text.`);
-                 continue;
-               }
-               const { line, startLine, endLine } = normalizedArgs;
-               const start = this.resolveLineIndex(line ?? startLine, original.split('\n').length);
-               const end = this.resolveLineIndex(endLine ?? line ?? startLine, original.split('\n').length);
-               preview = previewGenerator.generateDeletePreview(original, start + 1, end + 1);
-               // For replace, we need to show both delete and insert
-               const lines = original.split('\n');
-               const beforeContent = lines.slice(0, start).join('\n');
-               const afterContent = lines.slice(end + 1).join('\n');
-               const insertPreview = previewGenerator.generateInsertPreview(
-                 beforeContent + '\n' + afterContent,
-                 start + 1,
-                 normalizedArgs.content
-               );
-               // Combine the previews
-               preview.summary.totalChanges += insertPreview.summary.totalChanges;
-               if (preview.summary.characterDiff && insertPreview.summary.characterDiff) {
-                 preview.summary.characterDiff.added += insertPreview.summary.characterDiff.added;
-               }
-               preview.samples.push(...insertPreview.samples);
-               break;
-             }
-             case 'line_delete': {
-               const { line: delLine, startLine: delStartLine, endLine: delEndLine } = normalizedArgs;
-               const delStart = this.resolveLineIndex(delLine ?? delStartLine, original.split('\n').length);
-               const delEnd = this.resolveLineIndex(delEndLine ?? delLine ?? delStartLine, original.split('\n').length);
-               preview = previewGenerator.generateDeletePreview(original, delStart + 1, delEnd + 1);
-               break;
-             }
-             case 'line_insert_before':
-             case 'line_insert_after': {
-               if (!normalizedArgs.line) {
-                 reports.push(`[ERROR] ${absolutePath}: Line insert actions require a specific line number.`);
-                 continue;
-               }
-               if (!normalizedArgs.content) {
-                 reports.push(`[ERROR] ${absolutePath}: Line insert actions require "content".`);
-                 continue;
-               }
-               const insertLine = args.action === 'line_insert_before' ? normalizedArgs.line : normalizedArgs.line + 1;
-               preview = previewGenerator.generateInsertPreview(original, insertLine, normalizedArgs.content);
-               break;
-             }
-             default:
-               reports.push(`[ERROR] ${absolutePath}: Unsupported action: ${args.action}`);
-               continue;
-           }
-           
-           reports.push(`[DRY RUN] ${absolutePath}: Preview:\n${previewGenerator.formatPreview(preview, absolutePath)}`);
-         } else {
-           // Use the existing preview functionality
-           const diff = createUnifiedDiff(original, result.newContent, `${absolutePath}.orig`, `${absolutePath}.preview`);
-           reports.push(`[PREVIEW] ${absolutePath}: diff:\n${diff}`);
-         }
-         
-         if (runAfter && !runHandled) {
-           runMessages.push('[WARN] Run skipped during preview/dry-run mode. Apply changes without preview to execute the script.');
-           runHandled = true;
-         }
-         continue;
-       }
+        if (args.preview || args.dryRun) {
+          if (args.dryRun) {
+            // Use the new dry-run preview generator
+            const previewGenerator = createPreviewGenerator();
+            let preview;
+
+            switch (args.action as EditAction) {
+              case 'replace_regex':
+                if (!args.find) {
+                  reports.push(
+                    `[ERROR] ${absolutePath}: Missing "find" pattern for regex replace.`
+                  );
+                  continue;
+                }
+                preview = previewGenerator.generatePreview(
+                  original,
+                  args.find,
+                  args.replace ?? '',
+                  {
+                    regex: true,
+                    all: args.all,
+                  }
+                );
+                break;
+              case 'replace_literal':
+                if (!args.find) {
+                  reports.push(`[ERROR] ${absolutePath}: Missing "find" text for literal replace.`);
+                  continue;
+                }
+                preview = previewGenerator.generatePreview(
+                  original,
+                  args.find,
+                  args.replace ?? '',
+                  {
+                    regex: false,
+                    all: args.all,
+                  }
+                );
+                break;
+              case 'line_replace': {
+                if (!normalizedArgs.content) {
+                  reports.push(
+                    `[ERROR] ${absolutePath}: Line replace requires "content" to provide new text.`
+                  );
+                  continue;
+                }
+                const { line, startLine, endLine } = normalizedArgs;
+                const start = this.resolveLineIndex(line ?? startLine, original.split('\n').length);
+                const end = this.resolveLineIndex(
+                  endLine ?? line ?? startLine,
+                  original.split('\n').length
+                );
+                preview = previewGenerator.generateDeletePreview(original, start + 1, end + 1);
+                // For replace, we need to show both delete and insert
+                const lines = original.split('\n');
+                const beforeContent = lines.slice(0, start).join('\n');
+                const afterContent = lines.slice(end + 1).join('\n');
+                const insertPreview = previewGenerator.generateInsertPreview(
+                  beforeContent + '\n' + afterContent,
+                  start + 1,
+                  normalizedArgs.content
+                );
+                // Combine the previews
+                preview.summary.totalChanges += insertPreview.summary.totalChanges;
+                if (preview.summary.characterDiff && insertPreview.summary.characterDiff) {
+                  preview.summary.characterDiff.added += insertPreview.summary.characterDiff.added;
+                }
+                preview.samples.push(...insertPreview.samples);
+                break;
+              }
+              case 'line_delete': {
+                const {
+                  line: delLine,
+                  startLine: delStartLine,
+                  endLine: delEndLine,
+                } = normalizedArgs;
+                const delStart = this.resolveLineIndex(
+                  delLine ?? delStartLine,
+                  original.split('\n').length
+                );
+                const delEnd = this.resolveLineIndex(
+                  delEndLine ?? delLine ?? delStartLine,
+                  original.split('\n').length
+                );
+                preview = previewGenerator.generateDeletePreview(
+                  original,
+                  delStart + 1,
+                  delEnd + 1
+                );
+                break;
+              }
+              case 'line_insert_before':
+              case 'line_insert_after': {
+                if (!normalizedArgs.line) {
+                  reports.push(
+                    `[ERROR] ${absolutePath}: Line insert actions require a specific line number.`
+                  );
+                  continue;
+                }
+                if (!normalizedArgs.content) {
+                  reports.push(`[ERROR] ${absolutePath}: Line insert actions require "content".`);
+                  continue;
+                }
+                const insertLine =
+                  args.action === 'line_insert_before'
+                    ? normalizedArgs.line
+                    : normalizedArgs.line + 1;
+                preview = previewGenerator.generateInsertPreview(
+                  original,
+                  insertLine,
+                  normalizedArgs.content
+                );
+                break;
+              }
+              default:
+                reports.push(`[ERROR] ${absolutePath}: Unsupported action: ${args.action}`);
+                continue;
+            }
+
+            reports.push(
+              `[DRY RUN] ${absolutePath}: Preview:\n${previewGenerator.formatPreview(preview, absolutePath)}`
+            );
+          } else {
+            // Use the existing preview functionality
+            const diff = createUnifiedDiff(
+              original,
+              result.newContent,
+              `${absolutePath}.orig`,
+              `${absolutePath}.preview`
+            );
+            reports.push(`[PREVIEW] ${absolutePath}: diff:\n${diff}`);
+          }
+
+          if (runAfter && !runHandled) {
+            runMessages.push(
+              '[WARN] Run skipped during preview/dry-run mode. Apply changes without preview to execute the script.'
+            );
+            runHandled = true;
+          }
+          continue;
+        }
 
         if (args.backup) {
           try {
             await fs.writeFile(`${absolutePath}.bak`, original, 'utf-8');
           } catch (error) {
-            reports.push(`[ERROR] ${absolutePath}: failed to write backup (${error instanceof Error ? error.message : String(error)})`);
+            reports.push(
+              `[ERROR] ${absolutePath}: failed to write backup (${error instanceof Error ? error.message : String(error)})`
+            );
             continue;
           }
         }
 
         try {
           await fs.writeFile(absolutePath, result.newContent, 'utf-8');
-          reports.push(`[OK] ${absolutePath}: ${result.summary}${args.backup ? ' (backup saved as .bak)' : ''}`);
+          reports.push(
+            `[OK] ${absolutePath}: ${result.summary}${args.backup ? ' (backup saved as .bak)' : ''}`
+          );
+          setLastEditedFile(absolutePath);
+          lastEditedPath = absolutePath;
 
           if (runAfter && !runHandled) {
             if (targets.length > 1) {
-              runMessages.push('[WARN] Run skipped because multiple files were edited. Run the primary script manually if needed.');
+              runMessages.push(
+                '[WARN] Run skipped because multiple files were edited. Run the primary script manually if needed.'
+              );
               runHandled = true;
             } else if (!absolutePath.toLowerCase().endsWith('.ahk')) {
-              runMessages.push(`[WARN] Run skipped because ${absolutePath} is not an AutoHotkey script.`);
+              runMessages.push(
+                `[WARN] Run skipped because ${absolutePath} is not an AutoHotkey script.`
+              );
               runHandled = true;
             } else {
               try {
@@ -382,13 +487,17 @@ export class AhkSmallEditTool {
                   runMessages.push('Script executed successfully.');
                 }
               } catch (runError) {
-                runMessages.push(`[WARN] Failed to run script: ${runError instanceof Error ? runError.message : String(runError)}`);
+                runMessages.push(
+                  `[WARN] Failed to run script: ${runError instanceof Error ? runError.message : String(runError)}`
+                );
               }
               runHandled = true;
             }
           }
         } catch (error) {
-          reports.push(`[ERROR] ${absolutePath}: failed to write changes (${error instanceof Error ? error.message : String(error)})`);
+          reports.push(
+            `[ERROR] ${absolutePath}: failed to write changes (${error instanceof Error ? error.message : String(error)})`
+          );
         }
       }
 
@@ -396,23 +505,36 @@ export class AhkSmallEditTool {
         reports.push(runMessages.join('\n'));
       }
 
+      if (lastEditedPath && toolSettings.shouldOpenInVsCodeAfterEdit()) {
+        try {
+          await openFileInVSCode(lastEditedPath, { reuseWindow: true });
+          reports.push(`[VS Code] Opened ${path.basename(lastEditedPath)}`);
+        } catch (openError) {
+          reports.push(
+            `[VS Code] Failed to open file: ${openError instanceof Error ? openError.message : String(openError)}`
+          );
+        }
+      }
+
       let response: ToolResponse = {
         content: [{ type: 'text' as const, text: reports.join('\n\n') }],
       };
-      
+
       // Add deprecation warnings if any
       if (deprecatedUsed.length > 0) {
         response = addDeprecationWarning(response, deprecatedUsed);
       }
-      
+
       return response;
     } catch (error) {
       logger.error('Error in AHK_File_Edit_Small tool:', error);
       return {
-        content: [{
-          type: 'text',
-          text: `Error: ${error instanceof Error ? error.message : String(error)}`,
-        }]
+        content: [
+          {
+            type: 'text',
+            text: `Error: ${error instanceof Error ? error.message : String(error)}`,
+          },
+        ],
       };
     }
   }
@@ -499,7 +621,8 @@ export class AhkSmallEditTool {
       return { changed: false, newContent: content, summary: 'text not found' };
     }
 
-    const newContent = content.slice(0, index) + replacement + content.slice(index + args.find.length);
+    const newContent =
+      content.slice(0, index) + replacement + content.slice(index + args.find.length);
     return {
       changed: true,
       newContent,
@@ -597,7 +720,9 @@ export class AhkSmallEditTool {
     }
 
     if (line > totalLines) {
-      throw new Error(`Line ${line} is out of range (file has ${totalLines} line${totalLines === 1 ? '' : 's'}).`);
+      throw new Error(
+        `Line ${line} is out of range (file has ${totalLines} line${totalLines === 1 ? '' : 's'}).`
+      );
     }
 
     return line - 1;
@@ -610,5 +735,4 @@ export class AhkSmallEditTool {
     }
     return flags;
   }
-
 }

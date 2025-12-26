@@ -7,4 +7,4 @@ export * from './lsp-types.js';
 export * from './ahk-ast.js';
 
 // Tool argument types
-export * from './tool-types.js'; 
+export * from './tool-types.js';

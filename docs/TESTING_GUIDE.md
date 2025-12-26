@@ -1,6 +1,7 @@
 # Testing Guide - AutoHotkey MCP Server
 
-Complete testing strategy, execution patterns, and coverage analysis for the AutoHotkey v2 MCP server.
+Complete testing strategy, execution patterns, and coverage analysis for the
+AutoHotkey v2 MCP server.
 
 ---
 
@@ -64,10 +65,10 @@ npm run test:all
 
 ### Test File Locations
 
-| Type | Directory | Config | Coverage |
-|------|-----------|--------|----------|
-| Unit | `Tests/unit/` | `jest.config.js` | ✅ Measured |
-| Contract | `Tests/contract/` | `jest.config.js` | ✅ Measured |
+| Type        | Directory            | Config                       | Coverage    |
+| ----------- | -------------------- | ---------------------------- | ----------- |
+| Unit        | `Tests/unit/`        | `jest.config.js`             | ✅ Measured |
+| Contract    | `Tests/contract/`    | `jest.config.js`             | ✅ Measured |
 | Integration | `Tests/integration/` | `jest.config.integration.js` | ⏭️ Separate |
 
 ---
@@ -77,6 +78,7 @@ npm run test:all
 ### Local Development
 
 **Unit Tests (Default)**
+
 ```bash
 npm test
 # Runs: Tests/unit/*.test.ts + Tests/contract/*.test.ts
@@ -85,6 +87,7 @@ npm test
 ```
 
 **Watch Mode** (Auto-rerun on file changes)
+
 ```bash
 npm run test:unit:watch
 # Useful for TDD workflow
@@ -92,6 +95,7 @@ npm run test:unit:watch
 ```
 
 **Integration Tests** (Spawns actual server)
+
 ```bash
 npm run test:integration
 # Runs: Tests/integration/*.test.ts
@@ -100,6 +104,7 @@ npm run test:integration
 ```
 
 **All Tests** (Sequential execution)
+
 ```bash
 npm run test:all
 # Runs: unit + contract + integration
@@ -114,18 +119,21 @@ npm run test:all
 ### Viewing Coverage
 
 **Generate Coverage Report**
+
 ```bash
 npm run test:coverage
 # Generates: coverage/index.html and other formats
 ```
 
 **Open in Browser**
+
 ```bash
 npm run test:coverage:report
 # Opens coverage/index.html in default browser
 ```
 
 **Coverage Metrics**
+
 ```
 Metrics Provided:
 ✓ Lines: % of statement lines executed
@@ -137,18 +145,21 @@ Metrics Provided:
 ### Coverage Thresholds
 
 **Global Thresholds** (all files)
+
 - Lines: 80%
 - Functions: 80%
 - Statements: 80%
 - Branches: 75%
 
-**Core Module Thresholds** (src/core/*)
+**Core Module Thresholds** (src/core/\*)
+
 - Lines: 85%
 - Functions: 85%
 - Statements: 85%
 - Branches: 85%
 
-**Tool Module Thresholds** (src/tools/*)
+**Tool Module Thresholds** (src/tools/\*)
+
 - Lines: 75%
 - Functions: 75%
 - Statements: 75%
@@ -157,32 +168,38 @@ Metrics Provided:
 ### Understanding Coverage Reports
 
 **Lines** - Which source code lines were executed
+
 ```typescript
 function add(a, b) {
-  return a + b;    // ✅ Covered if function called
+  return a + b; // ✅ Covered if function called
 }
 ```
 
 **Functions** - Which functions were called
+
 ```typescript
 export function add(a, b) { ... }    // ✅ Covered if called
 export function subtract(a, b) { }   // ❌ Not covered if not called
 ```
 
 **Branches** - Which code paths were executed
+
 ```typescript
-if (condition) {          // ✅ Covered if branch taken
-  doSomething();          // ✅ Covered if branch taken
-} else {                  // ❌ Not covered if branch never taken
+if (condition) {
+  // ✅ Covered if branch taken
+  doSomething(); // ✅ Covered if branch taken
+} else {
+  // ❌ Not covered if branch never taken
   doOtherThing();
 }
 ```
 
 **Statements** - Individual statements executed
+
 ```typescript
-const x = 5;              // ✅ Covered
-const y = add(x, 3);     // ✅ Covered if add() is called
-console.log(y);          // ❌ Not covered if line never runs
+const x = 5; // ✅ Covered
+const y = add(x, 3); // ✅ Covered if add() is called
+console.log(y); // ❌ Not covered if line never runs
 ```
 
 ---
@@ -194,18 +211,21 @@ console.log(y);          // ❌ Not covered if line never runs
 Tests for individual functions and utilities in isolation.
 
 **Examples:**
+
 - `orchestration-context.test.ts` - Cache management
 - `parameter-aliases.test.ts` - Parameter handling
 - `debug-formatter.test.ts` - Output formatting
 - `library-scanner.test.ts` - File system operations
 
 **Characteristics:**
+
 - ✅ Fast (< 1 second each)
 - ✅ Isolated (no external dependencies)
 - ✅ Deterministic (same result every time)
 - ✅ Focus on single responsibility
 
 **Example Test:**
+
 ```typescript
 describe('library-scanner', () => {
   it('should find .ahk files in directory', () => {
@@ -220,17 +240,20 @@ describe('library-scanner', () => {
 Tests that verify API compatibility and backward compatibility.
 
 **Examples:**
+
 - `parameter-aliases.test.ts` - Verify deprecated → new parameters
 - `dry-run-output.test.ts` - Verify output format hasn't changed
 - `debug-output.test.ts` - Verify debug format compatibility
 
 **Characteristics:**
+
 - ✅ Test behavior, not implementation
 - ✅ Catch breaking changes early
 - ✅ Document expected contracts
 - ✅ Cross-version compatibility
 
 **Example Test:**
+
 ```typescript
 describe('parameter-aliases contract', () => {
   it('should accept deprecated "content" parameter', () => {
@@ -241,7 +264,7 @@ describe('parameter-aliases contract', () => {
   it('should prefer "newContent" over "content"', () => {
     const result = tool.execute({
       content: 'old',
-      newContent: 'new'
+      newContent: 'new',
     });
     expect(result.text).toBe('new');
   });
@@ -253,17 +276,20 @@ describe('parameter-aliases contract', () => {
 Tests that verify end-to-end workflows with actual server.
 
 **Examples:**
+
 - `edit-dryrun.test.ts` - Dry-run workflow
 - `orchestrator-debug.test.ts` - Debug mode operation
 - `backward-compat.test.ts` - Full backward compatibility
 
 **Characteristics:**
+
 - ⏱️ Slower (30-120 seconds each)
 - 🖥️ Uses real server instance
 - 📁 Real file I/O
 - 🔄 Complex workflows
 
 **Example Test:**
+
 ```typescript
 describe('edit dry-run workflow', () => {
   let serverUrl: string;
@@ -286,9 +312,9 @@ describe('edit dry-run workflow', () => {
           action: 'replace',
           search: 'old',
           newContent: 'new',
-          dryRun: true
-        }
-      }
+          dryRun: true,
+        },
+      },
     });
 
     expect(response.content[0].text).toContain('DRY RUN');
@@ -301,6 +327,7 @@ describe('edit dry-run workflow', () => {
 ## Writing Tests
 
 ### Test File Naming
+
 ```
 ✅ Correct:
 - utility.test.ts
@@ -314,6 +341,7 @@ describe('edit dry-run workflow', () => {
 ```
 
 ### Test Naming Convention
+
 ```typescript
 describe('ComponentName', () => {
   // ✅ Clear what's being tested
@@ -344,6 +372,7 @@ it('should do something', () => {
 ### Async Test Patterns
 
 **Promise-based**
+
 ```typescript
 it('should load file async', async () => {
   const content = await loadFile('test.txt');
@@ -352,8 +381,9 @@ it('should load file async', async () => {
 ```
 
 **Callback-based**
+
 ```typescript
-it('should process callback', (done) => {
+it('should process callback', done => {
   processData((error, result) => {
     expect(error).toBeNull();
     done();
@@ -364,6 +394,7 @@ it('should process callback', (done) => {
 ### Error Testing
 
 **Testing Errors**
+
 ```typescript
 it('should throw for invalid input', () => {
   expect(() => {
@@ -372,14 +403,14 @@ it('should throw for invalid input', () => {
 });
 
 it('should reject promise on error', async () => {
-  await expect(loadFile('missing.txt'))
-    .rejects.toThrow('File not found');
+  await expect(loadFile('missing.txt')).rejects.toThrow('File not found');
 });
 ```
 
 ### Mock Testing
 
 **Using Test Utilities**
+
 ```typescript
 it('should format tool response', () => {
   const response = createMockToolResponse('Success');
@@ -395,12 +426,14 @@ it('should format tool response', () => {
 ### ✅ Do
 
 **Write Descriptive Test Names**
+
 ```typescript
 ✅ it('should return 42 when given input 21 and multiplier 2')
 ❌ it('works')
 ```
 
 **Test Both Happy Path and Error Cases**
+
 ```typescript
 describe('validate', () => {
   it('should accept valid input', () => { ... });
@@ -410,13 +443,18 @@ describe('validate', () => {
 ```
 
 **Use Fixtures for Test Data**
+
 ```typescript
-const testFile = createMockAHKFile(`
+const testFile = createMockAHKFile(
+  `
   MsgBox("Test")
-`, 'test.ahk');
+`,
+  'test.ahk'
+);
 ```
 
 **Clean Up Resources**
+
 ```typescript
 afterEach(async () => {
   await cleanupTempDir(tempDir);
@@ -424,6 +462,7 @@ afterEach(async () => {
 ```
 
 **Test Behavior, Not Implementation**
+
 ```typescript
 ✅ expect(cache.get(key)).toBe(value);
 ❌ expect(cache.internalMap.has(key)).toBe(true);
@@ -432,24 +471,28 @@ afterEach(async () => {
 ### ❌ Don't
 
 **Hardcode Paths**
+
 ```typescript
 ❌ fs.readFileSync('/Users/john/project/test.ahk')
 ✅ fs.readFileSync(path.join(tempDir, 'test.ahk'))
 ```
 
 **Create Test Dependencies**
+
 ```typescript
 ❌ test1 creates file that test2 reads
 ✅ Each test creates its own fixtures
 ```
 
 **Skip Error Cases**
+
 ```typescript
 ❌ Only test happy path
 ✅ Test errors, null, undefined, empty, etc.
 ```
 
 **Mix Unit and Integration**
+
 ```typescript
 ❌ Unit test that spawns server
 ✅ Unit tests isolated, integration tests with server
@@ -460,11 +503,13 @@ afterEach(async () => {
 ## Coverage Improvement Workflow
 
 ### 1. Generate Coverage Report
+
 ```bash
 npm run test:coverage
 ```
 
 ### 2. Identify Uncovered Code
+
 ```
 Open coverage/index.html
 Look for red (uncovered) sections
@@ -472,6 +517,7 @@ Note the line numbers and file
 ```
 
 ### 3. Add Tests
+
 ```typescript
 it('should handle missing value', () => {
   const result = process(undefined);
@@ -480,12 +526,14 @@ it('should handle missing value', () => {
 ```
 
 ### 4. Verify Coverage Improved
+
 ```bash
 npm run test:coverage
 # Should see improvement in coverage/index.html
 ```
 
 ### 5. Focus on High-Impact Areas
+
 ```
 Priority 1: Branch coverage (if/else, switch)
 Priority 2: Error paths (try/catch)
@@ -498,6 +546,7 @@ Priority 4: Happy path (basic functionality)
 ## Troubleshooting
 
 ### Tests Timeout
+
 ```bash
 # Increase timeout for slow tests
 jest.setTimeout(60000); // 60 seconds
@@ -510,6 +559,7 @@ await waitForServer(url, 30000);
 ```
 
 ### Coverage Not Improving
+
 ```bash
 # Run coverage again (might be caching)
 npm run test:coverage
@@ -522,6 +572,7 @@ npm run test:coverage -- --collectCoverageFrom="src/specific-file.ts"
 ```
 
 ### Integration Tests Fail
+
 ```bash
 # Check server logs
 npm run debug:start
@@ -535,6 +586,7 @@ lsof -i :3000            # macOS/Linux
 ```
 
 ### Memory Issues
+
 ```bash
 # Run tests sequentially
 npm test -- --maxWorkers=1
@@ -553,6 +605,7 @@ npm test -- --clearCache
 ### GitHub Actions Workflow
 
 **Test Stages:**
+
 1. Lint (ESLint, TypeScript)
 2. Security (npm audit)
 3. Build (TypeScript compilation)
@@ -562,6 +615,7 @@ npm test -- --clearCache
 7. Performance (Main branch only)
 
 **View Results:**
+
 - GitHub Actions tab → test run → test results
 - Codecov.io → coverage trends
 
@@ -570,14 +624,16 @@ npm test -- --clearCache
 ## Performance Considerations
 
 ### Test Execution Time
-| Tier | Duration | Best For |
-|------|----------|----------|
-| Unit | 5-15s | Local development |
-| Unit + Coverage | 10-20s | Pre-commit |
-| Integration | 30-60s | Pre-push |
-| All | 1-2m | CI/CD pipelines |
+
+| Tier            | Duration | Best For          |
+| --------------- | -------- | ----------------- |
+| Unit            | 5-15s    | Local development |
+| Unit + Coverage | 10-20s   | Pre-commit        |
+| Integration     | 30-60s   | Pre-push          |
+| All             | 1-2m     | CI/CD pipelines   |
 
 ### Optimization Tips
+
 ```bash
 # Run only changed tests
 npm run test:unit:watch
@@ -600,6 +656,7 @@ npm test -- --maxWorkers=1
 ## Examples & Templates
 
 ### Full Test Example
+
 ```typescript
 import { describe, it, expect, beforeEach, afterEach } from '@jest/globals';
 import { createTempDir, cleanupTempDir } from '@tests/setup';
@@ -625,8 +682,7 @@ describe('AHK File Parser', () => {
 
     it('should throw for invalid syntax', () => {
       const code = 'MsgBox("unclosed';
-      expect(() => parseAHKFile(code))
-        .toThrow('Unexpected EOF');
+      expect(() => parseAHKFile(code)).toThrow('Unexpected EOF');
     });
 
     it('should handle complex nested structures', () => {
@@ -649,13 +705,14 @@ describe('AHK File Parser', () => {
 ```
 
 ### Integration Test Example
+
 ```typescript
 import { describe, it, expect, beforeAll, afterAll } from '@jest/globals';
 import {
   startTestServer,
   stopTestServer,
   makeMCPRequest,
-  waitForServer
+  waitForServer,
 } from '@tests/setup';
 
 describe('AHK_File_Edit Tool', () => {
@@ -682,9 +739,9 @@ describe('AHK_File_Edit Tool', () => {
           action: 'replace',
           search: 'old_text',
           newContent: 'new_text',
-          filePath: '/path/to/file.ahk'
-        }
-      }
+          filePath: '/path/to/file.ahk',
+        },
+      },
     });
 
     expect(response.result?.isError).toBe(false);
@@ -697,11 +754,13 @@ describe('AHK_File_Edit Tool', () => {
 ## Resources
 
 ### Official Documentation
+
 - Jest: https://jestjs.io/
 - TypeScript Jest: https://kulshekhar.github.io/ts-jest/
 - Testing Library: https://testing-library.com/
 
 ### Project Files
+
 - Unit Tests: `Tests/unit/`
 - Integration Tests: `Tests/integration/`
 - Test Setup: `Tests/setup/`
@@ -709,6 +768,7 @@ describe('AHK_File_Edit Tool', () => {
 - Test Scripts: `package.json` (test-related)
 
 ### Key Files
+
 - `Tests/README.md` - Test structure details
 - `jest.config.js` - Unit/contract test configuration
 - `jest.config.integration.js` - Integration test configuration
@@ -719,12 +779,14 @@ describe('AHK_File_Edit Tool', () => {
 ## Summary
 
 **Testing Philosophy:**
+
 - Fast feedback loops (unit tests)
 - Comprehensive coverage (80%+ target)
 - Real-world verification (integration tests)
 - Backward compatibility (contract tests)
 
 **Key Commands:**
+
 ```bash
 npm test              # Run unit + contract tests
 npm run test:unit:watch   # Development watch mode
@@ -732,14 +794,10 @@ npm run test:integration  # End-to-end tests
 npm run test:coverage     # Full coverage analysis
 ```
 
-**Success Metrics:**
-✅ 80%+ code coverage
-✅ All tests pass locally before commit
-✅ All tests pass in CI/CD
-✅ No performance regressions
-✅ Backward compatibility maintained
+**Success Metrics:** ✅ 80%+ code coverage ✅ All tests pass locally before
+commit ✅ All tests pass in CI/CD ✅ No performance regressions ✅ Backward
+compatibility maintained
 
 ---
 
-**Last Updated:** October 16, 2025
-**Status:** Production Ready ✅
+**Last Updated:** October 16, 2025 **Status:** Production Ready ✅

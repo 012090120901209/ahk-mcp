@@ -16,7 +16,7 @@ import { safeParse } from '../core/validation-middleware.js';
  */
 export const AHK_Library_List_ArgsSchema = z.object({
   query: z.string().optional().describe('Search query (searches name, description, category)'),
-  category: z.string().optional().describe('Filter by category name')
+  category: z.string().optional().describe('Filter by category name'),
 });
 
 export type AHK_Library_List_Args = z.infer<typeof AHK_Library_List_ArgsSchema>;
@@ -26,23 +26,24 @@ export type AHK_Library_List_Args = z.infer<typeof AHK_Library_List_ArgsSchema>;
  */
 export const AHK_Library_List_Definition = {
   name: 'AHK_Library_List',
-  description: 'List and search AutoHotkey libraries in the catalog. ' +
-               'Search by query string or filter by category. ' +
-               'Returns library names with descriptions.',
+  description:
+    'List and search AutoHotkey libraries in the catalog. ' +
+    'Search by query string or filter by category. ' +
+    'Returns library names with descriptions.',
   inputSchema: {
     type: 'object',
     properties: {
       query: {
         type: 'string',
-        description: 'Search query (searches name, description, category)'
+        description: 'Search query (searches name, description, category)',
       },
       category: {
         type: 'string',
-        description: 'Filter by category name'
-      }
+        description: 'Filter by category name',
+      },
     },
-    additionalProperties: false
-  }
+    additionalProperties: false,
+  },
 };
 
 /**
@@ -153,10 +154,14 @@ export async function handleAHK_Library_List(
           stats.push(`${lib.classes.length} ${lib.classes.length === 1 ? 'class' : 'classes'}`);
         }
         if (lib.functions.length > 0) {
-          stats.push(`${lib.functions.length} ${lib.functions.length === 1 ? 'function' : 'functions'}`);
+          stats.push(
+            `${lib.functions.length} ${lib.functions.length === 1 ? 'function' : 'functions'}`
+          );
         }
         if (lib.dependencies.length > 0) {
-          stats.push(`${lib.dependencies.length} ${lib.dependencies.length === 1 ? 'dependency' : 'dependencies'}`);
+          stats.push(
+            `${lib.dependencies.length} ${lib.dependencies.length === 1 ? 'dependency' : 'dependencies'}`
+          );
         }
 
         if (stats.length > 0) {
@@ -196,9 +201,9 @@ export async function handleAHK_Library_List(
       content: [
         {
           type: 'text',
-          text: lines.join('\n')
-        }
-      ]
+          text: lines.join('\n'),
+        },
+      ],
     };
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
@@ -207,9 +212,9 @@ export async function handleAHK_Library_List(
       content: [
         {
           type: 'text',
-          text: `Error listing libraries: ${errorMessage}`
-        }
-      ]
+          text: `Error listing libraries: ${errorMessage}`,
+        },
+      ],
     };
   }
 }
@@ -221,7 +226,7 @@ export async function handleAHK_Library_List(
  */
 export async function refreshCatalog(scriptsDir: string): Promise<void> {
   const catalog = getCatalog();
-  await catalog.refresh(scriptsDir);
+  await catalog.refresh([scriptsDir]);
 }
 
 /**

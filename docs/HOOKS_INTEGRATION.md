@@ -2,7 +2,8 @@
 
 ## Overview
 
-The ahk-mcp server integrates with Claude Code's hook system to provide automatic script execution after file edits.
+The ahk-mcp server integrates with Claude Code's hook system to provide
+automatic script execution after file edits.
 
 ## Architecture
 
@@ -52,6 +53,7 @@ Located in `.claude/settings.json`:
 **Purpose**: Automatically execute AHK scripts after successful edits
 
 **Features**:
+
 - Validates edit success from tool response
 - Extracts file paths using regex patterns
 - Respects `runAfter` parameter
@@ -62,18 +64,19 @@ Located in `.claude/settings.json`:
 
 ### Environment Variables
 
-| Variable | Type | Default | Description |
-|----------|------|---------|-------------|
-| `AHK_AUTO_RUN` | boolean | `true` | Master enable/disable switch |
-| `AHK_RUN_TIMEOUT` | integer | `30` | Script execution timeout (seconds) |
-| `AHK_HOOK_VERBOSE` | boolean | `false` | Enable detailed logging |
-| `CLAUDE_PROJECT_DIR` | string | (auto) | Project root (set by Claude Code) |
+| Variable             | Type    | Default | Description                        |
+| -------------------- | ------- | ------- | ---------------------------------- |
+| `AHK_AUTO_RUN`       | boolean | `true`  | Master enable/disable switch       |
+| `AHK_RUN_TIMEOUT`    | integer | `30`    | Script execution timeout (seconds) |
+| `AHK_HOOK_VERBOSE`   | boolean | `false` | Enable detailed logging            |
+| `CLAUDE_PROJECT_DIR` | string  | (auto)  | Project root (set by Claude Code)  |
 
 ## Integration with MCP Tools
 
 ### Supported Tools
 
 Hook responds to these MCP tools:
+
 - `AHK_File_Edit` - Primary edit tool
 - `AHK_File_Edit_Advanced` - Orchestrator tool
 - `AHK_File_Edit_Small` - Small file editor
@@ -82,6 +85,7 @@ Hook responds to these MCP tools:
 ### Tool Parameter: runAfter
 
 Tools support `runAfter` boolean parameter:
+
 - `runAfter: true` → MCP tool runs script directly (hook skips)
 - `runAfter: false` → Hook skips execution
 - `runAfter: undefined` → Hook provides auto-run
@@ -89,6 +93,7 @@ Tools support `runAfter` boolean parameter:
 ### MCP Setting: autoRunAfterEdit
 
 Server setting in `tool-settings.json`:
+
 ```json
 {
   "autoRunAfterEdit": false
@@ -122,16 +127,19 @@ Execute Script
 ### Response Formats
 
 **Success (Exit 0)**:
+
 ```
 ✅ Auto-run: Script executed successfully in 0.32s
 ```
 
 **Skip (Exit 0)**:
+
 ```
 (Silent - no output)
 ```
 
 **Error (Exit 1)**:
+
 ```
 ⚠️ Auto-run failed: <reason>
 ```
@@ -139,16 +147,19 @@ Execute Script
 ## Error Handling
 
 ### AutoHotkey Not Found
+
 ```python
 return False, "AutoHotkey v2 not found. Please install from https://autohotkey.com"
 ```
 
 ### Script Execution Failed
+
 ```python
 return False, f"Script failed with exit code {result.returncode}: {stderr}"
 ```
 
 ### Timeout
+
 ```python
 return False, f"Script execution timed out after {config.timeout}s"
 ```
@@ -156,17 +167,20 @@ return False, f"Script execution timed out after {config.timeout}s"
 ## Performance Considerations
 
 ### Hook Overhead
+
 - Invocation: ~10-50ms
 - Path detection: ~50-100ms
 - Decision logic: ~5-10ms
 - Total: ~65-160ms
 
 ### Script Execution
+
 - Simple scripts: 0.1-1s
 - GUI scripts: 0.5-5s
 - Complex scripts: Varies
 
 ### Optimization
+
 - Early exit on non-matching events
 - Cached AutoHotkey path detection
 - Lazy regex compilation
@@ -174,16 +188,19 @@ return False, f"Script execution timed out after {config.timeout}s"
 ## Security
 
 ### Path Validation
+
 - Scripts must exist on filesystem
 - Must have `.ahk` extension
 - Paths extracted from trusted tool responses
 
 ### Command Injection Protection
+
 - No user input in shell commands
 - All arguments properly escaped
 - Subprocess with explicit argument lists
 
 ### Resource Limits
+
 - Configurable timeout prevents runaway scripts
 - Process cleanup on timeout
 - No persistent state between invocations
@@ -191,12 +208,14 @@ return False, f"Script execution timed out after {config.timeout}s"
 ## Debugging
 
 ### Enable Verbose Mode
+
 ```bash
 export AHK_HOOK_VERBOSE=true
 claude --debug
 ```
 
 ### Verbose Output Example
+
 ```
 [VERBOSE] Hook event: PostToolUse
 [VERBOSE] Tool name: mcp__ahk_mcp__AHK_File_Edit
@@ -208,6 +227,7 @@ claude --debug
 ```
 
 ### Testing
+
 ```bash
 # Test hook logic
 bash .claude/hooks/test-hook.sh
@@ -224,6 +244,7 @@ python3 -m py_compile .claude/hooks/run-after-edit.py
 ### Custom AutoHotkey Paths
 
 Edit `run-after-edit.py`:
+
 ```python
 self.ahk_paths = [
     r'C:\Custom\Path\AutoHotkey.exe',
@@ -235,6 +256,7 @@ self.ahk_paths = [
 ### Custom Execution Logic
 
 Modify `should_run_script()`:
+
 ```python
 def should_run_script(...) -> tuple[bool, str]:
     # Add custom conditions
@@ -246,6 +268,7 @@ def should_run_script(...) -> tuple[bool, str]:
 ### Custom Output Format
 
 Modify `run_autohotkey_script()`:
+
 ```python
 if result.returncode == 0:
     return True, f"Custom success message: {elapsed:.2f}s"
@@ -254,6 +277,7 @@ if result.returncode == 0:
 ## Future Enhancements
 
 ### Potential Features
+
 - [ ] Pre-execution validation hooks
 - [ ] Post-execution result parsing
 - [ ] Script output capture and display
@@ -263,6 +287,7 @@ if result.returncode == 0:
 - [ ] Integration with AHK_Diagnostics for pre-run validation
 
 ### Considered but Deferred
+
 - Input parameter passing (complex, edge cases)
 - Persistent script instances (resource management issues)
 - Automatic error correction (too opinionated)

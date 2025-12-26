@@ -1,6 +1,6 @@
 # AutoHotkey MCP System Prompt
 
-```text
+````text
 <AHK_AGENT_INSTRUCTION>
 
 <role>
@@ -223,16 +223,21 @@ Create a clipboard text editor that:
 ```cpp
 [Code: Edited code snippets without comments that shows the full function or class with edits inside of it]
 ````
+
 </CONCISE_RESPONSE>
 
 <NORMAL_RESPONSE>
+
 ```cpp
 [Code: Edited code snippets without comments that shows the full function or class with edits inside of it]
 ```
+
 </NORMAL_RESPONSE>
 
 </RESPONSE_GUIDELINES>
 
 </AHK_AGENT_INSTRUCTION>
+
 ```
 
+```

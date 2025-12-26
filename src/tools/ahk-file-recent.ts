@@ -19,12 +19,24 @@ List the most recent AutoHotkey scripts from configured directories. Supports ov
   inputSchema: {
     type: 'object',
     properties: {
-      scriptDir: { type: 'string', description: 'Override for A_ScriptDir/root scanning directory' },
-      extraDirs: { type: 'array', items: { type: 'string' }, description: 'Additional directories to scan' },
+      scriptDir: {
+        type: 'string',
+        description: 'Override for A_ScriptDir/root scanning directory',
+      },
+      extraDirs: {
+        type: 'array',
+        items: { type: 'string' },
+        description: 'Additional directories to scan',
+      },
       limit: { type: 'number', minimum: 1, maximum: 50, default: 10 },
-      patterns: { type: 'array', items: { type: 'string' }, default: ['*.ahk'], description: 'File glob patterns to include' }
-    }
-  }
+      patterns: {
+        type: 'array',
+        items: { type: 'string' },
+        default: ['*.ahk'],
+        description: 'File glob patterns to include',
+      },
+    },
+  },
 };
 
 interface FoundScript {
@@ -40,7 +52,7 @@ function enumerateFiles(dir: string, patterns: string[]): FoundScript[] {
     for (const ent of entries) {
       if (!ent.isFile()) continue;
       const fileName = ent.name;
-      const matches = patterns.some((pat) => matchesPattern(fileName, pat));
+      const matches = patterns.some(pat => matchesPattern(fileName, pat));
       if (!matches) continue;
       const fullPath = path.join(dir, fileName);
       try {
@@ -93,7 +105,7 @@ export class AhkRecentTool {
         if (unique.length >= limit) break;
       }
 
-      const items = unique.map((f) => ({
+      const items = unique.map(f => ({
         path: f.fullPath,
         lastWriteTime: new Date(f.lastWriteTime).toISOString(),
       }));
@@ -108,22 +120,29 @@ export class AhkRecentTool {
           },
           {
             type: 'text',
-            text: JSON.stringify({
-              directoriesSearched: searchDirs,
-              patterns,
-              limit,
-              items,
-            }, null, 2),
+            text: JSON.stringify(
+              {
+                directoriesSearched: searchDirs,
+                patterns,
+                limit,
+                items,
+              },
+              null,
+              2
+            ),
           },
         ],
       };
     } catch (error) {
       logger.error('Error in AHK_File_Recent tool:', error);
       return {
-        content: [{ type: 'text', text: `Error: ${error instanceof Error ? error.message : String(error)}` }]
+        content: [
+          {
+            type: 'text',
+            text: `Error: ${error instanceof Error ? error.message : String(error)}`,
+          },
+        ],
       };
     }
   }
 }
-
-

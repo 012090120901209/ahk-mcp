@@ -1,9 +1,7 @@
-<ahk_components>
-<MODULE_INSTRUCTIONS>
-This is an additional module to reference for the AHK coding agent called Module_DataStructures.md - Consume this knowledge a nd reference when needed. 
-</MODULE_INSTRUCTIONS>
-  <gui_framework>
-    <GUI_CLASS_TEMPLATE>
+<ahk_components> <MODULE_INSTRUCTIONS> This is an additional module to reference
+for the AHK coding agent called Module_DataStructures.md - Consume this
+knowledge a nd reference when needed. </MODULE_INSTRUCTIONS> <gui_framework>
+<GUI_CLASS_TEMPLATE>
 
 ```cpp
 GuiClassName() ; Always initiate the class like this, do not to `:= GuiClassName()`
@@ -33,17 +31,14 @@ class GuiClassName {
     }
 }
 ```
+
 </GUI_CLASS_TEMPLATE>
 
-<code_structure>
-#Requires directives and other headers
-Class initialization at the top
-Class definition with proper OOP syntax
-Clear organization of methods and properties
-Explicit variable declarations
-Avoid complicated object literals
-Proper variable scope
-Do not name local variables with the same name as a global variable
+<code_structure> #Requires directives and other headers Class initialization at
+the top Class definition with proper OOP syntax Clear organization of methods
+and properties Explicit variable declarations Avoid complicated object literals
+Proper variable scope Do not name local variables with the same name as a global
+variable
 
 <REQUIRED_HEADERS>
 
@@ -53,8 +48,7 @@ Do not name local variables with the same name as a global variable
 #Include Lib/All.ahk  ; Only when needed
 ```
 
-</REQUIRED_HEADERS>
-</CODE_STRUCTURE>
+</REQUIRED_HEADERS> </CODE_STRUCTURE>
 
 <BASE_CLASS_TEMPLATE>
 
@@ -78,29 +72,18 @@ class ClassName {
 
 </BASE_CLASS_TEMPLATE>
 
-<CODE_VALIDATION>
-Variables declared
-OOP patterns used
-Naming conventions
-Pure v2 syntax
-Ensure all functions have the appropriate amount of parameters
-Prefer using class made GUIs instead of functions
-Do not use "new" before the class name before initializing it
-Initialize the class at the top of the script before the class code
+<CODE_VALIDATION> Variables declared OOP patterns used Naming conventions Pure
+v2 syntax Ensure all functions have the appropriate amount of parameters Prefer
+using class made GUIs instead of functions Do not use "new" before the class
+name before initializing it Initialize the class at the top of the script before
+the class code
 
-<CRITICAL_WARNING>
-NEVER use object literal syntax (e.g., {key: value}) for data storage.
-ALWAYS use Map() for key-value data structures:
-Curly braces ARE still used for:
-Function/method bodies
-Class definitions
-Control flow blocks
-</CRITICAL_WARNING>
-</CODE_VALIDATION>
-</CORE_REQUIREMENTS>
+<CRITICAL_WARNING> NEVER use object literal syntax (e.g., {key: value}) for data
+storage. ALWAYS use Map() for key-value data structures: Curly braces ARE still
+used for: Function/method bodies Class definitions Control flow blocks
+</CRITICAL_WARNING> </CODE_VALIDATION> </CORE_REQUIREMENTS>
 
 <CODE_QUALITY_STANDARDS>
-
 
 <REQUIRED_CODE_HEADER>
 
@@ -112,19 +95,21 @@ Control flow blocks
 
 </REQUIRED_CODE_HEADER>
 
-<AHK_DATA_STRUCTURES>
-<DATA_STORAGE_REQUIREMENTS>
-Data Storage Rules:
+<AHK_DATA_STRUCTURES> <DATA_STORAGE_REQUIREMENTS> Data Storage Rules:
+
 - ALWAYS use Map() for key-value data structures
 - NEVER use object literals (curly brace syntax) for data storage
 - Store configuration data in static class Maps
 - Use proper class structures for grouping related functionality
 
 <PROPER_DATA_STORAGE>
+
 ```cpp
 config := Map("width", 800, "height", 600)
 ```
+
 OR
+
 ```cpp
 class Config {
     static Settings := Map(
@@ -133,29 +118,30 @@ class Config {
     )
 }
 ```
+
 </PROPER_DATA_STORAGE>
 
 <IMPROPER_DATA_STORAGE>
+
 ```cpp
 config := {key: "value", error: "message"}` ; CORRECT
 ```
+
 OR
+
 ```cpp
 config := {width: 800, height: 600} ; INCORRECT - will cause issues
 ```
-</IMPROPER_DATA_STORAGE>
-<DATA_STORAGE_REQUIREMENTS>
 
-<ERROR_HANDLING_RULES>
-NEVER use throw Error() or throw ValueError() directly
-AVOID "throw" if you can
-ALWAYS encapsulate error messages in static class Maps
-Use proper error handling classes and methods
-Do not write empty catch statements like " catch {}"
+</IMPROPER_DATA_STORAGE> <DATA_STORAGE_REQUIREMENTS>
 
-The assistant should validate all generated code against these rules before providing it to the user.
-</ERROR_HANDLING_RULES>
-</AHK_DATA_STRUCTURES>
+<ERROR_HANDLING_RULES> NEVER use throw Error() or throw ValueError() directly
+AVOID "throw" if you can ALWAYS encapsulate error messages in static class Maps
+Use proper error handling classes and methods Do not write empty catch
+statements like " catch {}"
+
+The assistant should validate all generated code against these rules before
+providing it to the user. </ERROR_HANDLING_RULES> </AHK_DATA_STRUCTURES>
 
 <STANDARD_CLASS_EXAMPLE>
 
@@ -240,52 +226,32 @@ class SimpleGui {
 }
 ```
 
-</GUI_CLASS_EXAMPLE>
-</CODE_QUALITY_STANDARDS>
+</GUI_CLASS_EXAMPLE> </CODE_QUALITY_STANDARDS>
 
-<GUI_REQUIREMENTS>
-Reference "Module_GUI.md" for additional reference
+<GUI_REQUIREMENTS> Reference "Module_GUI.md" for additional reference
 
-Use modern GUI object-oriented syntax like the GUI class example
-Implement proper event handling like in the GUI output example
-Only cleanup and optimize the code if you know something is unneeded when asking for help with an error
+Use modern GUI object-oriented syntax like the GUI class example Implement
+proper event handling like in the GUI output example Only cleanup and optimize
+the code if you know something is unneeded when asking for help with an error
 
 <GUI_CONTROLS_STANDARDS>
 
-
-<GUI_CONTROL_METHODS>
-AddText()
-AddEdit()
-AddButton()
-AddListBox()
-AddDropDownList()
-AddComboBox()
-AddListView()
-AddTreeView()
-AddPicture()
-AddGroupBox()
-AddTab3()
-AddProgress()
-AddUpDown()
-AddHotkey()
-AddMonthCal()
-AddLink()
-</GUI_CONTROL_METHODS>
+<GUI_CONTROL_METHODS> AddText() AddEdit() AddButton() AddListBox()
+AddDropDownList() AddComboBox() AddListView() AddTreeView() AddPicture()
+AddGroupBox() AddTab3() AddProgress() AddUpDown() AddHotkey() AddMonthCal()
+AddLink() </GUI_CONTROL_METHODS>
 
 Layout is controlled through options like:
 
 - x, y coordinates
 - w, h dimensions
-- x+n, y+n relative positioning
-</GUI_REQUIREMENTS>
+- x+n, y+n relative positioning </GUI_REQUIREMENTS>
 
 <OBJECT_ORIENTED_PRINCICPLES>
 
-<MAP_REQUIREMENTS>
-Grabbing Keys and Values from a Map
+<MAP_REQUIREMENTS> Grabbing Keys and Values from a Map
 
-Example 1:
-<MAP_EXAMPLE>
+Example 1: <MAP_EXAMPLE>
 
 ```cpp
 ; 1. Define method to get keys from Map
@@ -310,13 +276,9 @@ get_keys(mp) {
 
 </MAP_EXAMPLE>
 
-Key points:
-| Rule | Why |
-|------|-----|
-| Match variable names | Prevents "might not have member" errors |
-| Check IsSet() | Validates key existence |
-| Type check keys | Ensures valid key types |
-</MAP_REQUIREMENTS>
+Key points: | Rule | Why | |------|-----| | Match variable names | Prevents
+"might not have member" errors | | Check IsSet() | Validates key existence | |
+Type check keys | Ensures valid key types | </MAP_REQUIREMENTS>
 
 </OBJECT_ORIENTED_PRINCICPLES>
 
@@ -324,15 +286,17 @@ Key points:
 
 ### Basic Usage:
 
-Creating, accessing, and modifying properties and methods.
-Syntax examples for arrays, maps, and object literals.
-Demonstrate how to create and manipulate these objects using concise code snippets.
+Creating, accessing, and modifying properties and methods. Syntax examples for
+arrays, maps, and object literals. Demonstrate how to create and manipulate
+these objects using concise code snippets.
 
 <AHK_DATA_STRUCTURES>
 
-  <MULTI-DIMENSIONAL_ARRAY>
-    <!-- An array whose elements can themselves be arrays -->
-    <MULTI-DIMENSIONAL_ARRAY_EXAMPLE>
+<MULTI-DIMENSIONAL_ARRAY>
+
+<!-- An array whose elements can themselves be arrays -->
+
+<MULTI-DIMENSIONAL_ARRAY_EXAMPLE>
 
 ```cpp
 app := MyApp()
@@ -354,14 +318,16 @@ class MyApp {
     }
 }
 ```
-    </MULTI-DIMENSIONAL_ARRAY_EXAMPLE>
-  </MULTI-DIMENSIONAL_ARRAY>
 
-  <PROPERTY_STORE>
-    <!-- Use Map() for named properties; avoid object literals for storage -->
-    <PROPERTY_STORE_EXAMPLE>
-      <!-- Incorrect: object literal -->
-      <INCORRECT>
+    </MULTI-DIMENSIONAL_ARRAY_EXAMPLE>
+
+</MULTI-DIMENSIONAL_ARRAY>
+
+<PROPERTY_STORE>
+
+<!-- Use Map() for named properties; avoid object literals for storage -->
+
+<PROPERTY_STORE_EXAMPLE> <!-- Incorrect: object literal --> <INCORRECT>
 
 ```cpp
 box := {
@@ -371,6 +337,7 @@ box := {
 }
 box.width += 1
 ```
+
       </INCORRECT>
 
       <CORRECT>
@@ -384,16 +351,15 @@ box := Map(
 box["width"] += 1
 MsgBox box["width"]
 ```
+
       </CORRECT>
     </PROPERTY_STORE_EXAMPLE>
-  </PROPERTY_STORE>
 
-  <ARRAY_REQUIREMENTS>
-    <!-- Ordered list, 1‑based index -->
-    <DESCRIPTION>
-      Arrays store lists of items. Index starts at 1.
-    </DESCRIPTION>
-    <EXAMPLE>
+</PROPERTY_STORE>
+
+<ARRAY_REQUIREMENTS> <!-- Ordered list, 1‑based index --> <DESCRIPTION> Arrays
+store lists of items. Index starts at 1. </DESCRIPTION> <EXAMPLE>
+
 ```cpp
 fruits := [
    "apple",
@@ -401,15 +367,13 @@ fruits := [
    "orange"
 ]
 ```
-    </EXAMPLE>
-  </ARRAY_REQUIREMENTS>
 
-  <MAP_REQUIREMENTS>
-    <!-- Unordered key→value pairs -->
-    <DESCRIPTION>
-      Maps store values under text or numeric keys.
-    </DESCRIPTION>
-    <EXAMPLE>
+    </EXAMPLE>
+
+</ARRAY_REQUIREMENTS>
+
+<MAP_REQUIREMENTS> <!-- Unordered key→value pairs --> <DESCRIPTION> Maps store
+values under text or numeric keys. </DESCRIPTION> <EXAMPLE>
 
 ```cpp
 fruits := Map(
@@ -418,20 +382,20 @@ fruits := Map(
    "orange", "A citrus fruit with tough rind."
 )
 ```
-    </EXAMPLE>
-  </MAP_REQUIREMENTS>
 
-  <FUNCTION_CLASS_SYSTEM>
-    <FUNCTION_CLASS_SYSTEM_EXPLANATION>
-      <!-- Core ideas about functions and classes -->
-      <![CDATA[
-– Functions can be traditional, arrow (=>), or stored in objects. 
-– Do not use arrow or dynamic functions when generating code.
-– Classes use __New() as constructor.
-– Static members belong to the class; instance members to each object.
-      ]]>
-    </FUNCTION_CLASS_SYSTEM_EXPLANATION>
-    <FUNCTION_CLASS_SYSTEM_EXAMPLE>
+    </EXAMPLE>
+
+</MAP_REQUIREMENTS>
+
+<FUNCTION_CLASS_SYSTEM> <FUNCTION_CLASS_SYSTEM_EXPLANATION>
+
+<!-- Core ideas about functions and classes --> <![CDATA[
+
+– Functions can be traditional, arrow (=>), or stored in objects. – Do not use
+arrow or dynamic functions when generating code. – Classes use \_\_New() as
+constructor. – Static members belong to the class; instance members to each
+object. ]]> </FUNCTION_CLASS_SYSTEM_EXPLANATION> <FUNCTION_CLASS_SYSTEM_EXAMPLE>
+
 ```cpp
 #Requires AutoHotkey v2
 #SingleInstance Force
@@ -463,6 +427,7 @@ class Example {
 
 instance := Example()
 ```
+
     </FUNCTION_CLASS_SYSTEM_EXAMPLE>
     <KEY_POINTS>
       <!-- Quick bullet list -->
@@ -470,50 +435,37 @@ instance := Example()
       – __New() runs once per instance.<br/>
       – Static vs instance: accessed by ClassName vs this.
     </KEY_POINTS>
-  </FUNCTION_CLASS_SYSTEM>
 
-  <METHOD_CONTEXT>
-    <!-- How methods work -->
-    <![CDATA[
+</FUNCTION_CLASS_SYSTEM>
+
+<METHOD_CONTEXT> <!-- How methods work --> <![CDATA[
 – Methods get `this` automatically.<br/>
 – `this` is the calling instance.<br/>
 – Static methods use the class name.
-    ]]>
-  </METHOD_CONTEXT>
+    ]]> </METHOD_CONTEXT>
 
-  <OBJECT_PROTOTYPING>
-    <!-- Inheritance via `base` -->
-    <DESCRIPTION>
-      Child classes inherit from Parent using `extends`.
-    </DESCRIPTION>
-    <EXAMPLE>
+<OBJECT_PROTOTYPING> <!-- Inheritance via `base` --> <DESCRIPTION> Child classes
+inherit from Parent using `extends`. </DESCRIPTION> <EXAMPLE>
+
 ```cpp
 class Child extends Parent {
     ; This links base internally
 }
 ```
-    </EXAMPLE>
-  </OBJECT_PROTOTYPING>
 
-  <METHOD_CALLS>
-    <!-- Rules for calling methods -->
-    <DESCRIPTION>
-      Always use dot syntax. Bind event handlers to `this`.
-    </DESCRIPTION>
-    <TYPES>
-      <INSTANCE>object.Method()</INSTANCE>
-      <STATIC>ClassName.Method()</STATIC>
-      <CHAINED>object.Method1().Method2()</CHAINED>
-      <EVENT>control.OnEvent("Event", this.Handler.Bind(this))</EVENT>
-    </TYPES>
-    <RULES>
-      <![CDATA[
+    </EXAMPLE>
+
+</OBJECT_PROTOTYPING>
+
+<METHOD_CALLS> <!-- Rules for calling methods --> <DESCRIPTION> Always use dot
+syntax. Bind event handlers to `this`. </DESCRIPTION> <TYPES>
+<INSTANCE>object.Method()</INSTANCE> <STATIC>ClassName.Method()</STATIC>
+<CHAINED>object.Method1().Method2()</CHAINED> <EVENT>control.OnEvent("Event",
+this.Handler.Bind(this))</EVENT> </TYPES> <RULES> <![CDATA[
 – Use .Bind(this) for event callbacks.<br/>
 – Avoid inline anonymous callbacks when reuse is needed.<br/>
 – Implement __Call() to catch undefined methods.
-      ]]>
-    </RULES>
-    <CODE_EXAMPLE>
+      ]]> </RULES> <CODE_EXAMPLE>
 
 ```cpp
 MenuSystem()
@@ -533,25 +485,22 @@ class MenuSystem {
     }
 }
 ```
+
     </CODE_EXAMPLE>
-  </METHOD_CALLS>
+
+</METHOD_CALLS>
 
 </AHK_DATA_STRUCTURES>
 
-<PATTERN_RULE>
-Always use dot syntax for methods: `object.Method()`
-Use for static methods: `Class.Method()`
-Always bind callbacks to this: `control.OnEvent(..., handler.Bind(this))`	
-Implement to catch typos or undefined methods: `__Call()`
-Do not use	Bracket notation or ()-less calls for methods
+<PATTERN_RULE> Always use dot syntax for methods: `object.Method()` Use for
+static methods: `Class.Method()` Always bind callbacks to this:
+`control.OnEvent(..., handler.Bind(this))` Implement to catch typos or undefined
+methods: `__Call()` Do not use Bracket notation or ()-less calls for methods
 </PATTERN_RULE>
 
-<LINTING_SAFETY>
-If a method is not defined, LLM should either:
-Suggest defining the method
-Or implement a __Call() block that logs the missing method
-Never assume a method exists unless declared
-Never bind an event handler without checking that the target method is implemented
-</LINTING_SAFETY>
+<LINTING_SAFETY> If a method is not defined, LLM should either: Suggest defining
+the method Or implement a \_\_Call() block that logs the missing method Never
+assume a method exists unless declared Never bind an event handler without
+checking that the target method is implemented </LINTING_SAFETY>
 
 </METHOD_CALLS>

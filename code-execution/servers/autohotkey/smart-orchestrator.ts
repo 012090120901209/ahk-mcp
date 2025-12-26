@@ -8,27 +8,7 @@ export const metadata = {
   name: 'AHK_Smart_Orchestrator',
   slug: 'smart-orchestrator',
   category: 'workflow',
-  description: `Intelligently orchestrates file detection, analysis, and viewing operations to minimize redundant tool calls. Automatically chains detect → analyze → read → edit workflow with smart caching. Reduces tool calls from 7-10 down to 3-4 by maintaining session context.
-
-Use this tool when you want to efficiently work with AHK files without manually coordinating multiple tools.
-
-**Examples:**
-• Basic: { intent: "view the _Dark class" } - Auto-detects file, analyzes, shows class code
-• Edit mode: { intent: "edit ColorCheckbox method in _Dark", operation: "edit" } - Finds method, prepares for editing
-• Debug orchestration: { intent: "analyze file structure", debugMode: true } - Shows decision log with cache hits, timing, and tool call reasons
-• Analyze only: { intent: "show all classes", operation: "analyze" } - Returns structure without reading code
-
-**Debug Mode Output:**
-When debugMode: true, you'll see:
-- [00:00.123] 🔧 Tool: AHK_File_Detect | Reason: No file path provided | Duration: 45ms
-- [00:00.234] 🔧 Tool: AHK_Analyze | Cache: HIT ⚡ | Duration: 2ms
-
-**What to Avoid:**
-- ❌ Vague intents (e.g., "fix something") → be specific: "edit NotifyUser() in alerts.ahk"
-- ❌ Ignoring cache when files change → set forceRefresh: true after external edits
-- ❌ Forgetting debugMode when troubleshooting orchestration decisions
-
-**See also:** AHK_File_Detect (manual detection), AHK_Analyze (manual analysis), AHK_File_View (manual reading)`,
+  description: `Orchestrates AHK file operations with smart caching. Chains detect→analyze→view/edit. Operations: view, edit, analyze.`,
   inputSchema: {
   "type": "object",
   "properties": {
@@ -51,18 +31,13 @@ When debugMode: true, you'll see:
         "edit",
         "analyze"
       ],
-      "description": "Operation type: view (read-only), edit (prepare for editing), analyze (structure only)",
-      "default": "view"
+      "default": "view",
+      "description": "Operation type: view (read-only), edit (prepare for editing), analyze (structure only)"
     },
     "forceRefresh": {
       "type": "boolean",
-      "description": "Force re-analysis even if cached data exists",
-      "default": false
-    },
-    "debugMode": {
-      "type": "boolean",
-      "description": "Show orchestration decision log with timing and cache info",
-      "default": false
+      "default": false,
+      "description": "Force re-analysis even if cached data exists"
     }
   },
   "required": [

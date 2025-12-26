@@ -42,7 +42,9 @@ export async function loadAhkData(): Promise<void> {
     const mode = (process.env.AHK_MCP_DATA_MODE || '').toLowerCase();
     const lightMode = mode === 'light' || process.env.AHK_MCP_LIGHT === '1';
     // Use stderr to avoid polluting MCP stdout channel
-    process.stderr.write(`[INFO] Loading AutoHotkey documentation data (mode=${lightMode ? 'light' : 'full'})...\n`);
+    process.stderr.write(
+      `[INFO] Loading AutoHotkey documentation data (mode=${lightMode ? 'light' : 'full'})...\n`
+    );
 
     // Always load the lightweight index first
     ahkIndex = (await dynamicJsonImport<AhkIndex>('ahk_index.json')) as AhkIndex;
@@ -75,7 +77,6 @@ export function getAhkDocumentationFull(): any {
   return ahkDocumentationFull;
 }
 
-
 /**
  * Search for functions by name or keyword
  */
@@ -83,9 +84,10 @@ export function searchFunctions(query: string): any[] {
   if (!ahkIndex) return [];
 
   const normalizedQuery = query.toLowerCase();
-  return ahkIndex.functions.filter(func =>
-    func.Name.toLowerCase().includes(normalizedQuery) ||
-    func.Description.toLowerCase().includes(normalizedQuery)
+  return ahkIndex.functions.filter(
+    func =>
+      func.Name.toLowerCase().includes(normalizedQuery) ||
+      func.Description.toLowerCase().includes(normalizedQuery)
   );
 }
 
@@ -96,9 +98,10 @@ export function searchClasses(query: string): any[] {
   if (!ahkIndex) return [];
 
   const normalizedQuery = query.toLowerCase();
-  return ahkIndex.classes.filter(cls =>
-    cls.Name.toLowerCase().includes(normalizedQuery) ||
-    cls.Description.toLowerCase().includes(normalizedQuery)
+  return ahkIndex.classes.filter(
+    cls =>
+      cls.Name.toLowerCase().includes(normalizedQuery) ||
+      cls.Description.toLowerCase().includes(normalizedQuery)
   );
 }
 
@@ -109,9 +112,10 @@ export function searchVariables(query: string): any[] {
   if (!ahkIndex) return [];
 
   const normalizedQuery = query.toLowerCase();
-  return ahkIndex.variables.filter(variable =>
-    variable.Name.toLowerCase().includes(normalizedQuery) ||
-    variable.Description.toLowerCase().includes(normalizedQuery)
+  return ahkIndex.variables.filter(
+    variable =>
+      variable.Name.toLowerCase().includes(normalizedQuery) ||
+      variable.Description.toLowerCase().includes(normalizedQuery)
   );
 }
 

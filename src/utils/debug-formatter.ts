@@ -34,7 +34,7 @@ export class DebugFormatter {
   addEntry(entry: Omit<DebugEntry, 'timestamp'>): void {
     this.entries.push({
       timestamp: Date.now(),
-      ...entry
+      ...entry,
     });
   }
 
@@ -87,7 +87,9 @@ export class DebugFormatter {
     if (output.length > this.maxLength) {
       const truncated = output.slice(0, this.maxLength);
       const remaining = output.length - this.maxLength;
-      output = truncated + `\n\n... (debug output truncated, ${remaining} chars hidden)\n\n` +
+      output =
+        truncated +
+        `\n\n... (debug output truncated, ${remaining} chars hidden)\n\n` +
         `ℹ️ Set debugMode to 'verbose' for full output`;
     }
 

@@ -8,61 +8,47 @@ export const metadata = {
   name: 'AHK_LSP',
   slug: 'lsp',
   category: 'lsp',
-  description: `AutoHotkey LSP-style Code Analysis & Auto-Fix
-
-Acts like a Language Server Protocol (LSP) for AutoHotkey v2:
-- Real-time code analysis and issue detection
-- Automatic safe fixes for common problems
-- Performance metrics and detailed diagnostics
-- Multiple analysis modes: check, fix, or analyze
-
-Perfect for post-write code improvement and quick issue checking.`,
+  description: `Provides LSP-like analysis and auto-fixing for AutoHotkey v2 code.`,
   inputSchema: {
   "type": "object",
   "properties": {
     "code": {
       "type": "string",
-      "description": "AutoHotkey v2 code to analyze"
+      "description": "The AutoHotkey v2 code to analyze or fix"
     },
     "mode": {
       "type": "string",
       "enum": [
-        "check",
-        "fix",
-        "analyze"
+        "analyze",
+        "fix"
       ],
-      "description": "Analysis mode - check: diagnostics only, fix: auto-fix issues, analyze: deep analysis",
-      "default": "check"
-    },
-    "autoFix": {
-      "type": "boolean",
-      "description": "Enable automatic fixing of safe issues",
-      "default": true
+      "description": "Mode of operation: analyze (default) or fix",
+      "default": "analyze"
     },
     "fixLevel": {
       "type": "string",
       "enum": [
         "safe",
-        "aggressive",
-        "style-only"
+        "style-only",
+        "aggressive"
       ],
-      "description": "Level of automatic fixes to apply",
+      "description": "Aggressiveness of fixes (only for mode=\"fix\")",
       "default": "safe"
     },
-    "enableClaudeStandards": {
+    "autoFix": {
       "type": "boolean",
-      "description": "Enable Claude coding standards validation",
-      "default": true
-    },
-    "showPerformance": {
-      "type": "boolean",
-      "description": "Include performance metrics in output",
+      "description": "Automatically apply fixes (legacy parameter, use mode=\"fix\")",
       "default": false
     },
     "returnFixedCode": {
       "type": "boolean",
-      "description": "Return the fixed code in output",
-      "default": true
+      "description": "Return the fixed code in the output (legacy parameter)",
+      "default": false
+    },
+    "showPerformance": {
+      "type": "boolean",
+      "description": "Show performance metrics (legacy parameter)",
+      "default": false
     }
   },
   "required": [

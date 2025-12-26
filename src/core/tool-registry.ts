@@ -48,10 +48,6 @@ export class ToolRegistry {
       { name: 'AHK_Config', instance: 'ahkConfigToolInstance' },
       { name: 'AHK_Active_File', instance: 'ahkActiveFileToolInstance' },
       { name: 'AHK_LSP', instance: 'ahkLspToolInstance' },
-      { name: 'AHK_LSP_Document_Symbols', instance: 'ahkLspDocumentSymbolsToolInstance' },
-      { name: 'AHK_LSP_Hover', instance: 'ahkLspHoverToolInstance' },
-      { name: 'AHK_LSP_Format', instance: 'ahkLspFormatToolInstance' },
-      { name: 'AHK_LSP_Completion', instance: 'ahkLspCompletionToolInstance' },
       { name: 'AHK_File_View', instance: 'ahkFileViewToolInstance' },
       { name: 'AHK_File_List', instance: 'ahkFileListToolInstance' },
       { name: 'AHK_File_Detect', instance: 'ahkAutoFileToolInstance' },
@@ -61,13 +57,15 @@ export class ToolRegistry {
       { name: 'AHK_File_Edit', instance: 'ahkEditToolInstance' },
       { name: 'AHK_File_Edit_Diff', instance: 'ahkDiffEditToolInstance' },
       { name: 'AHK_Settings', instance: 'ahkSettingsToolInstance' },
+      { name: 'AHK_VSCode_Open', instance: 'ahkVSCodeOpenToolInstance' },
       { name: 'AHK_File_Edit_Small', instance: 'ahkSmallEditToolInstance' },
       { name: 'AHK_Alpha', instance: 'ahkAlphaToolInstance' },
       { name: 'AHK_Smart_Orchestrator', instance: 'ahkSmartOrchestratorToolInstance' },
       { name: 'AHK_Analytics', instance: 'ahkAnalyticsToolInstance' },
       { name: 'AHK_Test_Interactive', instance: 'ahkTestInteractiveToolInstance' },
       { name: 'AHK_Trace_Viewer', instance: 'ahkTraceViewerToolInstance' },
-      { name: 'AHK_Lint', instance: 'ahkLintToolInstance' }
+      { name: 'AHK_Lint', instance: 'ahkLintToolInstance' },
+      { name: 'AHK_THQBY_Document_Symbols', instance: 'ahkThqbyDocumentSymbolsToolInstance' },
     ];
 
     coreTools.forEach(tool => {
@@ -78,22 +76,27 @@ export class ToolRegistry {
     });
 
     // Register library tools with custom handlers
-    this.toolHandlers.set('AHK_Library_List', async (args) => {
+    this.toolHandlers.set('AHK_Library_List', async args => {
       const { handleAHK_Library_List } = await import('../tools/ahk-library-list.js');
       const scriptsDir = getProjectRoot();
       return handleAHK_Library_List(args, scriptsDir);
     });
 
-    this.toolHandlers.set('AHK_Library_Info', async (args) => {
+    this.toolHandlers.set('AHK_Library_Info', async args => {
       const { handleAHK_Library_Info } = await import('../tools/ahk-library-info.js');
       const scriptsDir = getProjectRoot();
       return handleAHK_Library_Info(args, scriptsDir);
     });
 
-    this.toolHandlers.set('AHK_Library_Import', async (args) => {
+    this.toolHandlers.set('AHK_Library_Import', async args => {
       const { handleAHK_Library_Import } = await import('../tools/ahk-library-import.js');
       const scriptsDir = getProjectRoot();
       return handleAHK_Library_Import(args, scriptsDir);
+    });
+
+    this.toolHandlers.set('AHK_Library_Search', async args => {
+      const { AHK_Library_Search_Handler } = await import('../tools/ahk-library-search.js');
+      return AHK_Library_Search_Handler(args);
     });
   }
 
@@ -106,7 +109,7 @@ export class ToolRegistry {
       return this.serverInstance.ahkDocSearchToolInstance.execute({
         query: typedArgs.query as string,
         category: 'auto',
-        limit: 10
+        limit: 10,
       });
     });
 
@@ -116,7 +119,7 @@ export class ToolRegistry {
       const fetchResult = await this.serverInstance.ahkDocSearchToolInstance.execute({
         query: searchId,
         category: 'auto',
-        limit: 5
+        limit: 5,
       });
 
       if (fetchResult.content && fetchResult.content.length > 0 && fetchResult.content[0].text) {
@@ -137,26 +140,28 @@ export class ToolRegistry {
             title: firstResult.title,
             text: firstResult.description || firstResult.summary || 'AutoHotkey documentation item',
             url: firstResult.url,
-            metadata: { source: 'autohotkey_docs', version: 'v2' }
+            metadata: { source: 'autohotkey_docs', version: 'v2' },
           };
 
           return {
-            content: [{ type: 'text' as const, text: JSON.stringify(docResponse) }]
+            content: [{ type: 'text' as const, text: JSON.stringify(docResponse) }],
           };
         }
       }
 
       return {
-        content: [{
-          type: 'text' as const,
-          text: JSON.stringify({
-            id: searchId,
-            title: 'AutoHotkey Documentation Item',
-            text: 'Documentation not found for this item. Try searching for related terms.',
-            url: `https://www.autohotkey.com/docs/v2/search.htm?q=${searchId}`,
-            metadata: { source: 'autohotkey_docs', version: 'v2' }
-          })
-        }]
+        content: [
+          {
+            type: 'text' as const,
+            text: JSON.stringify({
+              id: searchId,
+              title: 'AutoHotkey Documentation Item',
+              text: 'Documentation not found for this item. Try searching for related terms.',
+              url: `https://www.autohotkey.com/docs/v2/search.htm?q=${searchId}`,
+              metadata: { source: 'autohotkey_docs', version: 'v2' },
+            }),
+          },
+        ],
       };
     });
   }
@@ -186,7 +191,10 @@ export class ToolRegistry {
       return result;
     } catch (error) {
       // Log error
-      friendlyLogger.error(`${toolName} failed`, error instanceof Error ? error.message : String(error));
+      friendlyLogger.error(
+        `${toolName} failed`,
+        error instanceof Error ? error.message : String(error)
+      );
       throw error;
     }
   }
@@ -196,7 +204,8 @@ export class ToolRegistry {
     if (toolName.includes('Run')) return LogCategory.RUN;
     if (toolName.includes('Lint')) return LogCategory.LINT;
     if (toolName.includes('Create')) return LogCategory.CREATE;
-    if (toolName.includes('Search') || toolName.includes('List') || toolName.includes('View')) return LogCategory.INFO;
+    if (toolName.includes('Search') || toolName.includes('List') || toolName.includes('View'))
+      return LogCategory.INFO;
     return LogCategory.TOOL;
   }
 

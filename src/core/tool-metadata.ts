@@ -21,10 +21,6 @@ import { ahkRecentToolDefinition } from '../tools/ahk-file-recent.js';
 import { ahkConfigToolDefinition } from '../tools/ahk-system-config.js';
 import { ahkActiveFileToolDefinition } from '../tools/ahk-active-file.js';
 import { ahkLspToolDefinition } from '../tools/ahk-analyze-lsp.js';
-import { ahkLspDocumentSymbolsToolDefinition } from '../tools/ahk-lsp-document-symbols.js';
-import { ahkLspHoverToolDefinition } from '../tools/ahk-lsp-hover.js';
-import { ahkLspFormatToolDefinition } from '../tools/ahk-lsp-format.js';
-import { ahkLspCompletionToolDefinition } from '../tools/ahk-lsp-completion.js';
 import { ahkFileViewToolDefinition } from '../tools/ahk-file-view.js';
 import { ahkFileListToolDefinition } from '../tools/ahk-file-list.js';
 import { ahkAutoFileToolDefinition } from '../tools/ahk-file-detect.js';
@@ -37,9 +33,12 @@ import { ahkAnalyticsToolDefinition } from '../tools/ahk-system-analytics.js';
 import { ahkTestInteractiveToolDefinition } from '../tools/ahk-test-interactive.js';
 import { ahkTraceViewerToolDefinition } from '../tools/ahk-trace-viewer.js';
 import { ahkLintToolDefinition } from '../tools/ahk-lint.js';
+import { ahkVSCodeOpenToolDefinition } from '../tools/ahk-vscode-open.js';
+import { ahkThqbyDocumentSymbolsToolDefinition } from '../tools/ahk-thqby-document-symbols.js';
 import { AHK_Library_List_Definition } from '../tools/ahk-library-list.js';
 import { AHK_Library_Info_Definition } from '../tools/ahk-library-info.js';
 import { AHK_Library_Import_Definition } from '../tools/ahk-library-import.js';
+import { AHK_Library_Search_Definition } from '../tools/ahk-library-search.js';
 
 export type ToolCategory =
   | 'analysis'
@@ -63,7 +62,7 @@ function entry(definition: unknown, slug: string, category: ToolCategory): ToolM
   return {
     definition: definition as Tool,
     slug,
-    category
+    category,
   };
 }
 
@@ -87,12 +86,9 @@ const TOOL_METADATA: ToolMetadataEntry[] = [
   entry(ahkVSCodeProblemsToolDefinition, 'vscode-problems', 'analysis'),
   entry(ahkRecentToolDefinition, 'file-recent', 'file'),
   entry(ahkConfigToolDefinition, 'config', 'system'),
+  entry(ahkVSCodeOpenToolDefinition, 'vscode-open', 'system'),
   // entry(ahkActiveFileToolDefinition, 'active-file', 'file'), // Hidden: duplicate of file-active
   entry(ahkLspToolDefinition, 'lsp', 'lsp'),
-  entry(ahkLspDocumentSymbolsToolDefinition, 'lsp-document-symbols', 'lsp'),
-  entry(ahkLspHoverToolDefinition, 'lsp-hover', 'lsp'),
-  entry(ahkLspFormatToolDefinition, 'lsp-format', 'lsp'),
-  entry(ahkLspCompletionToolDefinition, 'lsp-completion', 'lsp'),
   entry(ahkFileViewToolDefinition, 'file-view', 'file'),
   entry(ahkFileListToolDefinition, 'file-list', 'file'),
   entry(ahkAutoFileToolDefinition, 'file-detect', 'file'),
@@ -105,9 +101,11 @@ const TOOL_METADATA: ToolMetadataEntry[] = [
   // entry(ahkTestInteractiveToolDefinition, 'test-interactive', 'execution'), // Hidden: dev-only
   // entry(ahkTraceViewerToolDefinition, 'trace-viewer', 'observability'), // Hidden: debug-only
   entry(ahkLintToolDefinition, 'lint', 'analysis'),
+  entry(ahkThqbyDocumentSymbolsToolDefinition, 'thqby-document-symbols', 'analysis'),
   entry(AHK_Library_List_Definition, 'library-list', 'library'),
   entry(AHK_Library_Info_Definition, 'library-info', 'library'),
-  entry(AHK_Library_Import_Definition, 'library-import', 'library')
+  entry(AHK_Library_Import_Definition, 'library-import', 'library'),
+  entry(AHK_Library_Search_Definition, 'library-search', 'library'),
 ];
 
 export function getToolMetadata(): ToolMetadataEntry[] {
@@ -115,10 +113,9 @@ export function getToolMetadata(): ToolMetadataEntry[] {
 }
 
 export function getStandardToolDefinitions(): Tool[] {
-  return TOOL_METADATA.map((entry) => entry.definition);
+  return TOOL_METADATA.map(entry => entry.definition);
 }
 
 export function getToolMetadataByName(name: string): ToolMetadataEntry | undefined {
-  return TOOL_METADATA.find((entry) => entry.definition.name === name);
+  return TOOL_METADATA.find(entry => entry.definition.name === name);
 }
-

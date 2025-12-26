@@ -37,12 +37,12 @@ export class MessageInterceptor {
       resolvedFiles: [] as string[],
       activeFileSet: false,
       originalMessage: message,
-      hasInstructions: false
+      hasInstructions: false,
     };
 
     // Detect file paths in the message
     result.detectedFiles = detectFilePaths(message);
-    
+
     if (result.detectedFiles.length === 0) {
       return result;
     }
@@ -56,17 +56,17 @@ export class MessageInterceptor {
     }
 
     // Check if message has instructions beyond just the file path
-    const lines = message.split('\n').map(l => l.trim()).filter(l => l);
+    const lines = message
+      .split('\n')
+      .map(l => l.trim())
+      .filter(l => l);
     const nonPathLines = lines.filter(line => {
       // Check if this line is just a file path
-      return !result.detectedFiles.some(p => 
-        line === p || 
-        line === `"${p}"` || 
-        line === `'${p}'` ||
-        line.endsWith(p)
+      return !result.detectedFiles.some(
+        p => line === p || line === `"${p}"` || line === `'${p}'` || line.endsWith(p)
       );
     });
-    
+
     result.hasInstructions = nonPathLines.length > 0;
 
     // Auto-set the first resolved file as active if enabled
@@ -107,14 +107,14 @@ export class MessageInterceptor {
     const result = {
       filePath: undefined as string | undefined,
       instructions: [] as string[],
-      rawLines: lines
+      rawLines: lines,
     };
 
     // Check first few lines for file path
     for (let i = 0; i < Math.min(3, lines.length); i++) {
       const line = lines[i];
       if (!line) continue;
-      
+
       const paths = detectFilePaths(line);
       if (paths.length > 0) {
         const resolved = resolveFilePath(paths[0]);
@@ -135,9 +135,7 @@ export class MessageInterceptor {
         if (resolved) {
           result.filePath = resolved;
           // Try to extract instructions by removing the path line
-          result.instructions = lines.filter(line => 
-            !allPaths.some(p => line.includes(p))
-          );
+          result.instructions = lines.filter(line => !allPaths.some(p => line.includes(p)));
         }
       }
     }

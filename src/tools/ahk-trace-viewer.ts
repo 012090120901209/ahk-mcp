@@ -139,7 +139,9 @@ export class AhkTraceViewerTool {
           const traces = tracer.getAllTraces(limit);
 
           if (traces.length === 0) {
-            return createTextResponse('No traces found. Traces are created when tracing is enabled and tools are executed.');
+            return createTextResponse(
+              'No traces found. Traces are created when tracing is enabled and tools are executed.'
+            );
           }
 
           response = `# Recent Traces (${traces.length})\n\n`;

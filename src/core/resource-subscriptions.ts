@@ -25,7 +25,7 @@ class ResourceSubscriptionManager {
         uri,
         subscribedAt: Date.now(),
         lastAccessed: Date.now(),
-        accessCount: 1
+        accessCount: 1,
       });
     }
 
@@ -108,7 +108,7 @@ class ResourceSubscriptionManager {
       totalSubscriptions: subscriptions.length,
       totalAccesses,
       mostAccessed,
-      averageAccessCount
+      averageAccessCount,
     };
   }
 

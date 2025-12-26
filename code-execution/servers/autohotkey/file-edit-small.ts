@@ -43,9 +43,9 @@ export const metadata = {
 \`\`\`
 
 **What to Avoid**
-- ❌ Mixing deprecated "content" parameter with newContent → prefer newContent
-- ❌ Running multi-file edits without \`dryRun: true\` to preview
-- ❌ Forgetting \`backup: true\` when touching critical scripts
+- Mixing deprecated "content" parameter with newContent - prefer newContent
+- Running multi-file edits without \`dryRun: true\` to preview
+- Forgetting \`backup: true\` when touching critical scripts
 
 **See also:** AHK_File_Edit (full-featured editor), AHK_File_Edit_Diff (complex diffs), AHK_File_Edit_Advanced`,
   inputSchema: {
@@ -61,8 +61,8 @@ export const metadata = {
         "line_insert_before",
         "line_insert_after"
       ],
-      "default": "replace_regex",
-      "description": "Edit action to perform"
+      "default": "replace_literal",
+      "description": "Edit action to perform (default: replace_literal for safe string matching)"
     },
     "file": {
       "type": "string",

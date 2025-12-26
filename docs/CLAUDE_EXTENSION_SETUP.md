@@ -1,18 +1,20 @@
 # Claude Extension Setup Guide
 
-**Date:** October 20, 2025
-**Purpose:** Convert AHK MCP Server to a Claude Extension for mobile access
+**Date:** October 20, 2025 **Purpose:** Convert AHK MCP Server to a Claude
+Extension for mobile access
 
 ---
 
 ## Overview
 
 Claude Extensions allow your MCP server to work on:
+
 - ✅ **Claude Desktop** (Windows, Mac, Linux)
 - ✅ **Claude Mobile App** (iOS, Android)
 - ✅ **Claude Web** (Browser)
 
 Unlike stdio-only MCP servers in `claude_desktop_config.json`, extensions are:
+
 - **Portable**: Work across all Claude platforms
 - **Discoverable**: Show up in Claude's extension marketplace
 - **Shareable**: Can be published for others to use
@@ -21,14 +23,14 @@ Unlike stdio-only MCP servers in `claude_desktop_config.json`, extensions are:
 
 ## Extension vs. Desktop Config
 
-| Feature | Desktop Config (stdio) | Claude Extension |
-|---------|------------------------|------------------|
-| Claude Desktop | ✅ Yes | ✅ Yes |
-| Claude Mobile | ❌ No | ✅ Yes |
-| Claude Web | ❌ No | ✅ Yes |
-| Installation | Manual JSON edit | Install from marketplace or directory |
-| Updates | Manual | Automatic |
-| Discovery | None | Listed in Claude UI |
+| Feature        | Desktop Config (stdio) | Claude Extension                      |
+| -------------- | ---------------------- | ------------------------------------- |
+| Claude Desktop | ✅ Yes                 | ✅ Yes                                |
+| Claude Mobile  | ❌ No                  | ✅ Yes                                |
+| Claude Web     | ❌ No                  | ✅ Yes                                |
+| Installation   | Manual JSON edit       | Install from marketplace or directory |
+| Updates        | Manual                 | Automatic                             |
+| Discovery      | None                   | Listed in Claude UI                   |
 
 ---
 
@@ -45,6 +47,7 @@ Unlike stdio-only MCP servers in `claude_desktop_config.json`, extensions are:
 Create a 512x512 PNG icon for your extension:
 
 **Option 1: Use AI Image Generator**
+
 ```
 Prompt: "Create a professional icon for an AutoHotkey development tool.
 Features: Red/white color scheme, keyboard/automation theme, modern flat design,
@@ -52,37 +55,43 @@ Features: Red/white color scheme, keyboard/automation theme, modern flat design,
 ```
 
 **Option 2: Use Online Tool**
+
 - Canva: https://www.canva.com/
 - Figma: https://www.figma.com/
 - Adobe Express: https://www.adobe.com/express/
 
 **Save as:**
+
 ```
-C:\Users\uphol\Documents\Design\Coding\ahk-mcp\icon.png
+C:\Users\uphol\Documents\Design\Coding\ahk-mcp\extension\icon.png
 ```
 
-**Temporary Placeholder:**
-If you don't have an icon yet, copy any PNG:
+**Temporary Placeholder:** If you don't have an icon yet, copy any PNG:
+
 ```bash
 # Use Windows Logo as placeholder (not recommended for production)
-copy C:\Windows\System32\@WindowsAnimationLogo.png icon.png
+copy C:\Windows\System32\@WindowsAnimationLogo.png extension\icon.png
 ```
 
 ---
 
 ## Step 2: Verify Manifest
 
-The manifest has been created at:
+The manifest lives at:
+
 ```
-C:\Users\uphol\Documents\Design\Coding\ahk-mcp\manifest.json
+C:\Users\uphol\Documents\Design\Coding\ahk-mcp\extension\manifest.json
 ```
+
+If you only see `manifest.json.disabled`, rename it to `manifest.json` or let
+the installer handle it.
 
 **Key Fields to Customize:**
 
 ```json
 {
   "author": {
-    "name": "Your Name",              // ← Change this
+    "name": "Your Name", // ← Change this
     "email": "your.email@example.com", // ← Change this
     "url": "https://github.com/yourusername" // ← Change this
   },
@@ -97,12 +106,14 @@ C:\Users\uphol\Documents\Design\Coding\ahk-mcp\manifest.json
 
 ## Step 3: Build Extension Package
 
-Extensions need these files in the root directory:
+Extension assets live under `extension/`; the installer copies them to the
+extension package root:
 
 ```
 ahk-mcp/
-├── manifest.json       ← Created ✅
-├── icon.png           ← You need to add this
+├── extension/
+│   ├── manifest.json  ← Created ✅
+│   └── icon.png      ← You need to add this
 ├── dist/              ← Already exists ✅
 │   └── index.js       ← Entry point
 ├── node_modules/      ← Already exists ✅
@@ -115,8 +126,8 @@ ahk-mcp/
 cd C:\Users\uphol\Documents\Design\Coding\ahk-mcp
 
 # Check files exist
-ls manifest.json
-ls icon.png
+ls extension/manifest.json
+ls extension/icon.png
 ls dist/index.js
 ls package.json
 ```
@@ -127,17 +138,23 @@ ls package.json
 
 ### Method 1: Direct Copy (Development)
 
-Copy the entire directory to Claude Extensions folder:
+Copy the required files to Claude Extensions folder:
 
-```bash
-# Windows
-xcopy /E /I /Y "C:\Users\uphol\Documents\Design\Coding\ahk-mcp" "C:\Users\uphol\AppData\Roaming\Claude\Claude Extensions\ahk-mcp"
+```powershell
+$src = "C:\Users\uphol\Documents\Design\Coding\ahk-mcp"
+$dest = "C:\Users\uphol\AppData\Roaming\Claude\Claude Extensions\ahk-mcp"
 
-# Or using PowerShell
-Copy-Item -Recurse -Force "C:\Users\uphol\Documents\Design\Coding\ahk-mcp\*" "C:\Users\uphol\AppData\Roaming\Claude\Claude Extensions\ahk-mcp\"
+New-Item -ItemType Directory -Force -Path $dest | Out-Null
+Copy-Item "$src\extension\manifest.json" "$dest\manifest.json" -Force
+Copy-Item "$src\extension\icon.png" "$dest\icon.png" -Force -ErrorAction SilentlyContinue
+Copy-Item "$src\package.json" "$dest\package.json" -Force
+Copy-Item "$src\dist" "$dest\dist" -Recurse -Force
+Copy-Item "$src\data" "$dest\data" -Recurse -Force -ErrorAction SilentlyContinue
+Copy-Item "$src\docs" "$dest\docs" -Recurse -Force -ErrorAction SilentlyContinue
 ```
 
 **What NOT to copy** (exclude these):
+
 ```
 - .git/
 - node_modules/ (if large, may need to reinstall)
@@ -157,8 +174,8 @@ cd C:\Users\uphol\Documents\Design\Coding\ahk-mcp
 mkdir extension-package
 
 # Copy essential files
-copy manifest.json extension-package\
-copy icon.png extension-package\
+copy extension\manifest.json extension-package\
+copy extension\icon.png extension-package\
 copy package.json extension-package\
 xcopy /E /I dist extension-package\dist
 xcopy /E /I data extension-package\data
@@ -175,7 +192,7 @@ xcopy /E /I extension-package "C:\Users\uphol\AppData\Roaming\Claude\Claude Exte
 
 ---
 
-## Step 5: Create _update_metadata.json
+## Step 5: Create \_update_metadata.json
 
 Claude Extensions need metadata for updates:
 
@@ -219,6 +236,7 @@ $timestamp = [DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds()
 3. Extension should load automatically
 
 **Verify installation:**
+
 ```
 Settings → Extensions → Should see "AutoHotkey v2 MCP"
 ```
@@ -230,18 +248,21 @@ Settings → Extensions → Should see "AutoHotkey v2 MCP"
 Once installed as an extension on desktop, it will automatically sync to:
 
 ### Claude iOS App
+
 1. Open Claude app
 2. Go to Settings → Extensions
 3. "AutoHotkey v2 MCP" should appear
 4. Toggle to enable
 
 ### Claude Android App
+
 1. Open Claude app
 2. Go to Settings → Extensions
 3. "AutoHotkey v2 MCP" should appear
 4. Toggle to enable
 
-**Note:** Mobile access requires the extension to be enabled on your Claude account, not just installed locally.
+**Note:** Mobile access requires the extension to be enabled on your Claude
+account, not just installed locally.
 
 ---
 
@@ -250,6 +271,7 @@ Once installed as an extension on desktop, it will automatically sync to:
 ### Extension Not Showing Up
 
 **Check extension directory:**
+
 ```bash
 ls "C:\Users\uphol\AppData\Roaming\Claude\Claude Extensions\ahk-mcp"
 
@@ -263,12 +285,14 @@ ls "C:\Users\uphol\AppData\Roaming\Claude\Claude Extensions\ahk-mcp"
 ```
 
 **Check manifest validation:**
+
 ```bash
 cd "C:\Users\uphol\AppData\Roaming\Claude\Claude Extensions\ahk-mcp"
 node -e "console.log(JSON.parse(require('fs').readFileSync('manifest.json')))"
 ```
 
 **Check Claude logs:**
+
 ```
 C:\Users\uphol\AppData\Roaming\Claude\logs\
 ```
@@ -278,6 +302,7 @@ Look for errors mentioning "ahk-mcp" or "extension".
 ### Extension Shows But Tools Don't Work
 
 **Check dist/index.js has shebang:**
+
 ```bash
 head -1 "C:\Users\uphol\AppData\Roaming\Claude\Claude Extensions\ahk-mcp\dist\index.js"
 
@@ -288,6 +313,7 @@ head -1 "C:\Users\uphol\AppData\Roaming\Claude\Claude Extensions\ahk-mcp\dist\in
 **Add shebang if missing:**
 
 Edit `src/index.ts`:
+
 ```typescript
 #!/usr/bin/env node
 import { AutoHotkeyMCPServer } from './server.js';
@@ -295,6 +321,7 @@ import { AutoHotkeyMCPServer } from './server.js';
 ```
 
 Then rebuild:
+
 ```bash
 npm run build
 ```
@@ -311,9 +338,15 @@ npm ci --only=production
 ### Permission Errors
 
 **Windows:** Run as Administrator if copying fails:
+
 ```bash
 # PowerShell (Admin)
-Copy-Item -Recurse -Force "C:\Users\uphol\Documents\Design\Coding\ahk-mcp\*" "C:\Users\uphol\AppData\Roaming\Claude\Claude Extensions\ahk-mcp\"
+$src = "C:\Users\uphol\Documents\Design\Coding\ahk-mcp"
+$dest = "C:\Users\uphol\AppData\Roaming\Claude\Claude Extensions\ahk-mcp"
+Copy-Item "$src\extension\manifest.json" "$dest\manifest.json" -Force
+Copy-Item "$src\extension\icon.png" "$dest\icon.png" -Force -ErrorAction SilentlyContinue
+Copy-Item "$src\package.json" "$dest\package.json" -Force
+Copy-Item "$src\dist" "$dest\dist" -Recurse -Force
 ```
 
 ---
@@ -352,12 +385,13 @@ $src = "C:\Users\uphol\Documents\Design\Coding\ahk-mcp"
 $dest = "C:\Users\uphol\AppData\Roaming\Claude\Claude Extensions\ahk-mcp"
 
 Copy-Item "$src\dist" "$dest\dist" -Recurse -Force
-Copy-Item "$src\manifest.json" "$dest\manifest.json" -Force
+Copy-Item "$src\extension\manifest.json" "$dest\manifest.json" -Force
 
 Write-Host "Extension updated! Restart Claude Desktop to apply changes."
 ```
 
 **Run:**
+
 ```powershell
 .\update-extension.ps1
 ```
@@ -372,8 +406,9 @@ To share your extension with others:
 
 1. **Create GitHub repository** (if not already)
 2. **Add extension files:**
+
    ```bash
-   git add manifest.json icon.png
+   git add extension/manifest.json extension/icon.png
    git commit -m "Add Claude Extension support"
    git push
    ```
@@ -395,7 +430,9 @@ To share your extension with others:
 
 ### Option 2: Claude Extension Marketplace (Future)
 
-Anthropic may add an extension marketplace. Your extension would be ready to submit with:
+Anthropic may add an extension marketplace. Your extension would be ready to
+submit with:
+
 - ✅ Valid manifest.json
 - ✅ Icon
 - ✅ Documentation
@@ -408,6 +445,7 @@ Anthropic may add an extension marketplace. Your extension would be ready to sub
 ### Automatic Features
 
 Extensions automatically get:
+
 - ✅ **Tool Discovery**: All 33 tools listed in Claude UI
 - ✅ **Resource Access**: Documentation and standards available
 - ✅ **Prompt Templates**: Built-in AutoHotkey prompts
@@ -432,12 +470,14 @@ Users can configure your extension via Claude settings:
 ## Comparison: Desktop Config vs Extension
 
 ### Keep Desktop Config For:
+
 - ✅ Local development (faster iteration)
 - ✅ Custom environment variables
 - ✅ Absolute path requirements
 - ✅ Development builds
 
 ### Use Extension For:
+
 - ✅ Production use
 - ✅ Mobile access
 - ✅ Sharing with others
@@ -445,6 +485,7 @@ Users can configure your extension via Claude settings:
 - ✅ Better discoverability
 
 **You can have BOTH!**
+
 - Desktop config: Points to development directory
 - Extension: Stable production version
 
@@ -452,13 +493,13 @@ Users can configure your extension via Claude settings:
 
 ## Complete Extension Checklist
 
-- [ ] Create icon.png (512x512)
-- [ ] Update manifest.json author info
+- [ ] Create extension/icon.png (512x512)
+- [ ] Update extension/manifest.json author info
 - [ ] Verify dist/index.js has shebang `#!/usr/bin/env node`
 - [ ] Build project: `npm run build`
 - [ ] Copy files to `Claude Extensions\ahk-mcp\`
 - [ ] Install node_modules in extension dir
-- [ ] Create _update_metadata.json
+- [ ] Create \_update_metadata.json
 - [ ] Restart Claude Desktop
 - [ ] Verify extension shows in Settings → Extensions
 - [ ] Test tools in Claude chat
@@ -471,16 +512,19 @@ Users can configure your extension via Claude settings:
 ### File Locations
 
 **Development:**
+
 ```
 C:\Users\uphol\Documents\Design\Coding\ahk-mcp\
 ```
 
 **Extension:**
+
 ```
 C:\Users\uphol\AppData\Roaming\Claude\Claude Extensions\ahk-mcp\
 ```
 
 **Desktop Config:**
+
 ```
 C:\Users\uphol\AppData\Roaming\Claude\claude_desktop_config.json
 ```
@@ -505,7 +549,7 @@ ls "C:\Users\uphol\AppData\Roaming\Claude\Claude Extensions\ahk-mcp\manifest.jso
 
 ## Example: Full Setup Script
 
-Save as `install-extension.ps1`:
+Save as `extension/install-extension.ps1`:
 
 ```powershell
 #!/usr/bin/env pwsh
@@ -525,8 +569,8 @@ New-Item -ItemType Directory -Force -Path $extensionDir | Out-Null
 
 # Copy essential files
 Write-Host "Copying files..." -ForegroundColor Cyan
-Copy-Item "$projectDir\manifest.json" "$extensionDir\" -Force
-Copy-Item "$projectDir\icon.png" "$extensionDir\" -Force -ErrorAction SilentlyContinue
+Copy-Item "$projectDir\extension\manifest.json" "$extensionDir\manifest.json" -Force
+Copy-Item "$projectDir\extension\icon.png" "$extensionDir\icon.png" -Force -ErrorAction SilentlyContinue
 Copy-Item "$projectDir\package.json" "$extensionDir\" -Force
 Copy-Item "$projectDir\dist" "$extensionDir\dist" -Recurse -Force
 Copy-Item "$projectDir\data" "$extensionDir\data" -Recurse -Force
@@ -559,8 +603,9 @@ Write-Host "4. Test tools in Claude chat"
 ```
 
 **Run:**
+
 ```powershell
-.\install-extension.ps1
+.\extension\install-extension.ps1
 ```
 
 ---
@@ -577,17 +622,17 @@ Write-Host "4. Test tools in Claude chat"
 
 ### What You Need:
 
-1. ✅ **manifest.json** - Created at project root
-2. ⏳ **icon.png** - You need to create (512x512 PNG)
+1. ✅ **extension/manifest.json** - Extension manifest template
+2. ⏳ **extension/icon.png** - You need to create (512x512 PNG)
 3. ✅ **dist/** directory - Already built
 4. ✅ **package.json** - Already exists
 
 ### Installation Steps:
 
-1. Create icon.png
+1. Create extension/icon.png
 2. Copy files to `Claude Extensions\ahk-mcp\`
 3. Run `npm ci --only=production` in extension dir
-4. Create _update_metadata.json
+4. Create \_update_metadata.json
 5. Restart Claude Desktop
 
 ### Result:
@@ -600,5 +645,4 @@ Write-Host "4. Test tools in Claude chat"
 
 ---
 
-*Last Updated: October 20, 2025*
-*Extension Format: dxt_version 0.1*
+_Last Updated: October 20, 2025_ _Extension Format: dxt_version 0.1_

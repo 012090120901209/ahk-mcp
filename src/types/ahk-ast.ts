@@ -157,4 +157,4 @@ export interface AhkDocument {
   body: AhkNode[];
   uri?: string;
   version?: number;
-} 
+}

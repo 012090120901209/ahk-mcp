@@ -34,7 +34,9 @@ export function getPromptSlug(title: string): string {
   return base.length > 0 ? base : `prompt-${Date.now()}`;
 }
 
-async function resolveModuleFile(moduleName: string): Promise<{ fileName: string; modulePath: string }> {
+async function resolveModuleFile(
+  moduleName: string
+): Promise<{ fileName: string; modulePath: string }> {
   const normalizedModuleName = normalizeModuleFileName(moduleName);
 
   let entries: string[];
@@ -42,13 +44,15 @@ async function resolveModuleFile(moduleName: string): Promise<{ fileName: string
     entries = await fs.readdir(MODULES_DIRECTORY);
   } catch (error) {
     const reason = error instanceof Error ? error.message : String(error);
-    throw new Error(`Modules directory not found at ${MODULES_DIRECTORY}. Ensure AutoHotkey documentation modules are installed. (${reason})`);
+    throw new Error(
+      `Modules directory not found at ${MODULES_DIRECTORY}. Ensure AutoHotkey documentation modules are installed. (${reason})`
+    );
   }
 
-  const match = entries.find((entry) => entry.toLowerCase() === normalizedModuleName.toLowerCase());
+  const match = entries.find(entry => entry.toLowerCase() === normalizedModuleName.toLowerCase());
   if (!match) {
     const suggestions = entries
-      .filter((entry) => entry.toLowerCase().endsWith('.md'))
+      .filter(entry => entry.toLowerCase().endsWith('.md'))
       .sort((a, b) => a.localeCompare(b))
       .slice(0, MAX_MODULE_SUGGESTIONS)
       .join(', ');
@@ -60,7 +64,7 @@ async function resolveModuleFile(moduleName: string): Promise<{ fileName: string
 
   return {
     fileName: match,
-    modulePath: path.join(MODULES_DIRECTORY, match)
+    modulePath: path.join(MODULES_DIRECTORY, match),
   };
 }
 
@@ -112,7 +116,7 @@ export async function insertPromptIntoModule(
     `### ${prompt.title.trim()}`,
     normalizedBody,
     endMarker,
-    ''
+    '',
   ].join('\n');
 
   const updatedContent = `${existingContent.trimEnd()}${promptBlock}`;
@@ -125,13 +129,14 @@ export async function insertPromptIntoModule(
     title: prompt.title.trim(),
     body: normalizedBody,
     module: moduleFileName,
-    slug
+    slug,
   };
 }
 
 function extractCommentPrompts(content: string, fileName: string): ModulePrompt[] {
   const prompts: ModulePrompt[] = [];
-  const promptBlockRegex = /<!-- BEGIN AHK PROMPT: ([a-z0-9-]+) -->([\s\S]*?)<!-- END AHK PROMPT: \1 -->/gi;
+  const promptBlockRegex =
+    /<!-- BEGIN AHK PROMPT: ([a-z0-9-]+) -->([\s\S]*?)<!-- END AHK PROMPT: \1 -->/gi;
 
   let match: RegExpExecArray | null;
   while ((match = promptBlockRegex.exec(content)) !== null) {
@@ -151,7 +156,7 @@ function extractCommentPrompts(content: string, fileName: string): ModulePrompt[
       title,
       body,
       module: fileName,
-      slug
+      slug,
     });
   }
 
@@ -165,12 +170,13 @@ function extractXmlPrompts(content: string, fileName: string): ModulePrompt[] {
   const xmlPromptConfigs = [
     {
       tag: 'AHK_AGENT_INSTRUCTION',
-      titleBuilder: (index: number) => `${displayName} Agent Instruction${index > 1 ? ` ${index}` : ''}`
+      titleBuilder: (index: number) =>
+        `${displayName} Agent Instruction${index > 1 ? ` ${index}` : ''}`,
     },
     {
       tag: 'METAPROMPT_AGENT_INSTRUCTION',
-      titleBuilder: (index: number) => `${displayName} Meta Prompt${index > 1 ? ` ${index}` : ''}`
-    }
+      titleBuilder: (index: number) => `${displayName} Meta Prompt${index > 1 ? ` ${index}` : ''}`,
+    },
   ];
 
   for (const config of xmlPromptConfigs) {
@@ -192,7 +198,7 @@ function extractXmlPrompts(content: string, fileName: string): ModulePrompt[] {
         title,
         body,
         module: fileName,
-        slug
+        slug,
       });
     }
   }
@@ -232,6 +238,3 @@ export async function loadPromptsFromModules(): Promise<ModulePrompt[]> {
 
   return prompts;
 }
-
-
-

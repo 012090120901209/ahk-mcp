@@ -7,10 +7,16 @@ import { safeParse } from '../core/validation-middleware.js';
 // Zod schema for tool arguments
 export const AhkDiagnosticsArgsSchema = z.object({
   code: z.string().describe('The AutoHotkey v2 code to analyze'),
-  enableClaudeStandards: z.boolean().optional().default(true)
+  enableClaudeStandards: z
+    .boolean()
+    .optional()
+    .default(true)
     .describe('Apply Claude coding standards validation'),
-  severity: z.enum(['error', 'warning', 'info', 'all']).optional().default('all')
-    .describe('Filter diagnostics by severity level')
+  severity: z
+    .enum(['error', 'warning', 'info', 'all'])
+    .optional()
+    .default('all')
+    .describe('Filter diagnostics by severity level'),
 });
 
 export const ahkDiagnosticsToolDefinition = {
@@ -22,22 +28,22 @@ Validates AutoHotkey v2 code syntax and enforces coding standards with detailed 
     properties: {
       code: {
         type: 'string',
-        description: 'The AutoHotkey v2 code to analyze'
+        description: 'The AutoHotkey v2 code to analyze',
       },
       enableClaudeStandards: {
         type: 'boolean',
         description: 'Apply Claude coding standards validation',
-        default: true
+        default: true,
       },
       severity: {
         type: 'string',
         enum: ['error', 'warning', 'info', 'all'],
         description: 'Filter diagnostics by severity level',
-        default: 'all'
-      }
+        default: 'all',
+      },
     },
-    required: ['code']
-  }
+    required: ['code'],
+  },
 };
 
 export class AhkDiagnosticsTool {
@@ -58,7 +64,9 @@ export class AhkDiagnosticsTool {
     const validatedArgs = parsed.data;
 
     try {
-      logger.info(`Running AutoHotkey diagnostics with Claude standards: ${validatedArgs.enableClaudeStandards}, severity filter: ${validatedArgs.severity}`);
+      logger.info(
+        `Running AutoHotkey diagnostics with Claude standards: ${validatedArgs.enableClaudeStandards}, severity filter: ${validatedArgs.severity}`
+      );
 
       // Auto-detect any file paths in the code (in case user pasted a path)
       if (validatedArgs.code) {
@@ -79,9 +87,9 @@ export class AhkDiagnosticsTool {
         content: [
           {
             type: 'text',
-            text: this.formatDiagnosticsResponse(diagnostics, validatedArgs)
-          }
-        ]
+            text: this.formatDiagnosticsResponse(diagnostics, validatedArgs),
+          },
+        ],
       };
     } catch (error) {
       logger.error('Error in AHK_Diagnostics tool:', error);
@@ -90,10 +98,10 @@ export class AhkDiagnosticsTool {
         content: [
           {
             type: 'text',
-            text: `❌ Error running diagnostics: ${error instanceof Error ? error.message : String(error)}`
-          }
+            text: `❌ Error running diagnostics: ${error instanceof Error ? error.message : String(error)}`,
+          },
         ],
-        isError: true
+        isError: true,
       };
     }
   }
@@ -111,35 +119,35 @@ export class AhkDiagnosticsTool {
 
     // Group diagnostics by severity
     const groupedDiagnostics = this.groupDiagnosticsBySeverity(diagnostics);
-    
+
     // Process each severity level
     const severityOrder = ['Error', 'Warning', 'Information', 'Hint'];
     const severityIcons = {
-      'Error': '❌',
-      'Warning': '⚠️',
-      'Information': 'ℹ️',
-      'Hint': '💡'
+      Error: '❌',
+      Warning: '⚠️',
+      Information: 'ℹ️',
+      Hint: '💡',
     };
 
     for (const severity of severityOrder) {
       const items = groupedDiagnostics[severity as keyof typeof severityIcons];
       if (items && items.length > 0) {
         response += `### ${severityIcons[severity as keyof typeof severityIcons]} ${severity}s (${items.length})\n\n`;
-        
+
         items.forEach((diagnostic: any, index: number) => {
           const line = diagnostic.range.start.line + 1;
           const char = diagnostic.range.start.character + 1;
-          
+
           response += `**${index + 1}.** Line ${line}, Column ${char}: ${diagnostic.message}\n`;
-          
+
           if (diagnostic.code) {
             response += `   *Code: ${diagnostic.code}*\n`;
           }
-          
+
           if (diagnostic.source) {
             response += `   *Source: ${diagnostic.source}*\n`;
           }
-          
+
           response += '\n';
         });
       }
@@ -168,9 +176,9 @@ export class AhkDiagnosticsTool {
   private groupDiagnosticsBySeverity(diagnostics: any[]): Record<string, any[]> {
     const severityNames: Record<number, string> = {
       1: 'Error',
-      2: 'Warning', 
+      2: 'Warning',
       3: 'Information',
-      4: 'Hint'
+      4: 'Hint',
     };
 
     const grouped: Record<string, any[]> = {};
@@ -195,4 +203,4 @@ export class AhkDiagnosticsTool {
 
     return grouped;
   }
-} 
+}

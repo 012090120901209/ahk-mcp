@@ -8,7 +8,7 @@ import { safeParse } from '../core/validation-middleware.js';
 export const AhkFileArgsSchema = z.object({
   action: z.enum(['get', 'set', 'detect', 'clear']).default('get'),
   path: z.string().optional(),
-  text: z.string().optional()
+  text: z.string().optional(),
 });
 
 export const ahkFileToolDefinition = {
@@ -18,22 +18,22 @@ DETECT AND SET ACTIVE FILE FOR EDITING - Use this immediately when user mentions
   inputSchema: {
     type: 'object',
     properties: {
-      action: { 
-        type: 'string', 
-        enum: ['get', 'set', 'detect', 'clear'], 
+      action: {
+        type: 'string',
+        enum: ['get', 'set', 'detect', 'clear'],
         default: 'get',
-        description: 'Action to perform'
+        description: 'Action to perform',
       },
-      path: { 
-        type: 'string', 
-        description: 'File path for set action' 
+      path: {
+        type: 'string',
+        description: 'File path for set action',
       },
-      text: { 
-        type: 'string', 
-        description: 'Text to detect paths from' 
-      }
-    }
-  }
+      text: {
+        type: 'string',
+        description: 'Text to detect paths from',
+      },
+    },
+  },
 };
 
 export class AhkFileTool {
@@ -46,24 +46,24 @@ export class AhkFileTool {
       const availability = checkToolAvailability('AHK_File_Active');
       if (!availability.enabled) {
         return {
-          content: [{ type: 'text', text: availability.message || 'Tool is disabled' }]
+          content: [{ type: 'text', text: availability.message || 'Tool is disabled' }],
         };
       }
 
       const { action, path, text } = parsed.data;
-      
+
       switch (action) {
         case 'get': {
           const status = activeFile.getStatus();
           let response = '📁 **Active File Status**\n\n';
-          
+
           if (status.activeFile) {
             response += `✅ **Active:** ${status.activeFile}\n`;
             response += `📊 **Exists:** ${status.exists ? 'Yes' : 'No'}\n`;
             if (status.lastModified) {
               response += `⏰ **Set at:** ${status.lastModified.toLocaleString()}\n`;
             }
-            
+
             // Try to show first few lines of the file
             if (status.exists) {
               try {
@@ -81,82 +81,91 @@ export class AhkFileTool {
             response += '• Using `AHK_File_Active` with action "set"\n';
             response += '• Running any tool with a file path\n';
           }
-          
+
           return {
-            content: [{ type: 'text', text: response }]
+            content: [{ type: 'text', text: response }],
           };
         }
-        
+
         case 'set': {
           if (!path) {
             throw new Error('Path required for set action');
           }
-          
+
           const success = activeFile.setActiveFile(path);
           if (success) {
             return {
-              content: [{ 
-                type: 'text', 
-                text: `✅ Active file set to: ${activeFile.getActiveFile()}`
-              }]
+              content: [
+                {
+                  type: 'text',
+                  text: `✅ Active file set to: ${activeFile.getActiveFile()}`,
+                },
+              ],
             };
           } else {
             return {
-              content: [{ 
-                type: 'text', 
-                text: `❌ Failed to set active file. Check that the file exists and has .ahk extension.`
-              }],
-      
+              content: [
+                {
+                  type: 'text',
+                  text: `❌ Failed to set active file. Check that the file exists and has .ahk extension.`,
+                },
+              ],
             };
           }
         }
-        
+
         case 'detect': {
           const searchText = text || path || '';
           if (!searchText) {
             throw new Error('Text or path required for detect action');
           }
-          
+
           const detected = activeFile.detectAndSetFromText(searchText);
           if (detected) {
             return {
-              content: [{ 
-                type: 'text', 
-                text: `✅ Detected and set active file: ${detected}`
-              }]
+              content: [
+                {
+                  type: 'text',
+                  text: `✅ Detected and set active file: ${detected}`,
+                },
+              ],
             };
           } else {
             return {
-              content: [{ 
-                type: 'text', 
-                text: `❌ No valid .ahk file path found in the text`
-              }]
+              content: [
+                {
+                  type: 'text',
+                  text: `❌ No valid .ahk file path found in the text`,
+                },
+              ],
             };
           }
         }
-        
+
         case 'clear': {
           activeFile.clear();
           return {
-            content: [{ 
-              type: 'text', 
-              text: '✅ Active file cleared'
-            }]
+            content: [
+              {
+                type: 'text',
+                text: '✅ Active file cleared',
+              },
+            ],
           };
         }
-        
+
         default:
           throw new Error(`Unknown action: ${action}`);
       }
-      
     } catch (error) {
       logger.error('Error in AHK_File_Active tool:', error);
       return {
-        content: [{
-          type: 'text',
-          text: `Error: ${error instanceof Error ? error.message : String(error)}`
-        }],
-
+        content: [
+          {
+            type: 'text',
+            text: `Error: ${error instanceof Error ? error.message : String(error)}`,
+          },
+        ],
       };
     }
   }

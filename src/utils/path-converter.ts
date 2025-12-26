@@ -8,7 +8,7 @@ export enum PathFormat {
   WINDOWS = 'windows',
   WSL = 'wsl',
   UNIX = 'unix',
-  UNKNOWN = 'unknown'
+  UNKNOWN = 'unknown',
 }
 
 /**
@@ -42,7 +42,7 @@ export class PathConverter {
   constructor(driveMappings?: DriveMapping[]) {
     // Initialize default drive mappings
     this.initializeDefaultMappings();
-    
+
     // Apply custom mappings if provided
     if (driveMappings) {
       driveMappings.forEach(mapping => {
@@ -55,7 +55,8 @@ export class PathConverter {
    * Initialize default drive mappings (A-Z to /mnt/a-z)
    */
   private initializeDefaultMappings(): void {
-    for (let i = 65; i <= 90; i++) { // A-Z ASCII codes
+    for (let i = 65; i <= 90; i++) {
+      // A-Z ASCII codes
       const drive = String.fromCharCode(i) + ':';
       const mountPoint = `${this.defaultWSLMountPoint}/${String.fromCharCode(i).toLowerCase()}`;
       this.driveMappings.set(drive.toLowerCase(), mountPoint);
@@ -104,7 +105,7 @@ export class PathConverter {
    */
   public windowsToWSL(windowsPath: string): PathConversionResult {
     const originalFormat = this.detectPathFormat(windowsPath);
-    
+
     try {
       if (originalFormat !== PathFormat.WINDOWS) {
         return {
@@ -113,12 +114,12 @@ export class PathConverter {
           originalFormat,
           targetFormat: PathFormat.WSL,
           success: false,
-          error: `Input path is not in Windows format. Detected format: ${originalFormat}`
+          error: `Input path is not in Windows format. Detected format: ${originalFormat}`,
         };
       }
 
       const trimmedPath = windowsPath.trim();
-      
+
       // Handle UNC paths (\\server\share)
       if (trimmedPath.startsWith('\\\\')) {
         const uncParts = trimmedPath.substring(2).split('\\');
@@ -131,7 +132,7 @@ export class PathConverter {
             convertedPath: `/mnt/share/${server}/${share}/${remainingPath}`,
             originalFormat,
             targetFormat: PathFormat.WSL,
-            success: true
+            success: true,
           };
         }
       }
@@ -142,14 +143,14 @@ export class PathConverter {
         const drive = driveMatch[1].toLowerCase();
         const remainingPath = driveMatch[2].replace(/\\/g, '/');
         const mountPoint = this.driveMappings.get(drive + ':');
-        
+
         if (mountPoint) {
           return {
             originalPath: windowsPath,
             convertedPath: `${mountPoint}/${remainingPath}`,
             originalFormat,
             targetFormat: PathFormat.WSL,
-            success: true
+            success: true,
           };
         } else {
           return {
@@ -158,7 +159,7 @@ export class PathConverter {
             originalFormat,
             targetFormat: PathFormat.WSL,
             success: false,
-            error: `No mount point configured for drive ${drive.toUpperCase()}:`
+            error: `No mount point configured for drive ${drive.toUpperCase()}:`,
           };
         }
       }
@@ -169,9 +170,8 @@ export class PathConverter {
         originalFormat,
         targetFormat: PathFormat.WSL,
         success: false,
-        error: 'Unable to parse Windows path format'
+        error: 'Unable to parse Windows path format',
       };
-
     } catch (error) {
       return {
         originalPath: windowsPath,
@@ -179,7 +179,7 @@ export class PathConverter {
         originalFormat,
         targetFormat: PathFormat.WSL,
         success: false,
-        error: error instanceof Error ? error.message : 'Unknown error occurred'
+        error: error instanceof Error ? error.message : 'Unknown error occurred',
       };
     }
   }
@@ -191,7 +191,7 @@ export class PathConverter {
    */
   public wslToWindows(wslPath: string): PathConversionResult {
     const originalFormat = this.detectPathFormat(wslPath);
-    
+
     try {
       if (originalFormat !== PathFormat.WSL) {
         return {
@@ -200,26 +200,24 @@ export class PathConverter {
           originalFormat,
           targetFormat: PathFormat.WINDOWS,
           success: false,
-          error: `Input path is not in WSL format. Detected format: ${originalFormat}`
+          error: `Input path is not in WSL format. Detected format: ${originalFormat}`,
         };
       }
 
       const trimmedPath = wslPath.trim();
-      
+
       // Handle /mnt/drive/... pattern
       const mountMatch = /^\/mnt\/([a-zA-Z])\/(.*)$/.exec(trimmedPath);
       if (mountMatch) {
         const drive = mountMatch[1].toUpperCase();
-        const remainingPath = this.normalizeWindowsPathCasing(
-          mountMatch[2].replace(/\//g, '\\')
-        );
-        
+        const remainingPath = this.normalizeWindowsPathCasing(mountMatch[2].replace(/\//g, '\\'));
+
         return {
           originalPath: wslPath,
           convertedPath: `${drive}:\\${remainingPath}`,
           originalFormat,
           targetFormat: PathFormat.WINDOWS,
-          success: true
+          success: true,
         };
       }
 
@@ -228,16 +226,14 @@ export class PathConverter {
       if (shareMatch) {
         const server = shareMatch[1];
         const share = shareMatch[2];
-        const remainingPath = this.normalizeWindowsPathCasing(
-          shareMatch[3].replace(/\//g, '\\')
-        );
-        
+        const remainingPath = this.normalizeWindowsPathCasing(shareMatch[3].replace(/\//g, '\\'));
+
         return {
           originalPath: wslPath,
           convertedPath: `\\\\${server}\\${share}\\${remainingPath}`,
           originalFormat,
           targetFormat: PathFormat.WINDOWS,
-          success: true
+          success: true,
         };
       }
 
@@ -247,9 +243,8 @@ export class PathConverter {
         originalFormat,
         targetFormat: PathFormat.WINDOWS,
         success: false,
-        error: 'Unable to parse WSL path format'
+        error: 'Unable to parse WSL path format',
       };
-
     } catch (error) {
       return {
         originalPath: wslPath,
@@ -257,7 +252,7 @@ export class PathConverter {
         originalFormat,
         targetFormat: PathFormat.WINDOWS,
         success: false,
-        error: error instanceof Error ? error.message : 'Unknown error occurred'
+        error: error instanceof Error ? error.message : 'Unknown error occurred',
       };
     }
   }
@@ -270,14 +265,14 @@ export class PathConverter {
    */
   public autoConvert(inputPath: string, targetFormat: PathFormat): PathConversionResult {
     const originalFormat = this.detectPathFormat(inputPath);
-    
+
     if (originalFormat === targetFormat) {
       return {
         originalPath: inputPath,
         convertedPath: inputPath,
         originalFormat,
         targetFormat,
-        success: true
+        success: true,
       };
     }
 
@@ -293,7 +288,7 @@ export class PathConverter {
           originalFormat,
           targetFormat,
           success: false,
-          error: `Conversion to ${targetFormat} format is not supported`
+          error: `Conversion to ${targetFormat} format is not supported`,
         };
     }
   }
@@ -324,7 +319,7 @@ export class PathConverter {
     this.driveMappings.forEach((mountPoint, drive) => {
       mappings.push({
         windowsDrive: drive,
-        wslMountPoint: mountPoint
+        wslMountPoint: mountPoint,
       });
     });
     return mappings;
@@ -373,8 +368,8 @@ export class PathConverter {
       users: 'Users',
       'program files': 'Program Files',
       'program files (x86)': 'Program Files (x86)',
-      'programdata': 'ProgramData',
-      windows: 'Windows'
+      programdata: 'ProgramData',
+      windows: 'Windows',
     };
 
     const firstSegment = segments[0];
@@ -396,5 +391,5 @@ export const pathConverter = new PathConverter();
 export const PathConversionSchema = z.object({
   inputPath: z.string().min(1, 'Path cannot be empty'),
   targetFormat: z.nativeEnum(PathFormat),
-  validateInput: z.boolean().optional().default(true)
+  validateInput: z.boolean().optional().default(true),
 });

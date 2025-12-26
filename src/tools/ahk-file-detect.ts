@@ -1,19 +1,18 @@
 import { z } from 'zod';
 import path from 'path';
 import logger from '../logger.js';
-import {
-  loadConfig,
-  saveConfig,
-  detectFilePaths,
-  resolveFilePath
-} from '../core/config.js';
+import { loadConfig, saveConfig, detectFilePaths, resolveFilePath } from '../core/config.js';
 import { setActiveFilePath, getActiveFilePath } from '../core/active-file.js';
 import { safeParse } from '../core/validation-middleware.js';
 
 export const AhkAutoFileArgsSchema = z.object({
   text: z.string().describe('Text that may contain file paths to detect'),
-  autoSet: z.boolean().optional().default(true).describe('Automatically set as active file if found'),
-  scriptDir: z.string().optional().describe('Base directory to search for files')
+  autoSet: z
+    .boolean()
+    .optional()
+    .default(true)
+    .describe('Automatically set as active file if found'),
+  scriptDir: z.string().optional().describe('Base directory to search for files'),
 });
 
 export const ahkAutoFileToolDefinition = {
@@ -23,22 +22,22 @@ Automatically detect and set active AutoHotkey file from user text`,
   inputSchema: {
     type: 'object',
     properties: {
-      text: { 
-        type: 'string', 
-        description: 'Text that may contain file paths to detect' 
+      text: {
+        type: 'string',
+        description: 'Text that may contain file paths to detect',
       },
-      autoSet: { 
-        type: 'boolean', 
+      autoSet: {
+        type: 'boolean',
         default: true,
-        description: 'Automatically set as active file if found' 
+        description: 'Automatically set as active file if found',
       },
-      scriptDir: { 
-        type: 'string', 
-        description: 'Base directory to search for files' 
-      }
+      scriptDir: {
+        type: 'string',
+        description: 'Base directory to search for files',
+      },
     },
-    required: ['text']
-  }
+    required: ['text'],
+  },
 };
 
 export class AhkAutoFileTool {
@@ -51,7 +50,7 @@ export class AhkAutoFileTool {
 
     try {
       const { text, autoSet, scriptDir } = parsed.data;
-      
+
       // Update script directory if provided
       if (scriptDir) {
         const cfg = loadConfig();
@@ -59,23 +58,25 @@ export class AhkAutoFileTool {
         saveConfig(cfg);
         logger.info(`Updated script directory: ${cfg.scriptDir}`);
       }
-      
+
       // Detect potential file paths in the text
       const detectedPaths = detectFilePaths(text);
-      
+
       if (detectedPaths.length === 0) {
         return {
-          content: [{
-            type: 'text',
-            text: 'No AutoHotkey file paths detected in the provided text.'
-          }]
+          content: [
+            {
+              type: 'text',
+              text: 'No AutoHotkey file paths detected in the provided text.',
+            },
+          ],
         };
       }
-      
+
       // Try to resolve each detected path
       const resolvedFiles: string[] = [];
       const unresolvedPaths: string[] = [];
-      
+
       for (const detectedPath of detectedPaths) {
         const resolved = resolveFilePath(detectedPath);
         if (resolved) {
@@ -84,7 +85,7 @@ export class AhkAutoFileTool {
           unresolvedPaths.push(detectedPath);
         }
       }
-      
+
       // If we found files and autoSet is true, set the first one as active
       let activeFileSet = false;
       if (autoSet && resolvedFiles.length > 0) {
@@ -114,7 +115,8 @@ export class AhkAutoFileTool {
       }
 
       if (autoSet && resolvedFiles.length > 0 && !activeFileSet) {
-        response += '\n⚠️ Failed to set an active file automatically. Check file permissions or path validity.\n';
+        response +=
+          '\n⚠️ Failed to set an active file automatically. Check file permissions or path validity.\n';
       }
 
       // Add current config info
@@ -127,30 +129,34 @@ export class AhkAutoFileTool {
       return {
         content: [
           { type: 'text', text: response.trim() },
-          { 
-            type: 'text', 
-            text: JSON.stringify({
-              detected: detectedPaths,
-              resolved: resolvedFiles,
-              unresolved: unresolvedPaths,
-              activeFile: currentActive
-            }, null, 2)
-          }
-        ]
+          {
+            type: 'text',
+            text: JSON.stringify(
+              {
+                detected: detectedPaths,
+                resolved: resolvedFiles,
+                unresolved: unresolvedPaths,
+                activeFile: currentActive,
+              },
+              null,
+              2
+            ),
+          },
+        ],
       };
-      
     } catch (error) {
       logger.error('Error in AHK_File_Detect tool:', error);
       return {
-        content: [{
-          type: 'text',
-          text: `Error: ${error instanceof Error ? error.message : String(error)}`
-        }],
-
+        content: [
+          {
+            type: 'text',
+            text: `Error: ${error instanceof Error ? error.message : String(error)}`,
+          },
+        ],
       };
     }
   }
-  
+
   /**
    * Quick method to set active file from a path
    */
@@ -166,7 +172,7 @@ export class AhkAutoFileTool {
       return false;
     }
   }
-  
+
   /**
    * Get current active file
    */

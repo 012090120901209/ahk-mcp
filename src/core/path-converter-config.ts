@@ -47,22 +47,26 @@ export const DEFAULT_CONFIG: PathConverterConfig = {
     enabled: true,
     level: 'info',
     logConversions: false,
-    logFailures: true
+    logFailures: true,
   },
   performance: {
     enableCaching: true,
     maxCacheSize: 1000,
-    cacheTimeout: 300000 // 5 minutes
-  }
+    cacheTimeout: 300000, // 5 minutes
+  },
 };
 
 /**
  * Configuration file paths
  */
 export const CONFIG_PATHS = {
-  userConfig: path.join(process.env.HOME || process.env.USERPROFILE || '', '.ahk-mcp', 'path-converter.json'),
+  userConfig: path.join(
+    process.env.HOME || process.env.USERPROFILE || '',
+    '.ahk-mcp',
+    'path-converter.json'
+  ),
   projectConfig: path.join(process.cwd(), '.ahk-mcp', 'path-converter.json'),
-  fallbackConfig: path.join(moduleDirname, '../../config', 'path-converter-default.json')
+  fallbackConfig: path.join(moduleDirname, '../../config', 'path-converter-default.json'),
 };
 
 /**
@@ -138,7 +142,6 @@ export class PathConverterConfigManager {
 
       logger.info(`Configuration loaded from ${targetPath}`);
       return this.config;
-
     } catch (error) {
       logger.error(`Failed to load configuration from ${targetPath}:`, error);
       logger.info('Using default configuration');
@@ -168,7 +171,6 @@ export class PathConverterConfigManager {
 
       logger.info(`Configuration saved to ${targetPath}`);
       return true;
-
     } catch (error) {
       logger.error(`Failed to save configuration to ${targetPath}:`, error);
       return false;
@@ -259,9 +261,7 @@ export class PathConverterConfigManager {
    */
   public removeToolConfig(toolName: string): boolean {
     const initialLength = this.config.toolConfigs.length;
-    this.config.toolConfigs = this.config.toolConfigs.filter(
-      c => c.toolName !== toolName
-    );
+    this.config.toolConfigs = this.config.toolConfigs.filter(c => c.toolName !== toolName);
     return this.config.toolConfigs.length < initialLength;
   }
 
@@ -293,7 +293,9 @@ export class PathConverterConfigManager {
    * Update performance configuration
    * @param performanceConfig The performance configuration
    */
-  public updatePerformanceConfig(performanceConfig: Partial<PathConverterConfig['performance']>): void {
+  public updatePerformanceConfig(
+    performanceConfig: Partial<PathConverterConfig['performance']>
+  ): void {
     this.config.performance = { ...this.config.performance, ...performanceConfig };
   }
 
@@ -327,17 +329,24 @@ export class PathConverterConfigManager {
     return {
       enabled: config.enabled !== undefined ? config.enabled : DEFAULT_CONFIG.enabled,
       defaultTargetFormat: config.defaultTargetFormat || DEFAULT_CONFIG.defaultTargetFormat,
-      autoDetectEnvironment: config.autoDetectEnvironment !== undefined ? config.autoDetectEnvironment : DEFAULT_CONFIG.autoDetectEnvironment,
-      driveMappings: Array.isArray(config.driveMappings) ? config.driveMappings : DEFAULT_CONFIG.driveMappings,
-      toolConfigs: Array.isArray(config.toolConfigs) ? config.toolConfigs : DEFAULT_CONFIG.toolConfigs,
+      autoDetectEnvironment:
+        config.autoDetectEnvironment !== undefined
+          ? config.autoDetectEnvironment
+          : DEFAULT_CONFIG.autoDetectEnvironment,
+      driveMappings: Array.isArray(config.driveMappings)
+        ? config.driveMappings
+        : DEFAULT_CONFIG.driveMappings,
+      toolConfigs: Array.isArray(config.toolConfigs)
+        ? config.toolConfigs
+        : DEFAULT_CONFIG.toolConfigs,
       logging: {
         ...DEFAULT_CONFIG.logging,
-        ...(config.logging || {})
+        ...(config.logging || {}),
       },
       performance: {
         ...DEFAULT_CONFIG.performance,
-        ...(config.performance || {})
-      }
+        ...(config.performance || {}),
+      },
     };
   }
 
@@ -372,7 +381,7 @@ export class PathConverterConfigManager {
       targetFormat: this.config.defaultTargetFormat,
       driveMappingsCount: this.config.driveMappings.length,
       toolConfigsCount: this.config.toolConfigs.length,
-      configPath: this.configPath
+      configPath: this.configPath,
     };
   }
 }
@@ -382,28 +391,32 @@ export const ConfigSchema = z.object({
   enabled: z.boolean(),
   defaultTargetFormat: z.nativeEnum(PathFormat),
   autoDetectEnvironment: z.boolean(),
-  driveMappings: z.array(z.object({
-    windowsDrive: z.string().regex(/^[A-Za-z]:$/, 'Invalid drive format'),
-    wslMountPoint: z.string().min(1, 'Mount point cannot be empty')
-  })),
-  toolConfigs: z.array(z.object({
-    toolName: z.string().min(1, 'Tool name cannot be empty'),
-    pathParameters: z.array(z.string()).min(1, 'At least one path parameter is required'),
-    convertInput: z.boolean(),
-    convertOutput: z.boolean(),
-    targetFormat: z.nativeEnum(PathFormat)
-  })),
+  driveMappings: z.array(
+    z.object({
+      windowsDrive: z.string().regex(/^[A-Za-z]:$/, 'Invalid drive format'),
+      wslMountPoint: z.string().min(1, 'Mount point cannot be empty'),
+    })
+  ),
+  toolConfigs: z.array(
+    z.object({
+      toolName: z.string().min(1, 'Tool name cannot be empty'),
+      pathParameters: z.array(z.string()).min(1, 'At least one path parameter is required'),
+      convertInput: z.boolean(),
+      convertOutput: z.boolean(),
+      targetFormat: z.nativeEnum(PathFormat),
+    })
+  ),
   logging: z.object({
     enabled: z.boolean(),
     level: z.enum(['debug', 'info', 'warn', 'error']),
     logConversions: z.boolean(),
-    logFailures: z.boolean()
+    logFailures: z.boolean(),
   }),
   performance: z.object({
     enableCaching: z.boolean(),
     maxCacheSize: z.number().min(1).max(10000),
-    cacheTimeout: z.number().min(1000)
-  })
+    cacheTimeout: z.number().min(1000),
+  }),
 });
 
 // Singleton instance for global use

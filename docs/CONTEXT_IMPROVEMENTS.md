@@ -2,7 +2,8 @@
 
 ## Summary
 
-Comprehensive improvements to AutoHotkey v2 MCP server context management for better Claude Desktop coding agent integration.
+Comprehensive improvements to AutoHotkey v2 MCP server context management for
+better Claude Desktop coding agent integration.
 
 ## Changes Applied
 
@@ -12,7 +13,8 @@ Updated 20+ tool descriptions with Claude-optimized language:
 
 - **Action-oriented** - Clearly states when to use each tool
 - **Specific capabilities** - Details exact features and use cases
-- **Differentiation** - Distinguishes similar tools (e.g., AHK_Analyze vs AHK_Diagnostics)
+- **Differentiation** - Distinguishes similar tools (e.g., AHK_Analyze vs
+  AHK_Diagnostics)
 - **Example use cases** - Provides concrete scenarios
 
 #### Key Tool Updates:
@@ -75,6 +77,7 @@ Enhanced tool listings with active file awareness:
 Cleaned `.mcp.json` and `.mcp.windows.json`:
 
 **Removed non-existent tools:**
+
 - `AHK_Analyze_Unified`
 - `AHK_Context_Injector` (internal tool)
 - `AHK_Debug_Agent` (not user-facing)
@@ -82,6 +85,7 @@ Cleaned `.mcp.json` and `.mcp.windows.json`:
 - `AHK_Sampling_Enhancer` (internal tool)
 
 **Retained essential tools:**
+
 - All file operation tools
 - Analysis and diagnostic tools
 - Documentation and search tools
@@ -93,6 +97,7 @@ Cleaned `.mcp.json` and `.mcp.windows.json`:
 ### Server Changes (`src/server.ts`)
 
 1. **Import addition:**
+
    ```typescript
    import { autoDetect, activeFile } from './core/active-file.js';
    ```
@@ -115,14 +120,16 @@ Cleaned `.mcp.json` and `.mcp.windows.json`:
 ### Tool Description Pattern
 
 **Before:**
+
 ```typescript
 description: `Ahk analyze
-Analyzes AutoHotkey v2 scripts...`
+Analyzes AutoHotkey v2 scripts...`;
 ```
 
 **After:**
+
 ```typescript
-description: `Comprehensive AutoHotkey v2 code analysis with compiler-based syntax validation, complexity metrics, and AHK-specific pattern detection. Identifies v1-to-v2 migration issues, validates built-in function usage, detects common anti-patterns, and provides actionable improvement recommendations. Returns detailed statistics, diagnostics, and semantic token analysis.`
+description: `Comprehensive AutoHotkey v2 code analysis with compiler-based syntax validation, complexity metrics, and AHK-specific pattern detection. Identifies v1-to-v2 migration issues, validates built-in function usage, detects common anti-patterns, and provides actionable improvement recommendations. Returns detailed statistics, diagnostics, and semantic token analysis.`;
 ```
 
 ## Benefits for Coding Agents
@@ -136,6 +143,7 @@ description: `Comprehensive AutoHotkey v2 code analysis with compiler-based synt
 ## Testing
 
 Build verification:
+
 ```bash
 npm run build
 # ✅ All TypeScript compiled successfully
@@ -206,6 +214,7 @@ npm run build
 ### Tool Naming Improvements
 
 Consider action-first naming:
+
 - `AHK_File_Edit` → `AHK_Edit_File`
 - `AHK_File_View` → `AHK_View_File`
 - `AHK_File_Active` → `AHK_Set_Active_File`
@@ -222,11 +231,9 @@ Example: Replace function implementation:
   "action": "replace",
   "search": "OldFunction() {",
   "content": "NewFunction() {"
-}`
+}`;
 ```
 
 ---
 
-**Date:** 2025-09-29
-**Version:** 2.0.0
-**Status:** ✅ Complete
+**Date:** 2025-09-29 **Version:** 2.0.0 **Status:** ✅ Complete

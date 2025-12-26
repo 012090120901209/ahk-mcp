@@ -122,6 +122,30 @@ export function getActiveFile() {
     return cfg.activeFile;
 }
 /**
+ * Persist the most recently edited file path
+ */
+export function setLastEditedFile(filePath) {
+    const normalized = normalizeDir(filePath);
+    if (!normalized)
+        return;
+    if (!fs.existsSync(normalized)) {
+        logger.warn(`Last edited file does not exist: ${normalized}`);
+        return;
+    }
+    const cfg = loadConfig();
+    cfg.lastEditedFile = normalized;
+    cfg.lastEditedAt = new Date().toISOString();
+    saveConfig(cfg);
+    logger.info(`Last edited file updated: ${normalized}`);
+}
+/**
+ * Get the most recently edited file path
+ */
+export function getLastEditedFile() {
+    const cfg = loadConfig();
+    return cfg.lastEditedFile;
+}
+/**
  * Detect and extract file paths from text
  */
 export function detectFilePaths(text) {
@@ -154,6 +178,70 @@ export function detectFilePaths(text) {
 /**
  * Resolve a file path, checking various locations
  */
+/**
+ * Get standard AutoHotkey library directories
+ * These are the default locations AHK searches for libraries
+ */
+export function getStandardLibraryPaths() {
+    const paths = [];
+    // 1. User's Documents\AutoHotkey\Lib (highest priority for user libraries)
+    const userDocs = process.env.USERPROFILE
+        ? path.join(process.env.USERPROFILE, 'Documents', 'AutoHotkey', 'Lib')
+        : null;
+    if (userDocs && fs.existsSync(userDocs)) {
+        paths.push(userDocs);
+    }
+    // 2. AutoHotkey installation Lib folder
+    const ahkPaths = [
+        'C:\\Program Files\\AutoHotkey\\v2\\Lib',
+        'C:\\Program Files\\AutoHotkey\\Lib',
+        'C:\\Program Files (x86)\\AutoHotkey\\v2\\Lib',
+    ];
+    for (const p of ahkPaths) {
+        if (fs.existsSync(p)) {
+            paths.push(p);
+            break; // Only add one installation path
+        }
+    }
+    // 3. Active file's Lib subfolder (ScriptDir\Lib)
+    const activeFile = getActiveFile();
+    if (activeFile) {
+        const scriptDir = path.dirname(activeFile);
+        const scriptLib = path.join(scriptDir, 'Lib');
+        if (fs.existsSync(scriptLib) && !paths.includes(scriptLib)) {
+            paths.unshift(scriptLib); // Highest priority
+        }
+    }
+    // 4. Configured script directory's Lib subfolder
+    const cfg = loadConfig();
+    if (cfg.scriptDir) {
+        const configLib = path.join(cfg.scriptDir, 'Lib');
+        if (fs.existsSync(configLib) && !paths.includes(configLib)) {
+            paths.push(configLib);
+        }
+    }
+    return paths;
+}
+/**
+ * Get all library search paths (standard + configured)
+ */
+export function getAllLibraryPaths() {
+    const standard = getStandardLibraryPaths();
+    const configured = resolveSearchDirs();
+    // Combine and deduplicate
+    const allPaths = [...standard];
+    for (const p of configured) {
+        if (!allPaths.includes(p)) {
+            allPaths.push(p);
+        }
+        // Also check for Lib subfolder in each configured dir
+        const libSubfolder = path.join(p, 'Lib');
+        if (fs.existsSync(libSubfolder) && !allPaths.includes(libSubfolder)) {
+            allPaths.push(libSubfolder);
+        }
+    }
+    return allPaths;
+}
 export function resolveFilePath(pathOrName) {
     // If it's already an absolute path that exists, return it
     if (path.isAbsolute(pathOrName) && fs.existsSync(pathOrName)) {

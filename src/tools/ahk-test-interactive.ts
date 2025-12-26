@@ -10,37 +10,41 @@ export const TestInteractiveArgsSchema = z.object({
   scriptContent: z.string().describe('AHK v2 script code to test'),
   testDescription: z.string().describe('Description of what to test'),
   timeout: z.number().default(300000).describe('Max wait time in ms (5 minutes default)'),
-  ahkPath: z.string().optional().describe('Path to AutoHotkey v2 executable (auto-detected if not provided)')
+  ahkPath: z
+    .string()
+    .optional()
+    .describe('Path to AutoHotkey v2 executable (auto-detected if not provided)'),
 });
 
 export type TestInteractiveToolArgs = z.infer<typeof TestInteractiveArgsSchema>;
 
 export const ahkTestInteractiveToolDefinition = {
   name: 'AHK_Test_Interactive',
-  description: 'Run AHK script with interactive GUI feedback interface. Opens a GUI with PASS/FAIL buttons, captures script output, and waits for manual test verification. Returns pass/fail status and any output captured.',
+  description:
+    'Run AHK script with interactive GUI feedback interface. Opens a GUI with PASS/FAIL buttons, captures script output, and waits for manual test verification. Returns pass/fail status and any output captured.',
   inputSchema: {
     type: 'object',
     properties: {
       scriptContent: {
         type: 'string',
-        description: 'AutoHotkey v2 script code to test'
+        description: 'AutoHotkey v2 script code to test',
       },
       testDescription: {
         type: 'string',
-        description: 'Description of what this test validates'
+        description: 'Description of what this test validates',
       },
       timeout: {
         type: 'number',
         description: 'Maximum wait time in milliseconds (default: 300000 = 5 minutes)',
-        default: 300000
+        default: 300000,
       },
       ahkPath: {
         type: 'string',
-        description: 'Path to AutoHotkey v2 executable (auto-detected if not provided)'
-      }
+        description: 'Path to AutoHotkey v2 executable (auto-detected if not provided)',
+      },
     },
-    required: ['scriptContent', 'testDescription']
-  }
+    required: ['scriptContent', 'testDescription'],
+  },
 };
 
 export class AhkTestInteractiveTool {
@@ -48,7 +52,7 @@ export class AhkTestInteractiveTool {
     'C:\\Program Files\\AutoHotkey\\v2\\AutoHotkey64.exe',
     'C:\\Program Files (x86)\\AutoHotkey\\v2\\AutoHotkey64.exe',
     'C:\\Program Files\\AutoHotkey\\v2\\AutoHotkey.exe',
-    'C:\\Program Files (x86)\\AutoHotkey\\v2\\AutoHotkey.exe'
+    'C:\\Program Files (x86)\\AutoHotkey\\v2\\AutoHotkey.exe',
   ];
 
   private static async findAutoHotkeyPath(): Promise<string | undefined> {
@@ -83,14 +87,17 @@ export class AhkTestInteractiveTool {
 
   async execute(args: z.infer<typeof TestInteractiveArgsSchema>): Promise<McpToolResponse> {
     try {
-      const { scriptContent, testDescription, timeout, ahkPath } = TestInteractiveArgsSchema.parse(args);
+      const { scriptContent, testDescription, timeout, ahkPath } =
+        TestInteractiveArgsSchema.parse(args);
 
       // Auto-detect AutoHotkey path if not provided
       let resolvedAhkPath = ahkPath;
       if (!resolvedAhkPath) {
         resolvedAhkPath = await AhkTestInteractiveTool.findAutoHotkeyPath();
         if (!resolvedAhkPath) {
-          throw new Error('AutoHotkey v2 not found. Please install AutoHotkey v2 or provide ahkPath parameter.');
+          throw new Error(
+            'AutoHotkey v2 not found. Please install AutoHotkey v2 or provide ahkPath parameter.'
+          );
         }
       }
 
@@ -195,50 +202,55 @@ TestGui.Show()
 `;
 
       // Create temp file
-      const tempFile = path.join(os.tmpdir(), `mcp-test-${Date.now()}-${Math.random().toString(36).substr(2, 9)}.ahk`);
+      const tempFile = path.join(
+        os.tmpdir(),
+        `mcp-test-${Date.now()}-${Math.random().toString(36).substr(2, 9)}.ahk`
+      );
       await fs.writeFile(tempFile, wrapperScript, 'utf-8');
       logger.info(`Created test script: ${tempFile}`);
 
       try {
         // Run the script and wait for result
-        const result = await new Promise<{ passed: boolean, exitCode: number, output: string }>((resolve, reject) => {
-          const child = spawn(resolvedAhkPath, [tempFile], {
-            stdio: ['ignore', 'pipe', 'pipe']
-          });
-
-          let stdout = '';
-          let stderr = '';
-
-          child.stdout?.on('data', (data) => {
-            stdout += data.toString();
-          });
-
-          child.stderr?.on('data', (data) => {
-            stderr += data.toString();
-          });
-
-          // Timeout handler
-          const timeoutId = setTimeout(() => {
-            child.kill('SIGTERM');
-            setTimeout(() => child.kill('SIGKILL'), 2000);
-            reject(new Error(`Test timed out after ${timeout}ms`));
-          }, timeout);
-
-          child.on('error', (err) => {
-            clearTimeout(timeoutId);
-            reject(new Error(`Failed to start test script: ${err.message}`));
-          });
-
-          child.on('exit', (code) => {
-            clearTimeout(timeoutId);
-            const output = (stdout + stderr).trim();
-            resolve({
-              passed: code === 0,
-              exitCode: code ?? -1,
-              output
+        const result = await new Promise<{ passed: boolean; exitCode: number; output: string }>(
+          (resolve, reject) => {
+            const child = spawn(resolvedAhkPath, [tempFile], {
+              stdio: ['ignore', 'pipe', 'pipe'],
             });
-          });
-        });
+
+            let stdout = '';
+            let stderr = '';
+
+            child.stdout?.on('data', data => {
+              stdout += data.toString();
+            });
+
+            child.stderr?.on('data', data => {
+              stderr += data.toString();
+            });
+
+            // Timeout handler
+            const timeoutId = setTimeout(() => {
+              child.kill('SIGTERM');
+              setTimeout(() => child.kill('SIGKILL'), 2000);
+              reject(new Error(`Test timed out after ${timeout}ms`));
+            }, timeout);
+
+            child.on('error', err => {
+              clearTimeout(timeoutId);
+              reject(new Error(`Failed to start test script: ${err.message}`));
+            });
+
+            child.on('exit', code => {
+              clearTimeout(timeoutId);
+              const output = (stdout + stderr).trim();
+              resolve({
+                passed: code === 0,
+                exitCode: code ?? -1,
+                output,
+              });
+            });
+          }
+        );
 
         // Clean up temp file
         try {
@@ -256,23 +268,26 @@ TestGui.Show()
           content: [
             {
               type: 'text' as const,
-              text: `${statusIcon} Test Result: ${statusText}`
+              text: `${statusIcon} Test Result: ${statusText}`,
             },
             {
               type: 'text' as const,
-              text: `Test: ${testDescription}`
+              text: `Test: ${testDescription}`,
             },
             {
               type: 'text' as const,
-              text: `Exit Code: ${result.exitCode}`
+              text: `Exit Code: ${result.exitCode}`,
             },
-            ...(result.output ? [{
-              type: 'text' as const,
-              text: `Output:\n${result.output}`
-            }] : [])
-          ]
+            ...(result.output
+              ? [
+                  {
+                    type: 'text' as const,
+                    text: `Output:\n${result.output}`,
+                  },
+                ]
+              : []),
+          ],
         };
-
       } catch (error) {
         // Clean up temp file on error
         try {
@@ -282,7 +297,6 @@ TestGui.Show()
         }
         throw error;
       }
-
     } catch (error) {
       logger.error('Error in AHK_Test_Interactive tool:', error);
 
@@ -291,14 +305,16 @@ TestGui.Show()
         errorMessage = error.message;
 
         if (error.message.includes('AutoHotkey') && error.message.includes('not found')) {
-          errorMessage += '\n\nTip: Install AutoHotkey v2 from https://autohotkey.com or specify the ahkPath parameter.';
+          errorMessage +=
+            '\n\nTip: Install AutoHotkey v2 from https://autohotkey.com or specify the ahkPath parameter.';
         } else if (error.message.includes('timed out')) {
-          errorMessage += '\n\nTip: The test GUI was not responded to within the timeout period. Increase the timeout parameter if needed.';
+          errorMessage +=
+            '\n\nTip: The test GUI was not responded to within the timeout period. Increase the timeout parameter if needed.';
         }
       }
 
       return {
-        content: [{ type: 'text', text: `[ERROR]: ${errorMessage}` }]
+        content: [{ type: 'text', text: `[ERROR]: ${errorMessage}` }],
       };
     }
   }

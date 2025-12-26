@@ -92,9 +92,7 @@ class TraceStore {
   getAllTraces(limit = 100): Span[] {
     // Return most recent traces first
     const recentIds = this.traceOrder.slice(-limit).reverse();
-    return recentIds
-      .map(id => this.traces.get(id))
-      .filter((t): t is Span => t !== undefined);
+    return recentIds.map(id => this.traces.get(id)).filter((t): t is Span => t !== undefined);
   }
 
   getTracesByTool(toolName: string, limit = 50): Span[] {
@@ -138,9 +136,8 @@ class TraceStore {
   }
 
   getStats(): { totalTraces: number; maxTraces: number; oldestTrace?: number } {
-    const oldest = this.traceOrder.length > 0
-      ? this.traces.get(this.traceOrder[0])?.startTime
-      : undefined;
+    const oldest =
+      this.traceOrder.length > 0 ? this.traces.get(this.traceOrder[0])?.startTime : undefined;
 
     return {
       totalTraces: this.traces.size,
@@ -368,11 +365,7 @@ export class Tracer {
   /**
    * Synchronous version of trace
    */
-  traceSync<T>(
-    name: string,
-    fn: (span: Span) => T,
-    attributes: Record<string, unknown> = {}
-  ): T {
+  traceSync<T>(name: string, fn: (span: Span) => T, attributes: Record<string, unknown> = {}): T {
     if (!this.enabled) {
       const dummySpan = this.createDummySpan(name);
       return fn(dummySpan);
@@ -451,7 +444,12 @@ export class Tracer {
     return this.store.getTraceMetadata(traceId);
   }
 
-  getStats(): { totalTraces: number; maxTraces: number; oldestTrace?: number; activeSpans: number } {
+  getStats(): {
+    totalTraces: number;
+    maxTraces: number;
+    oldestTrace?: number;
+    activeSpans: number;
+  } {
     return {
       ...this.store.getStats(),
       activeSpans: this.contextManager.getActiveSpanCount(),

@@ -39,7 +39,8 @@ export function addDeprecationWarning(result: any, usedDeprecated: string[]): an
     return result;
   }
 
-  const warning = `⚠️ **Deprecated parameter(s)**: ${usedDeprecated.join(', ')}\n` +
+  const warning =
+    `⚠️ **Deprecated parameter(s)**: ${usedDeprecated.join(', ')}\n` +
     `Please update to new parameter names. See tool documentation for details.\n\n`;
 
   // Prepend warning to first text content

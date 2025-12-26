@@ -15,7 +15,7 @@ import type {
   LibraryMetadata,
   DocumentationInfo,
   JSDocTag,
-  DependencyInfo
+  DependencyInfo,
 } from '../types/library-types.js';
 
 /**
@@ -62,7 +62,7 @@ export class MetadataExtractor {
       category,
       fileSize: stats.size,
       lastModified: stats.mtimeMs,
-      lineCount
+      lineCount,
     };
   }
 
@@ -106,7 +106,7 @@ export class MetadataExtractor {
     return {
       major: parseInt(match[1], 10),
       minor: parseInt(match[2], 10),
-      patch: parseInt(match[3], 10)
+      patch: parseInt(match[3], 10),
     };
   }
 
@@ -155,7 +155,7 @@ export class MetadataExtractor {
           source: sourceName,
           target,
           type: 'direct',
-          includeDirective: match[0]
+          includeDirective: match[0],
         });
       }
     }
@@ -240,7 +240,7 @@ export class MetadataExtractor {
       examples,
       jsdocTags,
       author,
-      credits: credits.length > 0 ? credits : undefined
+      credits: credits.length > 0 ? credits : undefined,
     };
   }
 
@@ -284,7 +284,7 @@ export class MetadataExtractor {
     if (nameLower.includes('tooltip')) {
       return 'UI Components';
     }
-    if (content.includes('class') && content.includes('Cmd') || content.includes('Beep')) {
+    if ((content.includes('class') && content.includes('Cmd')) || content.includes('Beep')) {
       return 'Utilities';
     }
 
@@ -305,7 +305,14 @@ export class MetadataExtractor {
     // Placeholder implementation - will integrate with existing AHK_Analyze tool
     // For now, use basic regex parsing
 
-    const classes: Array<{ name: string; startLine: number; endLine: number; baseClass?: string; methods: any[]; properties: any[] }> = [];
+    const classes: Array<{
+      name: string;
+      startLine: number;
+      endLine: number;
+      baseClass?: string;
+      methods: any[];
+      properties: any[];
+    }> = [];
     const functions: Array<{ name: string; startLine: number; endLine: number }> = [];
 
     // Basic class extraction (will be replaced with AHK_Analyze integration)
@@ -326,7 +333,7 @@ export class MetadataExtractor {
         endLine: startLine + 10, // Placeholder
         baseClass,
         methods: [],
-        properties: []
+        properties: [],
       });
     }
 
@@ -346,7 +353,7 @@ export class MetadataExtractor {
       functions.push({
         name: funcName,
         startLine,
-        endLine: startLine + 5 // Placeholder
+        endLine: startLine + 5, // Placeholder
       });
     }
 

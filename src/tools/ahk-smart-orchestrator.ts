@@ -5,9 +5,12 @@ import { OrchestrationEngine, OrchestrationRequest } from '../core/orchestration
 export const AhkSmartOrchestratorArgsSchema = z.object({
   intent: z.string().min(1).describe('High-level description of what you want to do'),
   filePath: z.string().optional().describe('Optional: Direct path to AHK file (skips detection)'),
-  targetEntity: z.string().optional().describe('Optional: Specific class, method, or function name'),
+  targetEntity: z
+    .string()
+    .optional()
+    .describe('Optional: Specific class, method, or function name'),
   operation: z.enum(['view', 'edit', 'analyze']).default('view').describe('Operation type'),
-  forceRefresh: z.boolean().optional().default(false).describe('Force re-analysis of file')
+  forceRefresh: z.boolean().optional().default(false).describe('Force re-analysis of file'),
 });
 
 export type AhkSmartOrchestratorArgs = z.infer<typeof AhkSmartOrchestratorArgsSchema>;
@@ -20,30 +23,33 @@ export const ahkSmartOrchestratorToolDefinition = {
     properties: {
       intent: {
         type: 'string',
-        description: 'High-level description of what you want to do (e.g., "edit the _Dark class checkbox methods")'
+        description:
+          'High-level description of what you want to do (e.g., "edit the _Dark class checkbox methods")',
       },
       filePath: {
         type: 'string',
-        description: 'Optional: Direct path to AHK file (skips detection if provided)'
+        description: 'Optional: Direct path to AHK file (skips detection if provided)',
       },
       targetEntity: {
         type: 'string',
-        description: 'Optional: Specific class, method, or function name to focus on (e.g., "_Dark", "_Dark.ColorCheckbox")'
+        description:
+          'Optional: Specific class, method, or function name to focus on (e.g., "_Dark", "_Dark.ColorCheckbox")',
       },
       operation: {
         type: 'string',
         enum: ['view', 'edit', 'analyze'],
         default: 'view',
-        description: 'Operation type: view (read-only), edit (prepare for editing), analyze (structure only)'
+        description:
+          'Operation type: view (read-only), edit (prepare for editing), analyze (structure only)',
       },
       forceRefresh: {
         type: 'boolean',
         default: false,
-        description: 'Force re-analysis even if cached data exists'
-      }
+        description: 'Force re-analysis even if cached data exists',
+      },
     },
-    required: ['intent']
-  }
+    required: ['intent'],
+  },
 };
 
 export class AhkSmartOrchestratorTool {
@@ -61,7 +67,7 @@ export class AhkSmartOrchestratorTool {
         intent: validatedArgs.intent,
         hasFilePath: !!validatedArgs.filePath,
         targetEntity: validatedArgs.targetEntity,
-        operation: validatedArgs.operation
+        operation: validatedArgs.operation,
       });
 
       const request: OrchestrationRequest = {
@@ -69,36 +75,41 @@ export class AhkSmartOrchestratorTool {
         filePath: validatedArgs.filePath,
         targetEntity: validatedArgs.targetEntity,
         operation: validatedArgs.operation,
-        forceRefresh: validatedArgs.forceRefresh
+        forceRefresh: validatedArgs.forceRefresh,
       };
 
       const result = await this.engine.orchestrate(request);
 
       if (!result.success) {
         return {
-          content: [{
-            type: 'text',
-            text: this.formatErrorResponse(result)
-          }],
-          isError: true
+          content: [
+            {
+              type: 'text',
+              text: this.formatErrorResponse(result),
+            },
+          ],
+          isError: true,
         };
       }
 
       return {
-        content: [{
-          type: 'text',
-          text: result.context
-        }]
+        content: [
+          {
+            type: 'text',
+            text: result.context,
+          },
+        ],
       };
-
     } catch (error) {
       logger.error('Error in AHK_Smart_Orchestrator:', error);
       return {
-        content: [{
-          type: 'text',
-          text: `[ERROR] **Orchestration Error**\n\n${error instanceof Error ? error.message : String(error)}\n\n**Tip:** Ensure you provide a valid intent and, if needed, an explicit file path.`
-        }],
-        isError: true
+        content: [
+          {
+            type: 'text',
+            text: `[ERROR] **Orchestration Error**\n\n${error instanceof Error ? error.message : String(error)}\n\n**Tip:** Ensure you provide a valid intent and, if needed, an explicit file path.`,
+          },
+        ],
+        isError: true,
       };
     }
   }
@@ -106,7 +117,7 @@ export class AhkSmartOrchestratorTool {
   private formatErrorResponse(result: any): string {
     const lines: string[] = [
       '[ERROR] **Orchestration Failed**\n',
-      `Tool calls made: ${result.toolCallsMade}\n`
+      `Tool calls made: ${result.toolCallsMade}\n`,
     ];
 
     if (result.errors && result.errors.length > 0) {

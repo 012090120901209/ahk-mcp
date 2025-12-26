@@ -28,20 +28,22 @@ export class AhkCompiler {
     try {
       const lexer = new AhkLexer(source);
       const tokens = lexer.tokenize();
-      
+
       return {
         success: true,
         data: tokens,
-        errors: []
+        errors: [],
       };
     } catch (error) {
       return {
         success: false,
-        errors: [{
-          message: error instanceof Error ? error.message : 'Tokenization failed',
-          line: 1,
-          column: 1
-        }]
+        errors: [
+          {
+            message: error instanceof Error ? error.message : 'Tokenization failed',
+            line: 1,
+            column: 1,
+          },
+        ],
       };
     }
   }
@@ -55,21 +57,23 @@ export class AhkCompiler {
     try {
       const parser = new AhkParser(source);
       const ast = parser.parse();
-      
+
       return {
         success: true,
         data: ast,
-        errors: []
+        errors: [],
       };
     } catch (error) {
       const parseError = error as any;
       return {
         success: false,
-        errors: [{
-          message: parseError.message || 'Parse error',
-          line: parseError.line || 1,
-          column: parseError.column || 1
-        }]
+        errors: [
+          {
+            message: parseError.message || 'Parse error',
+            line: parseError.line || 1,
+            column: parseError.column || 1,
+          },
+        ],
       };
     }
   }
@@ -83,20 +87,22 @@ export class AhkCompiler {
     try {
       const linter = new AhkLinter(source);
       const diagnostics = linter.lint();
-      
+
       return {
         success: true,
         data: diagnostics,
-        errors: []
+        errors: [],
       };
     } catch (error) {
       return {
         success: false,
-        errors: [{
-          message: error instanceof Error ? error.message : 'Linting failed',
-          line: 1,
-          column: 1
-        }]
+        errors: [
+          {
+            message: error instanceof Error ? error.message : 'Linting failed',
+            line: 1,
+            column: 1,
+          },
+        ],
       };
     }
   }
@@ -110,20 +116,22 @@ export class AhkCompiler {
     try {
       const provider = new AhkSemanticTokenProvider(source);
       const tokens = provider.getSemanticTokens();
-      
+
       return {
         success: true,
         data: tokens,
-        errors: []
+        errors: [],
       };
     } catch (error) {
       return {
         success: false,
-        errors: [{
-          message: error instanceof Error ? error.message : 'Semantic analysis failed',
-          line: 1,
-          column: 1
-        }]
+        errors: [
+          {
+            message: error instanceof Error ? error.message : 'Semantic analysis failed',
+            line: 1,
+            column: 1,
+          },
+        ],
       };
     }
   }
@@ -143,7 +151,7 @@ export class AhkCompiler {
       tokens: this.tokenize(source),
       ast: this.parse(source),
       diagnostics: this.lint(source),
-      semanticTokens: this.semantics(source)
+      semanticTokens: this.semantics(source),
     };
   }
 
@@ -155,10 +163,12 @@ export class AhkCompiler {
   static validate(source: string): boolean {
     const parseResult = this.parse(source);
     const lintResult = this.lint(source);
-    
-    return parseResult.success && 
-           lintResult.success && 
-           (lintResult.data?.filter(d => d.severity === 'error').length || 0) === 0;
+
+    return (
+      parseResult.success &&
+      lintResult.success &&
+      (lintResult.data?.filter(d => d.severity === 'error').length || 0) === 0
+    );
   }
 
   /**
@@ -218,18 +228,18 @@ export class AhkCompiler {
   } {
     const tokenResult = this.tokenize(source);
     const parseResult = this.parse(source);
-    
+
     const lines = source.split('\n').length;
     const tokens = tokenResult.data?.length || 0;
     const comments = tokenResult.data?.filter(t => t.type === 'COMMENT').length || 0;
-    
+
     let functions = 0;
     let classes = 0;
     let complexity = 1; // Base complexity
-    
+
     if (parseResult.data) {
       const ast = parseResult.data;
-      
+
       // Count functions and classes
       const countNodes = (statements: any[]) => {
         for (const stmt of statements) {
@@ -244,14 +254,18 @@ export class AhkCompiler {
             }
           } else if (stmt.type === 'IfStatement') {
             complexity += 1;
-          } else if (stmt.type === 'WhileStatement' || stmt.type === 'ForStatement' || stmt.type === 'LoopStatement') {
+          } else if (
+            stmt.type === 'WhileStatement' ||
+            stmt.type === 'ForStatement' ||
+            stmt.type === 'LoopStatement'
+          ) {
             complexity += 2;
           } else if (stmt.type === 'TryStatement') {
             complexity += 2;
           } else if (stmt.type === 'SwitchStatement') {
             complexity += 1;
           }
-          
+
           // Recursively count nested statements
           if (stmt.body && Array.isArray(stmt.body)) {
             countNodes(stmt.body);
@@ -270,17 +284,17 @@ export class AhkCompiler {
           }
         }
       };
-      
+
       countNodes(ast.body);
     }
-    
+
     return {
       lines,
       tokens,
       functions,
       classes,
       comments,
-      complexity
+      complexity,
     };
   }
 }

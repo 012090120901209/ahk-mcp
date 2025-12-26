@@ -6,12 +6,13 @@ There is now **ONE shared variable** that ALL tools use:
 
 ```typescript
 // Located in src/core/active-file.ts
-activeFile.activeFilePath  // This is THE variable
+activeFile.activeFilePath; // This is THE variable
 ```
 
 ## How It Works
 
 ### Automatic Detection
+
 **Every tool** automatically detects file paths in ANY string input:
 
 1. User mentions a file path anywhere → Variable is set
@@ -30,6 +31,7 @@ activeFile.activeFilePath  // This is THE variable
 ## Usage Examples
 
 ### Example 1: Simple Path Detection
+
 ```
 User input to ANY tool:
 "C:\Scripts\MyScript.ahk"
@@ -39,6 +41,7 @@ Result:
 ```
 
 ### Example 2: Path in a Sentence
+
 ```
 User input:
 "Please check test.ahk for errors"
@@ -48,6 +51,7 @@ Result:
 ```
 
 ### Example 3: Multi-line Input
+
 ```
 User input:
 C:\Scripts\calculator.ahk
@@ -62,14 +66,18 @@ Then the tool runs with that file
 ## The Tools
 
 ### Primary Tool: `AHK_File_Active`
+
 Simple management of the shared variable:
+
 - `action: "get"` - Show current active file
 - `action: "set"` - Set the active file
 - `action: "detect"` - Detect from text
 - `action: "clear"` - Clear the variable
 
 ### All Other Tools
+
 **AUTOMATICALLY** detect and use the variable:
+
 - `AHK_Run` - Uses active file if no path provided
 - `AHK_Diagnostics` - Auto-detects paths in code
 - `AHK_Analyze` - Auto-detects paths in code
@@ -78,14 +86,15 @@ Simple management of the shared variable:
 ## Technical Details
 
 ### The Singleton Pattern
+
 ```typescript
 class ActiveFileManager {
   // THE variable
   public activeFilePath: string | undefined = undefined;
-  
+
   // Single instance
   private static instance: ActiveFileManager;
-  
+
   static getInstance() {
     if (!this.instance) {
       this.instance = new ActiveFileManager();
@@ -99,12 +108,13 @@ export const activeFile = ActiveFileManager.getInstance();
 ```
 
 ### Auto-Detection in Server
+
 ```typescript
 // In server.ts - runs for EVERY tool call
 if (args && typeof args === 'object') {
   for (const value of Object.values(args)) {
     if (typeof value === 'string') {
-      autoDetect(value);  // Check for file paths
+      autoDetect(value); // Check for file paths
     }
   }
 }
@@ -129,6 +139,7 @@ if (args && typeof args === 'object') {
 ## No Configuration Needed
 
 This is NOT stored in config files. It's a simple in-memory variable that:
+
 - Lives as long as the server runs
 - Shared by all tools
 - Updated automatically

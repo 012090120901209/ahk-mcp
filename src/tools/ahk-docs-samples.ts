@@ -7,12 +7,14 @@ export const AhkSamplingEnhancerArgsSchema = z.object({
   originalPrompt: z.string().min(1, 'Original prompt is required'),
   includeExamples: z.boolean().optional().default(true),
   contextLevel: z.enum(['minimal', 'standard', 'comprehensive']).optional().default('standard'),
-  modelPreferences: z.object({
-    intelligencePriority: z.number().min(0).max(1).optional().default(0.8),
-    costPriority: z.number().min(0).max(1).optional().default(0.3),
-    speedPriority: z.number().min(0).max(1).optional().default(0.5)
-  }).optional(),
-  maxTokens: z.number().min(50).max(4000).optional().default(1000)
+  modelPreferences: z
+    .object({
+      intelligencePriority: z.number().min(0).max(1).optional().default(0.8),
+      costPriority: z.number().min(0).max(1).optional().default(0.3),
+      speedPriority: z.number().min(0).max(1).optional().default(0.5),
+    })
+    .optional(),
+  maxTokens: z.number().min(50).max(4000).optional().default(1000),
 });
 
 export const ahkSamplingEnhancerToolDefinition = {
@@ -24,18 +26,18 @@ Automatically enhances prompts with AutoHotkey v2 context using MCP sampling sta
     properties: {
       originalPrompt: {
         type: 'string',
-        description: 'Original prompt is required'
+        description: 'Original prompt is required',
       },
       includeExamples: {
         type: 'boolean',
         description: 'Include code examples',
-        default: true
+        default: true,
       },
       contextLevel: {
         type: 'string',
         enum: ['minimal', 'standard', 'comprehensive'],
         description: 'Level of context to include',
-        default: 'standard'
+        default: 'standard',
       },
       modelPreferences: {
         type: 'object',
@@ -45,34 +47,34 @@ Automatically enhances prompts with AutoHotkey v2 context using MCP sampling sta
             minimum: 0,
             maximum: 1,
             description: 'Intelligence priority (0-1)',
-            default: 0.8
+            default: 0.8,
           },
           costPriority: {
             type: 'number',
             minimum: 0,
             maximum: 1,
             description: 'Cost priority (0-1)',
-            default: 0.3
+            default: 0.3,
           },
           speedPriority: {
             type: 'number',
             minimum: 0,
             maximum: 1,
             description: 'Speed priority (0-1)',
-            default: 0.5
-          }
-        }
+            default: 0.5,
+          },
+        },
       },
       maxTokens: {
         type: 'number',
         minimum: 50,
         maximum: 4000,
         description: 'Maximum tokens to generate',
-        default: 1000
-      }
+        default: 1000,
+      },
     },
-    required: ['originalPrompt']
-  }
+    required: ['originalPrompt'],
+  },
 };
 
 interface SamplingRequest {
@@ -126,14 +128,14 @@ export class AhkSamplingEnhancer {
     /\b(array|map|object|class)\b/gi,
     // Built-in variable patterns
     /\ba_\w+\b/gi,
-    // Function patterns  
-    /\b\w+(read|write|get|set|show|add|create)\b/gi
+    // Function patterns
+    /\b\w+(read|write|get|set|show|add|create)\b/gi,
   ];
 
   private contextLevels = {
     minimal: { maxFunctions: 2, maxVariables: 2, includeExamples: false },
     standard: { maxFunctions: 4, maxVariables: 3, includeExamples: true },
-    comprehensive: { maxFunctions: 6, maxVariables: 5, includeExamples: true }
+    comprehensive: { maxFunctions: 6, maxVariables: 5, includeExamples: true },
   };
 
   async execute(args: unknown): Promise<any> {
@@ -144,24 +146,29 @@ export class AhkSamplingEnhancer {
       logger.info('Analyzing prompt for AutoHotkey sampling enhancement');
 
       const validatedArgs = parsed.data;
-      const { originalPrompt, includeExamples, contextLevel, modelPreferences, maxTokens } = validatedArgs;
+      const { originalPrompt, includeExamples, contextLevel, modelPreferences, maxTokens } =
+        validatedArgs;
 
       // Check if prompt contains AutoHotkey-related content
       const isAutoHotkeyRelated = this.detectAutoHotkeyContent(originalPrompt);
-      
+
       if (!isAutoHotkeyRelated) {
         return {
           content: [
             {
               type: 'text',
-              text: 'No AutoHotkey-related content detected. Original prompt will be used without enhancement.'
-            }
-          ]
+              text: 'No AutoHotkey-related content detected. Original prompt will be used without enhancement.',
+            },
+          ],
         };
       }
 
       // Generate enhanced context
-      const enhancedContext = await this.generateEnhancedContext(originalPrompt, contextLevel ?? 'standard', includeExamples ?? true);
+      const enhancedContext = await this.generateEnhancedContext(
+        originalPrompt,
+        contextLevel ?? 'standard',
+        includeExamples ?? true
+      );
 
       // Create sampling request following MCP standards
       const samplingRequest = this.createSamplingRequest(
@@ -175,24 +182,24 @@ export class AhkSamplingEnhancer {
         content: [
           {
             type: 'text',
-            text: this.formatSamplingRequest(samplingRequest, enhancedContext) + 
+            text:
+              this.formatSamplingRequest(samplingRequest, enhancedContext) +
               '\n\n---\n\n**Enhancement Details:**\n' +
               `- Detected Keywords: ${this.extractKeywords(originalPrompt).join(', ')}\n` +
               `- Context Level: ${contextLevel ?? 'standard'}\n` +
-              `- Enhancement Reason: AutoHotkey-related content detected, enhanced with relevant documentation`
-          }
-        ]
+              `- Enhancement Reason: AutoHotkey-related content detected, enhanced with relevant documentation`,
+          },
+        ],
       };
-
     } catch (error) {
       logger.error('Error in sampling enhancer:', error);
       return {
         content: [
           {
             type: 'text',
-            text: `Error enhancing prompt: ${error instanceof Error ? error.message : 'Unknown error'}`
-          }
-        ]
+            text: `Error enhancing prompt: ${error instanceof Error ? error.message : 'Unknown error'}`,
+          },
+        ],
       };
     }
   }
@@ -203,14 +210,14 @@ export class AhkSamplingEnhancer {
 
   private extractKeywords(text: string): string[] {
     const keywords: string[] = [];
-    
+
     for (const pattern of this.keywordPatterns) {
       const matches = text.match(pattern);
       if (matches) {
         keywords.push(...matches.map(m => m.toLowerCase()));
       }
     }
-    
+
     return [...new Set(keywords)];
   }
 
@@ -226,9 +233,10 @@ export class AhkSamplingEnhancer {
 
     const config = this.contextLevels[contextLevel as keyof typeof this.contextLevels];
     const keywords = this.extractKeywords(prompt);
-    
+
     let context = '## AutoHotkey v2 Context (Auto-Enhanced)\n\n';
-    context += '*This context was automatically injected based on detected AutoHotkey keywords.*\n\n';
+    context +=
+      '*This context was automatically injected based on detected AutoHotkey keywords.*\n\n';
 
     // Add relevant functions
     const relevantFunctions = this.findRelevantFunctions(keywords, ahkIndex, config.maxFunctions);
@@ -264,24 +272,24 @@ export class AhkSamplingEnhancer {
 
   private findRelevantFunctions(keywords: string[], ahkIndex: any, maxItems: number): any[] {
     if (!ahkIndex.functions) return [];
-    
-    const matches: Array<{item: any, relevance: number}> = [];
-    
+
+    const matches: Array<{ item: any; relevance: number }> = [];
+
     for (const func of ahkIndex.functions) {
       let relevance = 0;
       const funcText = `${func.Name} ${func.Description || ''}`.toLowerCase();
-      
+
       for (const keyword of keywords) {
         if (funcText.includes(keyword)) {
           relevance += keyword.length; // Longer keywords get higher weight
         }
       }
-      
+
       if (relevance > 0) {
         matches.push({ item: func, relevance });
       }
     }
-    
+
     return matches
       .sort((a, b) => b.relevance - a.relevance)
       .slice(0, maxItems)
@@ -290,24 +298,24 @@ export class AhkSamplingEnhancer {
 
   private findRelevantVariables(keywords: string[], ahkIndex: any, maxItems: number): any[] {
     if (!ahkIndex.variables) return [];
-    
-    const matches: Array<{item: any, relevance: number}> = [];
-    
+
+    const matches: Array<{ item: any; relevance: number }> = [];
+
     for (const variable of ahkIndex.variables) {
       let relevance = 0;
       const varText = `${variable.Name} ${variable.Description || ''}`.toLowerCase();
-      
+
       for (const keyword of keywords) {
         if (varText.includes(keyword)) {
           relevance += keyword.length;
         }
       }
-      
+
       if (relevance > 0) {
         matches.push({ item: variable, relevance });
       }
     }
-    
+
     return matches
       .sort((a, b) => b.relevance - a.relevance)
       .slice(0, maxItems)
@@ -326,21 +334,18 @@ export class AhkSamplingEnhancer {
           role: 'user',
           content: {
             type: 'text',
-            text: `${enhancedContext}\n\n---\n\n**User Request:**\n${originalPrompt}`
-          }
-        }
+            text: `${enhancedContext}\n\n---\n\n**User Request:**\n${originalPrompt}`,
+          },
+        },
       ],
       modelPreferences: {
-        hints: [
-          { name: 'claude-3' },
-          { name: 'sonnet' },
-          { name: 'gpt-4' }
-        ],
+        hints: [{ name: 'claude-3' }, { name: 'sonnet' }, { name: 'gpt-4' }],
         costPriority: modelPreferences?.costPriority || 0.3,
         speedPriority: modelPreferences?.speedPriority || 0.5,
-        intelligencePriority: modelPreferences?.intelligencePriority || 0.8
+        intelligencePriority: modelPreferences?.intelligencePriority || 0.8,
       },
-      systemPrompt: 'You are an expert AutoHotkey v2 developer. Use the provided context to write accurate, well-documented AutoHotkey v2 code following best practices. Always explain your code and include comments.',
+      systemPrompt:
+        'You are an expert AutoHotkey v2 developer. Use the provided context to write accurate, well-documented AutoHotkey v2 code following best practices. Always explain your code and include comments.',
       includeContext: 'thisServer',
       temperature: 0.1, // Low temperature for consistent code generation
       maxTokens,
@@ -348,33 +353,34 @@ export class AhkSamplingEnhancer {
       metadata: {
         purpose: 'autohotkey_code_generation',
         contextEnhanced: true,
-        version: '2.0.0'
-      }
+        version: '2.0.0',
+      },
     };
   }
 
   private formatSamplingRequest(request: SamplingRequest, context: string): string {
     let output = '## Enhanced Sampling Request (MCP Standard)\n\n';
-    output += '**AutoHotkey content detected!** Your prompt has been enhanced with relevant documentation.\n\n';
-    
+    output +=
+      '**AutoHotkey content detected!** Your prompt has been enhanced with relevant documentation.\n\n';
+
     output += '### Sampling Request Details\n\n';
     output += `- **Model Preferences**: Intelligence priority ${request.modelPreferences?.intelligencePriority}, Cost priority ${request.modelPreferences?.costPriority}\n`;
     output += `- **Max Tokens**: ${request.maxTokens}\n`;
     output += `- **Temperature**: ${request.temperature} (optimized for code generation)\n`;
     output += `- **Context Inclusion**: ${request.includeContext}\n\n`;
-    
+
     output += '### Enhanced Context Added\n\n';
     output += 'The following AutoHotkey v2 documentation has been automatically injected:\n\n';
     output += context;
-    
+
     output += '\n### Next Steps\n\n';
     output += '1. The client will review this enhanced prompt\n';
     output += '2. User can modify or approve the enhanced context\n';
     output += '3. LLM will generate AutoHotkey code with improved accuracy\n';
     output += '4. Result will be returned with documentation context\n\n';
-    
+
     output += '*This follows MCP Sampling standards with human-in-the-loop controls.*';
-    
+
     return output;
   }
-} 
+}

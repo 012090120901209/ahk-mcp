@@ -40,7 +40,9 @@ export class ObservabilityServer {
    */
   async start(): Promise<void> {
     if (!this.config.enabled) {
-      logger.info('Observability server disabled (set AHK_MCP_OBSERVABILITY_ENABLED=true to enable)');
+      logger.info(
+        'Observability server disabled (set AHK_MCP_OBSERVABILITY_ENABLED=true to enable)'
+      );
       return;
     }
 
@@ -69,7 +71,9 @@ export class ObservabilityServer {
 
       this.server.listen(this.config.port, this.config.host, () => {
         this.isRunning = true;
-        logger.info(`Observability server listening on http://${this.config.host}:${this.config.port}`);
+        logger.info(
+          `Observability server listening on http://${this.config.host}:${this.config.port}`
+        );
         logger.info('Available endpoints:');
         logger.info(`  - GET  /health         - Health check`);
         logger.info(`  - GET  /ready          - Readiness check`);
@@ -91,7 +95,7 @@ export class ObservabilityServer {
     }
 
     return new Promise((resolve, reject) => {
-      this.server!.close((err) => {
+      this.server!.close(err => {
         if (err) {
           logger.error('Error stopping observability server:', err);
           reject(err);
@@ -292,9 +296,7 @@ export class ObservabilityServer {
         totalTraces: tracingStats.totalTraces,
         maxTraces: tracingStats.maxTraces,
         activeSpans: tracingStats.activeSpans,
-        oldestTraceAge: tracingStats.oldestTrace
-          ? Date.now() - tracingStats.oldestTrace
-          : null,
+        oldestTraceAge: tracingStats.oldestTrace ? Date.now() - tracingStats.oldestTrace : null,
       },
       memory: {
         heapUsed: memUsage.heapUsed,

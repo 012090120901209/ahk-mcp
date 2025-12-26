@@ -2,7 +2,10 @@
 
 ## Overview
 
-The Path Conversion System is a comprehensive cross-platform path handling solution that enables seamless file operations between Windows, WSL (Windows Subsystem for Linux), and Unix environments. This document provides technical details for developers working with or extending the path conversion system.
+The Path Conversion System is a comprehensive cross-platform path handling
+solution that enables seamless file operations between Windows, WSL (Windows
+Subsystem for Linux), and Unix environments. This document provides technical
+details for developers working with or extending the path conversion system.
 
 ## Architecture Components
 
@@ -29,10 +32,10 @@ The Path Conversion System is a comprehensive cross-platform path handling solut
 
 ```typescript
 export enum PathFormat {
-  WINDOWS = 'windows',  // C:\path\to\file
-  WSL = 'wsl',          // /mnt/c/path/to/file
-  UNIX = 'unix',         // /home/user/file
-  UNKNOWN = 'unknown'    // Unrecognized format
+  WINDOWS = 'windows', // C:\path\to\file
+  WSL = 'wsl', // /mnt/c/path/to/file
+  UNIX = 'unix', // /home/user/file
+  UNKNOWN = 'unknown', // Unrecognized format
 }
 ```
 
@@ -74,7 +77,7 @@ public windowsToWSL(windowsPath: string): PathConversionResult {
     const drive = driveMatch[1].toLowerCase();
     const remainingPath = driveMatch[2].replace(/\\/g, '/');
     const mountPoint = this.driveMappings.get(drive + ':');
-    
+
     if (mountPoint) {
       return {
         originalPath: windowsPath,
@@ -85,7 +88,7 @@ public windowsToWSL(windowsPath: string): PathConversionResult {
       };
     }
   }
-  
+
   // Handle UNC paths (\\server\share)
   if (trimmedPath.startsWith('\\\\')) {
     const uncParts = trimmedPath.substring(2).split('\\');
@@ -114,7 +117,7 @@ public wslToWindows(wslPath: string): PathConversionResult {
   if (mountMatch) {
     const drive = mountMatch[1].toUpperCase();
     const remainingPath = mountMatch[2].replace(/\//g, '\\');
-    
+
     return {
       originalPath: wslPath,
       convertedPath: `${drive}:\\${remainingPath}`,
@@ -123,14 +126,14 @@ public wslToWindows(wslPath: string): PathConversionResult {
       success: true
     };
   }
-  
+
   // Handle /mnt/share/server/share/... pattern (UNC conversion)
   const shareMatch = /^\/mnt\/share\/([^\/]+)\/([^\/]+)\/(.*)$/.exec(trimmedPath);
   if (shareMatch) {
     const server = shareMatch[1];
     const share = shareMatch[2];
     const remainingPath = shareMatch[3].replace(/\//g, '\\');
-    
+
     return {
       originalPath: wslPath,
       convertedPath: `\\\\${server}\\${share}\\${remainingPath}`,
@@ -151,10 +154,10 @@ Each tool can be configured for path conversion:
 ```typescript
 export interface ToolPathConfig {
   toolName: string;
-  pathParameters: string[];     // Parameter names that contain paths
-  convertInput: boolean;         // Whether to convert input paths
-  convertOutput: boolean;        // Whether to convert output paths
-  targetFormat: PathFormat;      // Target format for this tool
+  pathParameters: string[]; // Parameter names that contain paths
+  convertInput: boolean; // Whether to convert input paths
+  convertOutput: boolean; // Whether to convert output paths
+  targetFormat: PathFormat; // Target format for this tool
 }
 ```
 
@@ -171,16 +174,22 @@ const ahkFileTools = [
   'AHK_File_Active',
   'AHK_File_Detect',
   'AHK_Run',
-  'AHK_Analyze'
+  'AHK_Analyze',
 ];
 
 ahkFileTools.forEach(toolName => {
   this.toolConfigs.set(toolName, {
     toolName,
-    pathParameters: ['filePath', 'file', 'path', 'scriptDir', 'workingDirectory'],
+    pathParameters: [
+      'filePath',
+      'file',
+      'path',
+      'scriptDir',
+      'workingDirectory',
+    ],
     convertInput: true,
     convertOutput: true,
-    targetFormat: PathFormat.WINDOWS
+    targetFormat: PathFormat.WINDOWS,
   });
 });
 
@@ -192,7 +201,7 @@ const fileSystemTools = [
   'create_directory',
   'list_directory',
   'search_files',
-  'get_file_info'
+  'get_file_info',
 ];
 
 fileSystemTools.forEach(toolName => {
@@ -201,7 +210,7 @@ fileSystemTools.forEach(toolName => {
     pathParameters: ['path', 'source', 'destination'],
     convertInput: true,
     convertOutput: false,
-    targetFormat: PathFormat.WSL
+    targetFormat: PathFormat.WSL,
   });
 });
 ```
@@ -301,9 +310,17 @@ export interface PathConverterConfig {
 
 ```typescript
 export const CONFIG_PATHS = {
-  userConfig: path.join(process.env.HOME || process.env.USERPROFILE || '', '.ahk-mcp', 'path-converter.json'),
+  userConfig: path.join(
+    process.env.HOME || process.env.USERPROFILE || '',
+    '.ahk-mcp',
+    'path-converter.json'
+  ),
   projectConfig: path.join(process.cwd(), '.ahk-mcp', 'path-converter.json'),
-  fallbackConfig: path.join(__dirname, '../../config', 'path-converter-default.json')
+  fallbackConfig: path.join(
+    __dirname,
+    '../../config',
+    'path-converter-default.json'
+  ),
 };
 ```
 
@@ -384,44 +401,66 @@ public getDriveMappings(): DriveMapping[] {
 Tools integrate with path conversion system by:
 
 1. **Applying Input Interception**:
+
 ```typescript
 // Apply path interception for cross-platform compatibility
-const interceptionResult = pathInterceptor.interceptInput('AHK_File_Edit', validatedArgs);
+const interceptionResult = pathInterceptor.interceptInput(
+  'AHK_File_Edit',
+  validatedArgs
+);
 if (!interceptionResult.success) {
   logger.warn(`Path interception failed: ${interceptionResult.error}`);
 } else {
-  validatedArgs = interceptionResult.modifiedData as z.infer<typeof AhkEditArgsSchema>;
+  validatedArgs = interceptionResult.modifiedData as z.infer<
+    typeof AhkEditArgsSchema
+  >;
   if (interceptionResult.conversions.length > 0) {
-    logger.debug(`Path conversions applied: ${interceptionResult.conversions.length} paths converted`);
+    logger.debug(
+      `Path conversions applied: ${interceptionResult.conversions.length} paths converted`
+    );
   }
 }
 ```
 
 2. **Applying Output Interception**:
+
 ```typescript
 // Apply output path interception for cross-platform compatibility
-const outputInterception = pathInterceptor.interceptOutput('AHK_File_Edit', result);
+const outputInterception = pathInterceptor.interceptOutput(
+  'AHK_File_Edit',
+  result
+);
 if (outputInterception.success) {
   result = outputInterception.modifiedData;
   if (outputInterception.conversions.length > 0) {
-    logger.debug(`Output path conversions applied: ${outputInterception.conversions.length} paths converted`);
+    logger.debug(
+      `Output path conversions applied: ${outputInterception.conversions.length} paths converted`
+    );
   }
 }
 ```
 
 3. **Direct Path Conversion**:
+
 ```typescript
 // Apply path conversion for cross-platform compatibility
 try {
-  const pathConversion = pathConverter.autoConvert(targetFile, PathFormat.WINDOWS);
+  const pathConversion = pathConverter.autoConvert(
+    targetFile,
+    PathFormat.WINDOWS
+  );
   if (pathConversion.success) {
     targetFile = pathConversion.convertedPath;
-    logger.debug(`Path converted from ${pathConversion.originalPath} to ${targetFile}`);
+    logger.debug(
+      `Path converted from ${pathConversion.originalPath} to ${targetFile}`
+    );
   } else {
     logger.warn(`Path conversion failed: ${pathConversion.error}`);
   }
 } catch (error) {
-  logger.warn(`Path conversion error: ${error instanceof Error ? error.message : String(error)}`);
+  logger.warn(
+    `Path conversion error: ${error instanceof Error ? error.message : String(error)}`
+  );
 }
 ```
 
@@ -442,23 +481,23 @@ private cache: Map<string, CacheEntry> = new Map();
 private getCachedConversion(inputPath: string, targetFormat: PathFormat): string | null {
   const cacheKey = `${inputPath}:${targetFormat}`;
   const entry = this.cache.get(cacheKey);
-  
+
   if (entry && Date.now() - entry.timestamp < this.cacheTimeout) {
     return entry.convertedPath;
   }
-  
+
   return null;
 }
 
 private setCachedConversion(inputPath: string, targetFormat: PathFormat, convertedPath: string): void {
   const cacheKey = `${inputPath}:${targetFormat}`;
-  
+
   // Remove oldest entries if cache is full
   if (this.cache.size >= this.maxCacheSize) {
     const oldestKey = this.cache.keys().next().value;
     this.cache.delete(oldestKey);
   }
-  
+
   this.cache.set(cacheKey, {
     convertedPath,
     timestamp: Date.now()
@@ -487,7 +526,7 @@ export enum ConversionErrorType {
   DRIVE_NOT_MAPPED = 'drive_not_mapped',
   PATH_NOT_FOUND = 'path_not_found',
   PERMISSION_DENIED = 'permission_denied',
-  INVALID_SYNTAX = 'invalid_syntax'
+  INVALID_SYNTAX = 'invalid_syntax',
 }
 ```
 
@@ -497,7 +536,7 @@ export enum ConversionErrorType {
 public autoConvert(inputPath: string, targetFormat: PathFormat): PathConversionResult {
   try {
     const originalFormat = this.detectPathFormat(inputPath);
-    
+
     if (originalFormat === PathFormat.UNKNOWN) {
       return {
         originalPath: inputPath,
@@ -553,31 +592,34 @@ public autoConvert(inputPath: string, targetFormat: PathFormat): PathConversionR
 ### Adding New Path Formats
 
 1. **Update PathFormat Enum**:
+
 ```typescript
 export enum PathFormat {
   WINDOWS = 'windows',
   WSL = 'wsl',
   UNIX = 'unix',
-  MACOS = 'macos',  // New format
-  UNKNOWN = 'unknown'
+  MACOS = 'macos', // New format
+  UNKNOWN = 'unknown',
 }
 ```
 
 2. **Add Detection Logic**:
+
 ```typescript
 public detectPathFormat(inputPath: string): PathFormat {
   // Existing detection logic...
-  
+
   // macOS path pattern
   if (/^\/Users\/[^\/]+/.test(trimmedPath)) {
     return PathFormat.MACOS;
   }
-  
+
   return PathFormat.UNKNOWN;
 }
 ```
 
 3. **Implement Conversion Methods**:
+
 ```typescript
 public macosToWindows(macosPath: string): PathConversionResult {
   // Implementation for macOS to Windows conversion
@@ -589,10 +631,11 @@ public windowsToMacos(windowsPath: string): PathConversionResult {
 ```
 
 4. **Update Auto-Convert Logic**:
+
 ```typescript
 public autoConvert(inputPath: string, targetFormat: PathFormat): PathConversionResult {
   // Existing logic...
-  
+
   switch (targetFormat) {
     case PathFormat.WSL:
       return this.windowsToWSL(inputPath);
@@ -614,7 +657,7 @@ pathInterceptor.addToolConfig({
   pathParameters: ['customPath', 'outputPath'],
   convertInput: true,
   convertOutput: true,
-  targetFormat: PathFormat.WINDOWS
+  targetFormat: PathFormat.WINDOWS,
 });
 ```
 
@@ -643,7 +686,7 @@ describe('PathConverter', () => {
   describe('windowsToWSL', () => {
     it('should convert simple Windows path to WSL', () => {
       const result = converter.windowsToWSL('C:\\Scripts\\test.ahk');
-      
+
       expect(result.success).toBe(true);
       expect(result.convertedPath).toBe('/mnt/c/Scripts/test.ahk');
       expect(result.originalFormat).toBe(PathFormat.WINDOWS);
@@ -652,7 +695,7 @@ describe('PathConverter', () => {
 
     it('should handle UNC paths', () => {
       const result = converter.windowsToWSL('\\\\server\\share\\file.ahk');
-      
+
       expect(result.success).toBe(true);
       expect(result.convertedPath).toBe('/mnt/share/server/share/file.ahk');
     });
@@ -673,7 +716,7 @@ describe('PathInterceptor Integration', () => {
   it('should intercept and convert tool input paths', () => {
     const args = {
       filePath: 'C:\\Scripts\\test.ahk',
-      content: 'test content'
+      content: 'test content',
     };
 
     const result = interceptor.interceptInput('AHK_File_Edit', args);
@@ -707,7 +750,10 @@ Enable debug logging for path conversion:
 
 ```typescript
 // Test path conversion manually
-const testConversion = pathConverter.autoConvert('C:\\Scripts\\test.ahk', PathFormat.WSL);
+const testConversion = pathConverter.autoConvert(
+  'C:\\Scripts\\test.ahk',
+  PathFormat.WSL
+);
 console.log('Conversion result:', testConversion);
 
 // Get current drive mappings
@@ -744,7 +790,10 @@ console.log('Tool configs:', configs);
 
 ## Conclusion
 
-The Path Conversion Architecture provides a robust, extensible solution for cross-platform path handling in the AutoHotkey MCP Server. It addresses the common "No result received from client-side tool execution" errors by ensuring seamless path conversion between Windows, WSL, and Unix environments.
+The Path Conversion Architecture provides a robust, extensible solution for
+cross-platform path handling in the AutoHotkey MCP Server. It addresses the
+common "No result received from client-side tool execution" errors by ensuring
+seamless path conversion between Windows, WSL, and Unix environments.
 
 The system is designed to be:
 
@@ -754,4 +803,5 @@ The system is designed to be:
 - **Performant**: Caching and optimization for high performance
 - **Reliable**: Comprehensive error handling and validation
 
-This architecture enables developers to focus on AutoHotkey functionality rather than path compatibility issues.
+This architecture enables developers to focus on AutoHotkey functionality rather
+than path compatibility issues.

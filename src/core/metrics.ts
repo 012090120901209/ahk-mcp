@@ -43,7 +43,7 @@ class MetricsCollector {
   constructor(enabled = true) {
     this.enabled = enabled;
     this.registry = new Registry();
-    
+
     if (this.enabled) {
       this.initializeMetrics();
     }
@@ -55,7 +55,7 @@ class MetricsCollector {
       name: 'ahk_mcp_requests_total',
       help: 'Total number of MCP requests',
       labelNames: ['method', 'status'],
-      registers: [this.registry]
+      registers: [this.registry],
     });
 
     this.requestDuration = new Histogram({
@@ -63,13 +63,13 @@ class MetricsCollector {
       help: 'Duration of MCP requests in seconds',
       labelNames: ['method', 'status'],
       buckets: [0.001, 0.005, 0.01, 0.05, 0.1, 0.5, 1, 2, 5, 10],
-      registers: [this.registry]
+      registers: [this.registry],
     });
 
     this.activeRequests = new Gauge({
       name: 'ahk_mcp_active_requests',
       help: 'Number of active MCP requests',
-      registers: [this.registry]
+      registers: [this.registry],
     });
 
     // Tool-specific metrics
@@ -77,7 +77,7 @@ class MetricsCollector {
       name: 'ahk_mcp_tool_executions_total',
       help: 'Total number of tool executions',
       labelNames: ['tool_name', 'status'],
-      registers: [this.registry]
+      registers: [this.registry],
     });
 
     this.toolExecutionDuration = new Histogram({
@@ -85,14 +85,14 @@ class MetricsCollector {
       help: 'Duration of tool executions in seconds',
       labelNames: ['tool_name'],
       buckets: [0.01, 0.05, 0.1, 0.5, 1, 2, 5, 10, 30],
-      registers: [this.registry]
+      registers: [this.registry],
     });
 
     this.toolErrors = new Counter({
       name: 'ahk_mcp_tool_errors_total',
       help: 'Total number of tool execution errors',
       labelNames: ['tool_name', 'error_type'],
-      registers: [this.registry]
+      registers: [this.registry],
     });
 
     // AutoHotkey metrics
@@ -100,7 +100,7 @@ class MetricsCollector {
       name: 'ahk_mcp_ahk_script_executions_total',
       help: 'Total number of AutoHotkey script executions',
       labelNames: ['script_type', 'status'],
-      registers: [this.registry]
+      registers: [this.registry],
     });
 
     this.ahkScriptDuration = new Histogram({
@@ -108,21 +108,21 @@ class MetricsCollector {
       help: 'Duration of AutoHotkey script executions in seconds',
       labelNames: ['script_type'],
       buckets: [0.1, 0.5, 1, 2, 5, 10, 30, 60],
-      registers: [this.registry]
+      registers: [this.registry],
     });
 
     this.ahkWindowDetections = new Counter({
       name: 'ahk_mcp_ahk_window_detections_total',
       help: 'Total number of AutoHotkey window detections',
       labelNames: ['detection_status'],
-      registers: [this.registry]
+      registers: [this.registry],
     });
 
     this.ahkWindowDetectionDuration = new Histogram({
       name: 'ahk_mcp_ahk_window_detection_duration_seconds',
       help: 'Duration of AutoHotkey window detections in seconds',
       buckets: [0.01, 0.05, 0.1, 0.5, 1, 2, 5],
-      registers: [this.registry]
+      registers: [this.registry],
     });
 
     // File operation metrics
@@ -130,7 +130,7 @@ class MetricsCollector {
       name: 'ahk_mcp_file_operations_total',
       help: 'Total number of file operations',
       labelNames: ['operation', 'status'],
-      registers: [this.registry]
+      registers: [this.registry],
     });
 
     this.fileOperationDuration = new Histogram({
@@ -138,33 +138,33 @@ class MetricsCollector {
       help: 'Duration of file operations in seconds',
       labelNames: ['operation'],
       buckets: [0.001, 0.005, 0.01, 0.05, 0.1, 0.5, 1, 5],
-      registers: [this.registry]
+      registers: [this.registry],
     });
 
     this.fileOperationErrors = new Counter({
       name: 'ahk_mcp_file_operation_errors_total',
       help: 'Total number of file operation errors',
       labelNames: ['operation', 'error_type'],
-      registers: [this.registry]
+      registers: [this.registry],
     });
 
     // System metrics
     this.memoryUsage = new Gauge({
       name: 'ahk_mcp_memory_usage_bytes',
       help: 'Memory usage in bytes',
-      registers: [this.registry]
+      registers: [this.registry],
     });
 
     this.cpuUsage = new Gauge({
       name: 'ahk_mcp_cpu_usage_percent',
       help: 'CPU usage percentage',
-      registers: [this.registry]
+      registers: [this.registry],
     });
 
     this.activeConnections = new Gauge({
       name: 'ahk_mcp_active_connections',
       help: 'Number of active connections',
-      registers: [this.registry]
+      registers: [this.registry],
     });
 
     // Cache metrics
@@ -172,21 +172,21 @@ class MetricsCollector {
       name: 'ahk_mcp_cache_hits_total',
       help: 'Total number of cache hits',
       labelNames: ['cache_type'],
-      registers: [this.registry]
+      registers: [this.registry],
     });
 
     this.cacheMisses = new Counter({
       name: 'ahk_mcp_cache_misses_total',
       help: 'Total number of cache misses',
       labelNames: ['cache_type'],
-      registers: [this.registry]
+      registers: [this.registry],
     });
 
     this.cacheSize = new Gauge({
       name: 'ahk_mcp_cache_size',
       help: 'Cache size in items',
       labelNames: ['cache_type'],
-      registers: [this.registry]
+      registers: [this.registry],
     });
   }
 
@@ -336,19 +336,19 @@ class MetricsCollector {
   createMiddleware() {
     return (req: any, res: any, next: any) => {
       const start = Date.now();
-      
+
       this.incrementActiveRequests();
-      
+
       res.on('finish', () => {
         const duration = (Date.now() - start) / 1000;
         const method = req.method || 'unknown';
         const status = res.statusCode.toString();
-        
+
         this.recordRequestDuration(method, status, duration);
         this.incrementRequestTotal(method, status);
         this.decrementActiveRequests();
       });
-      
+
       next();
     };
   }
