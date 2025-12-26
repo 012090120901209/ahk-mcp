@@ -6,6 +6,9 @@ import { AhkFixService } from '../lsp/fix-service.js';
 import { AhkCompiler } from '../compiler/ahk-compiler.js';
 import logger from '../logger.js';
 import { safeParse } from '../core/validation-middleware.js';
+import type { Diagnostic } from '../types/index.js';
+import { DiagnosticSeverity } from '../types/index.js';
+import type { McpToolResponse } from '../types/mcp-types.js';
 
 export const AhkAnalyzeUnifiedArgsSchema = z.object({
   code: z.string().min(1, 'AutoHotkey code is required'),
@@ -132,8 +135,8 @@ interface UnifiedAnalysisResult {
     fixTime?: number;
     vscodeTime?: number;
   };
-  analysis?: any;
-  diagnostics?: any[];
+  analysis?: McpToolResponse;
+  diagnostics?: Diagnostic[];
   fixes?: {
     applied: number;
     remaining: number;
@@ -145,7 +148,7 @@ interface UnifiedAnalysisResult {
       after: string;
     }>;
   };
-  vscode?: any;
+  vscode?: McpToolResponse;
   summary: {
     codeQuality: 'excellent' | 'good' | 'needs-work' | 'poor';
     totalIssues: number;
@@ -240,88 +243,73 @@ export class AhkAnalyzeUnifiedTool {
 
     // Phase 1: Always run diagnostics for issue detection
     const diagStart = performance.now();
-    const diagnostics = await this.diagnosticProvider.getDiagnostics(args.code);
-
-    // Filter by severity if needed
-    const filteredDiagnostics = diagnostics.filter((d: any) => {
-      if (args.severityFilter === 'all') return true;
-      const severityMap: Record<number, string> = { 1: 'error', 2: 'warning', 3: 'info' };
-      return severityMap[d.severity] === args.severityFilter;
-    });
+    const diagnostics = await this.diagnosticProvider.getDiagnostics(
+      args.code,
+      args.enableClaudeStandards,
+      args.severityFilter
+    );
 
     result.performance.diagnosticsTime = Math.round(performance.now() - diagStart);
-    result.diagnostics = filteredDiagnostics;
-    result.summary.totalIssues = filteredDiagnostics.length;
+    result.diagnostics = diagnostics;
+    result.summary.totalIssues = diagnostics.length;
 
     // Phase 2: Run based on mode
-    switch (args.mode) {
-      case 'quick':
-        // Just diagnostics (already done)
-        // Calculate complexity quickly for summary
-        const quickStats = AhkCompiler.getStatistics(args.code);
-        result.summary.complexity = quickStats.complexity;
-        break;
+    if (args.mode === 'quick') {
+      // Just diagnostics (already done)
+      const quickStats = AhkCompiler.getStatistics(args.code);
+      result.summary.complexity = quickStats.complexity;
+    } else if (args.mode === 'deep' || args.mode === 'complete') {
+      const analysisStart = performance.now();
 
-      case 'deep':
-      case 'complete':
-        // Add full analysis
-        const analysisStart = performance.now();
-        const analysisArgs = {
-          code: args.code,
-          format: args.format ?? ('detailed' as const),
-          includeDocumentation: args.includeDocumentation ?? true,
-          includeUsageExamples: args.includeUsageExamples ?? false,
-          analyzeComplexity: args.analyzeComplexity ?? true,
-          enableClaudeStandards: args.enableClaudeStandards ?? true,
-          severityFilter: args.severityFilter ?? ('all' as const),
-          autoFix: args.autoFix ?? false,
-          fixLevel: args.fixLevel ?? ('safe' as const),
-          returnFixedCode: args.returnFixedCode ?? true,
-          includeVSCodeProblems: args.includeVSCodeProblems ?? false,
-          showPerformance: args.showPerformance ?? false,
-        };
-        result.analysis = await this.analyzeTool.execute(analysisArgs);
-        result.performance.analysisTime = Math.round(performance.now() - analysisStart);
+      const analysisSeverityFilter =
+        args.severityFilter === 'all' ? undefined : [args.severityFilter];
+      result.analysis = await this.analyzeTool.execute({
+        code: args.code,
+        includeDocumentation: args.includeDocumentation,
+        includeUsageExamples: args.includeUsageExamples,
+        analyzeComplexity: args.analyzeComplexity,
+        severityFilter: analysisSeverityFilter,
+      });
 
-        // Extract complexity from analysis result or recalculate
-        // Since AhkAnalyzeTool returns text, we might as well recalculate it reliably
-        const deepStats = AhkCompiler.getStatistics(args.code);
-        result.summary.complexity = deepStats.complexity;
+      result.performance.analysisTime = Math.round(performance.now() - analysisStart);
 
-        if (args.mode === 'complete') {
-          // Fall through to fix mode
-        } else {
-          break;
-        }
+      const deepStats = AhkCompiler.getStatistics(args.code);
+      result.summary.complexity = deepStats.complexity;
 
-      case 'fix':
-        // Apply fixes using FixService
+      if (args.mode === 'complete') {
         const fixStart = performance.now();
-        const fixResult = this.fixService.applyFixes(args.code, filteredDiagnostics, args.fixLevel);
+        const fixResult = this.fixService.applyFixes(args.code, diagnostics, args.fixLevel);
 
         result.performance.fixTime = Math.round(performance.now() - fixStart);
-
         result.fixes = {
           applied: fixResult.fixes.length,
           remaining: result.summary.totalIssues - fixResult.fixes.length,
           details: fixResult.fixes,
           fixedCode: fixResult.code,
         };
-
         result.summary.issuesFixed = result.fixes.applied;
-        break;
+      }
+    } else if (args.mode === 'fix') {
+      const fixStart = performance.now();
+      const fixResult = this.fixService.applyFixes(args.code, diagnostics, args.fixLevel);
 
-      case 'vscode':
-        // Add VS Code integration
-        const vscodeStart = performance.now();
-        result.vscode = await this.vscodeTool.execute({
-          content: args.code,
-          severity: args.severityFilter,
-          limit: 50,
-          format: 'summary',
-        });
-        result.performance.vscodeTime = Math.round(performance.now() - vscodeStart);
-        break;
+      result.performance.fixTime = Math.round(performance.now() - fixStart);
+      result.fixes = {
+        applied: fixResult.fixes.length,
+        remaining: result.summary.totalIssues - fixResult.fixes.length,
+        details: fixResult.fixes,
+        fixedCode: fixResult.code,
+      };
+      result.summary.issuesFixed = result.fixes.applied;
+    } else if (args.mode === 'vscode') {
+      const vscodeStart = performance.now();
+      result.vscode = await this.vscodeTool.execute({
+        content: args.code,
+        severity: args.severityFilter,
+        limit: 50,
+        format: 'summary',
+      });
+      result.performance.vscodeTime = Math.round(performance.now() - vscodeStart);
     }
 
     // Calculate overall quality assessment
@@ -446,13 +434,18 @@ ${summary.recommendations.length > 0 ? `**Recommendations**\n${summary.recommend
     // Include relevant sections from individual tools
     if (result.analysis) {
       output += `\n---\n\n**Detailed Analysis**\n\n`;
-      output += result.analysis.content[0]?.text + '\n';
+      output += (result.analysis.content[0]?.text || '') + '\n';
     }
 
     if (result.diagnostics && result.diagnostics.length > 0) {
       output += `\n---\n\n**Diagnostics**\n\n`;
-      result.diagnostics.forEach((d: any) => {
-        const icon = d.severity === 1 ? '[ERROR]' : d.severity === 2 ? '[WARN]' : '[INFO]';
+      result.diagnostics.forEach(d => {
+        const icon =
+          d.severity === DiagnosticSeverity.Error
+            ? '[ERROR]'
+            : d.severity === DiagnosticSeverity.Warning
+              ? '[WARN]'
+              : '[INFO]';
         output += `${icon} Line ${d.range.start.line + 1}: ${d.message}\n`;
       });
     } else if (result.diagnostics) {
@@ -461,7 +454,7 @@ ${summary.recommendations.length > 0 ? `**Recommendations**\n${summary.recommend
 
     if (result.vscode) {
       output += `\n---\n\n**VS Code Integration**\n\n`;
-      output += result.vscode.content[0]?.text + '\n';
+      output += (result.vscode.content[0]?.text || '') + '\n';
     }
 
     // Fixed code
