@@ -54,7 +54,7 @@ export class PathInterceptor {
       'AHK_File_Create',
       'AHK_File_Detect',
       'AHK_Run',
-      'AHK_Analyze'
+      'AHK_Analyze',
     ];
 
     ahkFileTools.forEach(toolName => {
@@ -63,7 +63,7 @@ export class PathInterceptor {
         pathParameters: ['filePath', 'file', 'path', 'scriptDir', 'workingDirectory'],
         convertInput: true,
         convertOutput: true,
-        targetFormat: PathFormat.WINDOWS
+        targetFormat: PathFormat.WINDOWS,
       });
     });
 
@@ -75,7 +75,7 @@ export class PathInterceptor {
       'create_directory',
       'list_directory',
       'search_files',
-      'get_file_info'
+      'get_file_info',
     ];
 
     // Detect OS to determine target format
@@ -88,7 +88,7 @@ export class PathInterceptor {
         pathParameters: ['path', 'source', 'destination'],
         convertInput: true,
         convertOutput: false,
-        targetFormat: targetFormat
+        targetFormat: targetFormat,
       });
     });
   }
@@ -154,7 +154,7 @@ export class PathInterceptor {
         success: true,
         originalData: arguments,
         modifiedData: arguments,
-        conversions: []
+        conversions: [],
       };
     }
 
@@ -164,7 +164,7 @@ export class PathInterceptor {
         success: true,
         originalData: arguments,
         modifiedData: arguments,
-        conversions: []
+        conversions: [],
       };
     }
 
@@ -186,7 +186,9 @@ export class PathInterceptor {
             conversions.push(conversionResult);
           } else {
             // Log the error but don't fail the entire operation
-            logger.warn(`Path conversion failed for ${toolName}.${paramName}: ${conversionResult.error}`);
+            logger.warn(
+              `Path conversion failed for ${toolName}.${paramName}: ${conversionResult.error}`
+            );
           }
         }
       }
@@ -198,16 +200,15 @@ export class PathInterceptor {
         success: true,
         originalData: args,
         modifiedData: modifiedArgs,
-        conversions
+        conversions,
       };
-
     } catch (error) {
       return {
         success: false,
         originalData: args,
         modifiedData: args,
         conversions: [],
-        error: error instanceof Error ? error.message : 'Unknown error occurred'
+        error: error instanceof Error ? error.message : 'Unknown error occurred',
       };
     }
   }
@@ -224,7 +225,7 @@ export class PathInterceptor {
         success: true,
         originalData: result,
         modifiedData: result,
-        conversions: []
+        conversions: [],
       };
     }
 
@@ -234,7 +235,7 @@ export class PathInterceptor {
         success: true,
         originalData: result,
         modifiedData: result,
-        conversions: []
+        conversions: [],
       };
     }
 
@@ -249,16 +250,15 @@ export class PathInterceptor {
         success: true,
         originalData: result,
         modifiedData: modifiedResult,
-        conversions
+        conversions,
       };
-
     } catch (error) {
       return {
         success: false,
         originalData: result,
         modifiedData: result,
         conversions: [],
-        error: error instanceof Error ? error.message : 'Unknown error occurred'
+        error: error instanceof Error ? error.message : 'Unknown error occurred',
       };
     }
   }
@@ -270,7 +270,11 @@ export class PathInterceptor {
    * @param context Context information for logging
    * @returns The conversion result
    */
-  private processPathValue(value: any, targetFormat: PathFormat, context: string): PathConversionResult {
+  private processPathValue(
+    value: any,
+    targetFormat: PathFormat,
+    context: string
+  ): PathConversionResult {
     if (typeof value !== 'string') {
       return {
         originalPath: String(value),
@@ -278,7 +282,7 @@ export class PathInterceptor {
         originalFormat: PathFormat.UNKNOWN,
         targetFormat,
         success: false,
-        error: `Path value is not a string: ${typeof value}`
+        error: `Path value is not a string: ${typeof value}`,
       };
     }
 
@@ -291,7 +295,11 @@ export class PathInterceptor {
    * @param config The tool configuration
    * @param conversions Array to collect conversion results
    */
-  private processNestedPaths(data: any, config: ToolPathConfig, conversions: PathConversionResult[]): void {
+  private processNestedPaths(
+    data: any,
+    config: ToolPathConfig,
+    conversions: PathConversionResult[]
+  ): void {
     if (Array.isArray(data)) {
       data.forEach((item, index) => {
         if (typeof item === 'object' && item !== null) {
@@ -301,9 +309,9 @@ export class PathInterceptor {
     } else if (typeof data === 'object' && data !== null) {
       Object.keys(data).forEach(key => {
         const value = data[key];
-        
+
         // Check if this key matches any of our path parameters
-        const isPathParameter = config.pathParameters.some(param => 
+        const isPathParameter = config.pathParameters.some(param =>
           key.toLowerCase().includes(param.toLowerCase())
         );
 
@@ -326,7 +334,11 @@ export class PathInterceptor {
    * @param config The tool configuration
    * @param conversions Array to collect conversion results
    */
-  private processResultPaths(result: any, config: ToolPathConfig, conversions: PathConversionResult[]): void {
+  private processResultPaths(
+    result: any,
+    config: ToolPathConfig,
+    conversions: PathConversionResult[]
+  ): void {
     if (Array.isArray(result)) {
       result.forEach((item, index) => {
         if (typeof item === 'object' && item !== null) {
@@ -371,7 +383,11 @@ export class PathInterceptor {
    * @param conversions Array to collect conversion results
    * @returns The text with converted paths
    */
-  private convertPathsInText(text: string, config: ToolPathConfig, conversions: PathConversionResult[]): string {
+  private convertPathsInText(
+    text: string,
+    config: ToolPathConfig,
+    conversions: PathConversionResult[]
+  ): string {
     // Simple regex to find potential paths
     // This is a basic implementation - could be enhanced for more sophisticated detection
     const pathRegex = /([A-Za-z]:[\\/][^\s"']|\/[^\s"']+)/g;
@@ -381,7 +397,7 @@ export class PathInterceptor {
     while ((match = pathRegex.exec(text)) !== null) {
       const path = match[1];
       const conversionResult = this.processPathValue(path, config.targetFormat, 'text-content');
-      
+
       if (conversionResult.success && conversionResult.convertedPath !== path) {
         convertedText = convertedText.replace(path, conversionResult.convertedPath);
         conversions.push(conversionResult);
@@ -429,7 +445,7 @@ export class PathInterceptor {
     return {
       enabled: this.enabled,
       toolConfigsCount: this.toolConfigs.size,
-      supportedTools: Array.from(this.toolConfigs.keys())
+      supportedTools: Array.from(this.toolConfigs.keys()),
     };
   }
 }
@@ -443,5 +459,5 @@ export const ToolPathConfigSchema = z.object({
   pathParameters: z.array(z.string()).min(1, 'At least one path parameter is required'),
   convertInput: z.boolean().default(true),
   convertOutput: z.boolean().default(true),
-  targetFormat: z.nativeEnum(PathFormat)
+  targetFormat: z.nativeEnum(PathFormat),
 });

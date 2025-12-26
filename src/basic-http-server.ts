@@ -20,7 +20,7 @@ app.get('/health', (req, res) => {
   res.json({
     status: 'ok',
     server: 'AutoHotkey MCP Server',
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
   });
 });
 
@@ -41,8 +41,8 @@ app.get('/info', (req, res) => {
       'GET /health - Health check',
       'GET /ping - Simple ping test',
       'GET /info - Server information',
-      'POST /analyze - Analyze AutoHotkey code'
-    ]
+      'POST /analyze - Analyze AutoHotkey code',
+    ],
   });
 });
 
@@ -64,7 +64,7 @@ app.post('/analyze', (req, res) => {
       hasGUI: /Gui\(/.test(code),
       hasLoops: /(Loop|For|While)/i.test(code),
       functions: (code.match(/^\s*(\w+)\s*\(/gm) || []).length,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     };
 
     res.json({
@@ -73,10 +73,9 @@ app.post('/analyze', (req, res) => {
       suggestions: [
         'Consider using AutoHotkey v2 syntax',
         'Add error handling for robust scripts',
-        'Use descriptive variable names'
-      ]
+        'Use descriptive variable names',
+      ],
     });
-
   } catch (error) {
     console.error('Error analyzing code:', error);
     res.status(500).json({ error: 'Failed to analyze code' });
@@ -88,7 +87,7 @@ app.use((req, res) => {
   console.log('404 - Endpoint not found:', req.path);
   res.status(404).json({
     error: 'Endpoint not found',
-    availableEndpoints: ['/health', '/ping', '/info', '/analyze']
+    availableEndpoints: ['/health', '/ping', '/info', '/analyze'],
   });
 });
 

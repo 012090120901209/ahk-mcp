@@ -28,7 +28,7 @@ class DebugPortProxy {
   private forwardHost: string | null = null;
   private forwardPort: number | null = null;
   private createdAt: number | null = null;
-  private activeConnections: Set<{ port: number; client: Socket; upstream?: Socket }>; 
+  private activeConnections: Set<{ port: number; client: Socket; upstream?: Socket }>;
   private trafficEvents: TrafficEvent[];
   private maxEvents: number;
   private newConnectionListeners: Set<(port: number, socket: Socket) => void> = new Set();
@@ -45,12 +45,22 @@ class DebugPortProxy {
     this.protocolMode = mode;
   }
 
-  async start(listenHost: string, listenPort: number, forwardHost?: string, forwardPort?: number): Promise<void> {
+  async start(
+    listenHost: string,
+    listenPort: number,
+    forwardHost?: string,
+    forwardPort?: number
+  ): Promise<void> {
     // Backward-compatible single-port start
     await this.startOnPorts(listenHost, [listenPort], forwardHost, forwardPort);
   }
 
-  async startOnPorts(listenHost: string, ports: number[], forwardHost?: string, forwardPort?: number): Promise<void> {
+  async startOnPorts(
+    listenHost: string,
+    ports: number[],
+    forwardHost?: string,
+    forwardPort?: number
+  ): Promise<void> {
     this.listeningHost = listenHost;
     this.forwardHost = forwardHost || null;
     this.forwardPort = forwardPort ?? null;
@@ -62,8 +72,10 @@ class DebugPortProxy {
         // Already listening on this port
         continue;
       }
-      const server = net.createServer((clientSocket) => {
-        logger.info(`AHK debug client connected on ${listenHost}:${port} from ${clientSocket.remoteAddress}:${clientSocket.remotePort}`);
+      const server = net.createServer(clientSocket => {
+        logger.info(
+          `AHK debug client connected on ${listenHost}:${port} from ${clientSocket.remoteAddress}:${clientSocket.remotePort}`
+        );
         this.handleClientConnection(port, clientSocket);
         // Notify listeners waiting for first connection
         for (const cb of Array.from(this.newConnectionListeners)) {
@@ -99,9 +111,14 @@ class DebugPortProxy {
 
   private handleClientConnection(port: number, clientSocket: Socket) {
     if (this.forwardHost && this.forwardPort) {
-      const upstream = net.createConnection({ host: this.forwardHost, port: this.forwardPort }, () => {
-        logger.info(`Connected to upstream debug adapter at ${this.forwardHost}:${this.forwardPort} (local port ${port})`);
-      });
+      const upstream = net.createConnection(
+        { host: this.forwardHost, port: this.forwardPort },
+        () => {
+          logger.info(
+            `Connected to upstream debug adapter at ${this.forwardHost}:${this.forwardPort} (local port ${port})`
+          );
+        }
+      );
 
       // Pipe client -> upstream
       clientSocket.on('data', (chunk: Buffer) => {
@@ -132,11 +149,11 @@ class DebugPortProxy {
         }
       };
 
-      clientSocket.on('error', (err) => {
+      clientSocket.on('error', err => {
         logger.error(`Client socket error on ${port}:`, err);
         closeBoth('client error');
       });
-      upstream.on('error', (err) => {
+      upstream.on('error', err => {
         logger.error(`Upstream socket error on ${port}:`, err);
         closeBoth('upstream error');
       });
@@ -153,7 +170,7 @@ class DebugPortProxy {
         this.maybeParseDAP('outgoing', clientSocket, chunk, port);
         // Without a real adapter, we do not respond. The runtime may time out.
       });
-      clientSocket.on('error', (err) => logger.error(`Client socket error on ${port}:`, err));
+      clientSocket.on('error', err => logger.error(`Client socket error on ${port}:`, err));
       clientSocket.on('close', () => logger.info(`AHK debug client disconnected on ${port}`));
       this.activeConnections.add({ port, client: clientSocket });
       clientSocket.on('close', () => this.cleanupConnection(clientSocket));
@@ -164,7 +181,7 @@ class DebugPortProxy {
     if (this.servers.size === 0) return;
     const closePromises: Promise<void>[] = [];
     for (const [port, server] of this.servers.entries()) {
-      const p = new Promise<void>((resolve) => {
+      const p = new Promise<void>(resolve => {
         try {
           server.close(() => resolve());
         } catch (error) {
@@ -208,7 +225,7 @@ class DebugPortProxy {
       forwardPort: this.forwardPort,
       protocol: this.protocolMode,
       activeConnections: this.activeConnections.size,
-      uptimeSeconds: this.createdAt ? Math.floor((Date.now() - this.createdAt) / 1000) : 0
+      uptimeSeconds: this.createdAt ? Math.floor((Date.now() - this.createdAt) / 1000) : 0,
     };
   }
 
@@ -218,7 +235,7 @@ class DebugPortProxy {
 
   async onNextConnection(timeoutMs: number): Promise<{ port?: number; timedOut: boolean }> {
     if (timeoutMs <= 0) timeoutMs = 1;
-    return new Promise((resolve) => {
+    return new Promise(resolve => {
       let resolved = false;
       const listener = (port: number) => {
         if (resolved) return;
@@ -252,7 +269,7 @@ class DebugPortProxy {
       direction,
       length: chunk.length,
       preview,
-      port
+      port,
     };
     this.trafficEvents.push(evt);
     if (this.trafficEvents.length > this.maxEvents) {
@@ -300,7 +317,10 @@ class DebugPortProxy {
   private tryRecordDAP(direction: TrafficDirection, jsonText: string, port?: number) {
     try {
       const msg = JSON.parse(jsonText);
-      const kind: 'request' | 'response' | 'event' | 'unknown' = msg?.type === 'request' || msg?.type === 'response' || msg?.type === 'event' ? msg.type : 'unknown';
+      const kind: 'request' | 'response' | 'event' | 'unknown' =
+        msg?.type === 'request' || msg?.type === 'response' || msg?.type === 'event'
+          ? msg.type
+          : 'unknown';
       const evt: TrafficEvent = {
         when: new Date().toISOString(),
         direction,
@@ -313,8 +333,8 @@ class DebugPortProxy {
           request_seq: msg?.request_seq,
           command: msg?.command,
           event: msg?.event,
-          success: msg?.success
-        }
+          success: msg?.success,
+        },
       };
       this.trafficEvents.push(evt);
       if (this.trafficEvents.length > this.maxEvents) {
@@ -334,28 +354,56 @@ class DebugPortProxy {
 }
 
 export const AhkDebugAgentArgsSchema = z.object({
-  mode: z.enum(['start', 'stop', 'status', 'get_events', 'scan']).default('status')
+  mode: z
+    .enum(['start', 'stop', 'status', 'get_events', 'scan'])
+    .default('status')
     .describe('Control action: start, stop, status, get_events, or scan (multi-port detection)'),
-  listenHost: z.string().optional().default('127.0.0.1')
+  listenHost: z
+    .string()
+    .optional()
+    .default('127.0.0.1')
     .describe('Host to listen on for /Debug connections'),
-  listenPort: z.number().optional().default(9002)
+  listenPort: z
+    .number()
+    .optional()
+    .default(9002)
     .describe('Port to listen on for /Debug connections (single-port mode)'),
-  listenPorts: z.array(z.number()).optional()
+  listenPorts: z
+    .array(z.number())
+    .optional()
     .describe('List of ports to listen on simultaneously (multi-port mode)'),
-  portRange: z.object({ start: z.number(), end: z.number() }).optional()
+  portRange: z
+    .object({ start: z.number(), end: z.number() })
+    .optional()
     .describe('Range of ports to listen on (inclusive) when using multi-port or scan modes'),
-  scanTimeoutMs: z.number().optional().default(3000)
+  scanTimeoutMs: z
+    .number()
+    .optional()
+    .default(3000)
     .describe('Timeout in milliseconds to wait for first connection in scan mode'),
-  forwardHost: z.string().optional()
+  forwardHost: z
+    .string()
+    .optional()
     .describe('Optional upstream debug adapter host to forward to (proxy mode)'),
-  forwardPort: z.number().optional()
+  forwardPort: z
+    .number()
+    .optional()
     .describe('Optional upstream debug adapter port to forward to (proxy mode)'),
-  maxEvents: z.number().optional().default(200)
+  maxEvents: z
+    .number()
+    .optional()
+    .default(200)
     .describe('Max number of traffic events to keep in memory'),
-  eventLimit: z.number().optional().default(100)
+  eventLimit: z
+    .number()
+    .optional()
+    .default(100)
     .describe('Number of recent events to return when mode=get_events'),
-  protocol: z.enum(['raw', 'dap', 'auto']).optional().default('auto')
-    .describe('Traffic interpretation: raw bytes, DAP frames, or auto-detect')
+  protocol: z
+    .enum(['raw', 'dap', 'auto'])
+    .optional()
+    .default('auto')
+    .describe('Traffic interpretation: raw bytes, DAP frames, or auto-detect'),
 });
 
 export const ahkDebugAgentToolDefinition = {
@@ -368,57 +416,58 @@ Starts a TCP listener for AutoHotkey /Debug and optionally proxies to a real deb
       mode: {
         type: 'string',
         enum: ['start', 'stop', 'status', 'get_events', 'scan'],
-        description: 'Control action: start, stop, status, get_events, or scan (multi-port detection)',
-        default: 'status'
+        description:
+          'Control action: start, stop, status, get_events, or scan (multi-port detection)',
+        default: 'status',
       },
       listenHost: {
         type: 'string',
         description: 'Host to listen on for /Debug connections',
-        default: '127.0.0.1'
+        default: '127.0.0.1',
       },
       listenPort: {
         type: 'number',
         description: 'Port to listen on for /Debug connections (single-port mode)',
-        default: 9002
+        default: 9002,
       },
       listenPorts: {
         type: 'array',
         description: 'List of ports to listen on simultaneously (multi-port mode)',
-        items: { type: 'number' }
+        items: { type: 'number' },
       },
       portRange: {
         type: 'object',
         description: 'Range of ports to listen on (inclusive) when using multi-port or scan modes',
         properties: {
           start: { type: 'number' },
-          end: { type: 'number' }
-        }
+          end: { type: 'number' },
+        },
       },
       scanTimeoutMs: {
         type: 'number',
         description: 'Timeout in milliseconds to wait for first connection in scan mode',
-        default: 3000
+        default: 3000,
       },
       forwardHost: {
         type: 'string',
-        description: 'Optional upstream debug adapter host to forward to (proxy mode)'
+        description: 'Optional upstream debug adapter host to forward to (proxy mode)',
       },
       forwardPort: {
         type: 'number',
-        description: 'Optional upstream debug adapter port to forward to (proxy mode)'
+        description: 'Optional upstream debug adapter port to forward to (proxy mode)',
       },
       maxEvents: {
         type: 'number',
         description: 'Max number of traffic events to keep in memory',
-        default: 200
+        default: 200,
       },
       eventLimit: {
         type: 'number',
         description: 'Number of recent events to return when mode=get_events',
-        default: 100
-      }
-    }
-  }
+        default: 100,
+      },
+    },
+  },
 };
 
 export class AhkDebugAgentTool {
@@ -437,7 +486,18 @@ export class AhkDebugAgentTool {
 
     try {
       const validated = parsed.data;
-      const { mode, listenHost, listenPort, listenPorts, portRange, scanTimeoutMs, forwardHost, forwardPort, maxEvents, eventLimit } = validated;
+      const {
+        mode,
+        listenHost,
+        listenPort,
+        listenPorts,
+        portRange,
+        scanTimeoutMs,
+        forwardHost,
+        forwardPort,
+        maxEvents,
+        eventLimit,
+      } = validated;
 
       const resolvePortList = (): number[] => {
         if (Array.isArray(listenPorts) && listenPorts.length > 0) {
@@ -467,7 +527,13 @@ export class AhkDebugAgentTool {
         // Default scan pool if none specified
         let ports = resolvePortList();
         const defaultListenPort = listenPort ?? 9002;
-        if ((!listenPorts || listenPorts.length === 0) && !portRange && Array.isArray(ports) && ports.length === 1 && ports[0] === defaultListenPort) {
+        if (
+          (!listenPorts || listenPorts.length === 0) &&
+          !portRange &&
+          Array.isArray(ports) &&
+          ports.length === 1 &&
+          ports[0] === defaultListenPort
+        ) {
           // Use recommended rotating pool common for VS Code AHK adapters
           ports = [9002, 9003, 9004, 9005, 9006];
         }
@@ -475,9 +541,23 @@ export class AhkDebugAgentTool {
         await proxy.startOnPorts(listenHost ?? '127.0.0.1', ports, forwardHost, forwardPort);
         const result = await proxy.onNextConnection(scanTimeoutMs ?? 3000);
         if (result.timedOut) {
-          return { content: [{ type: 'text', text: `Scan active on ports [${ports.join(', ')}], no connection detected within ${scanTimeoutMs ?? 3000}ms.` }] };
+          return {
+            content: [
+              {
+                type: 'text',
+                text: `Scan active on ports [${ports.join(', ')}], no connection detected within ${scanTimeoutMs ?? 3000}ms.`,
+              },
+            ],
+          };
         } else {
-          return { content: [{ type: 'text', text: `Detected connection on port ${result.port}. Listeners remain active on [${ports.join(', ')}].` }] };
+          return {
+            content: [
+              {
+                type: 'text',
+                text: `Detected connection on port ${result.port}. Listeners remain active on [${ports.join(', ')}].`,
+              },
+            ],
+          };
         }
       }
 
@@ -504,9 +584,11 @@ export class AhkDebugAgentTool {
       logger.error('Error in AHK_Debug_Agent tool:', error);
       return {
         content: [
-          { type: 'text', text: `Error: ${error instanceof Error ? error.message : String(error)}` }
+          {
+            type: 'text',
+            text: `Error: ${error instanceof Error ? error.message : String(error)}`,
+          },
         ],
-
       };
     }
   }
@@ -515,24 +597,26 @@ export class AhkDebugAgentTool {
     if (!status.running) {
       return 'AHK debug listener: stopped';
     }
-    const listenLine = Array.isArray(status.listenPorts) && status.listenPorts.length > 1
-      ? `- Listen: ${status.listenHost}:[${status.listenPorts.join(', ')}]`
-      : `- Listen: ${status.listenHost}:${Array.isArray(status.listenPorts) && status.listenPorts.length === 1 ? status.listenPorts[0] : ''}`;
+    const listenLine =
+      Array.isArray(status.listenPorts) && status.listenPorts.length > 1
+        ? `- Listen: ${status.listenHost}:[${status.listenPorts.join(', ')}]`
+        : `- Listen: ${status.listenHost}:${Array.isArray(status.listenPorts) && status.listenPorts.length === 1 ? status.listenPorts[0] : ''}`;
     return [
       'AHK debug listener: running',
       listenLine,
       `- Forward: ${status.forwardHost ? `${status.forwardHost}:${status.forwardPort}` : 'none'}`,
       `- Protocol: ${status.protocol || 'raw'}`,
       `- Active connections: ${status.activeConnections}`,
-      `- Uptime: ${status.uptimeSeconds}s`
+      `- Uptime: ${status.uptimeSeconds}s`,
     ].join('\n');
   }
 
   private formatEvents(events: TrafficEvent[]): string {
     if (events.length === 0) return 'No traffic captured yet.';
-    const lines = events.map((e) => `${e.when} [${e.direction}]${e.port !== undefined ? ` (port ${e.port})` : ''} ${e.length}B: ${e.preview}`);
+    const lines = events.map(
+      e =>
+        `${e.when} [${e.direction}]${e.port !== undefined ? ` (port ${e.port})` : ''} ${e.length}B: ${e.preview}`
+    );
     return lines.join('\n');
   }
 }
-
-

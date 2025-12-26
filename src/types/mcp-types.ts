@@ -41,7 +41,7 @@ export interface McpToolResponse {
  */
 export function createTextResponse(text: string): McpToolResponse {
   return {
-    content: [{ type: 'text', text }]
+    content: [{ type: 'text', text }],
   };
 }
 
@@ -54,7 +54,7 @@ export function createErrorResponse(error: unknown, context?: string): McpToolRe
   const prefix = context ? `ERROR (${context}): ` : 'ERROR: ';
 
   return {
-    content: [{ type: 'text', text: `${prefix}${message}` }]
+    content: [{ type: 'text', text: `${prefix}${message}` }],
   };
 }
 

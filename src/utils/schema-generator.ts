@@ -18,8 +18,22 @@ export function generateInputSchema(schema: ZodTypeAny, name?: string): Record<s
     $refStrategy: 'none',
   });
 
+  const schemaRecord = jsonSchema as Record<string, unknown>;
+  const ref = schemaRecord.$ref;
+  const definitions = schemaRecord.definitions;
+
+  // Inline named definitions when zod-to-json-schema returns a $ref-only schema.
+  if (typeof ref === 'string' && definitions && typeof definitions === 'object') {
+    const match = ref.match(/^#\/definitions\/(.+)$/);
+    const defKey = match?.[1];
+    const def = defKey ? (definitions as Record<string, unknown>)[defKey] : undefined;
+    if (def && typeof def === 'object') {
+      return def as Record<string, unknown>;
+    }
+  }
+
   // Remove metadata properties that MCP doesn't need
-  const { $schema, definitions, $ref, ...cleanSchema } = jsonSchema as Record<string, unknown>;
+  const { $schema, definitions: _definitions, $ref: _ref, ...cleanSchema } = schemaRecord;
 
   return cleanSchema;
 }

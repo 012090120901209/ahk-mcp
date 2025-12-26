@@ -13,19 +13,28 @@
 
 ---
 
-> [!IMPORTANT]
-> UPDATED 10/1/25: **GitHub Spec Kit integration complete!** Project now follows specification-driven development with constitutional framework, architectural decision records, and comprehensive planning templates. Enhanced reliability improvements and type safety across all tools.
+> [!IMPORTANT] UPDATED 10/1/25: **GitHub Spec Kit integration complete!**
+> Project now follows specification-driven development with constitutional
+> framework, architectural decision records, and comprehensive planning
+> templates. Enhanced reliability improvements and type safety across all tools.
 
 ## Overview
 
-**AutoHotkey v2 MCP Server** provides comprehensive development tools for AutoHotkey v2 through the Model Context Protocol. Features intelligent code analysis, file management, script execution, and context-aware assistance for LLMs working with AutoHotkey code.
+**AutoHotkey v2 MCP Server** provides comprehensive development tools for
+AutoHotkey v2 through the Model Context Protocol. Features intelligent code
+analysis, file management, script execution, and context-aware assistance for
+LLMs working with AutoHotkey code.
 
-This project follows **Specification-Driven Development** using GitHub's Spec Kit framework. See `.specify/` directory for architectural decisions, specifications, and development templates.
+This project follows **Specification-Driven Development** using GitHub's Spec
+Kit framework. See `.specify/` directory for architectural decisions,
+specifications, and development templates.
 
 ## Recent Updates
 
 **Version 2.0.0** - Production Ready:
-- **🚀 Smart File Orchestrator** - Reduces tool calls from 7-10 to 3-4 with intelligent caching
+
+- **🚀 Smart File Orchestrator** - Reduces tool calls from 7-10 to 3-4 with
+  intelligent caching
 - 25+ MCP tools with enhanced descriptions
 - Tool usage analytics and performance tracking
 - Smart context injection based on usage patterns
@@ -69,21 +78,27 @@ Display collected entries in a GUI
 Toggle collection with F6 hotkey
 Save content back to clipboard when closing
 ```
+
 3. The MCP grabs these words from keywords: Clipboard, GUI, Toggle, and Hotkey
-4. The MCP sends back more detailed context. For clipboard this would be something like:
+4. The MCP sends back more detailed context. For clipboard this would be
+   something like:
 
 ```
 The users clipboard can be accessed by the A_Clipboard built-in variable. If the users request involves determining whether or not a clipboard value has changed, use the OnClipboardChanged function object. Clipboard all is used if the user needs to save the clipboard temporarily. When the operation is completed, the script restores the original clipboard contents.
 ```
+
 5. The LLM then returns code with much better accuracy.
 
 ## Specification-Driven Development
 
-This project follows **GitHub's Spec Kit** methodology for specification-driven development:
+This project follows **GitHub's Spec Kit** methodology for specification-driven
+development:
 
 ### 📋 Constitutional Framework
 
-The project is governed by `.specify/memory/constitution.md` - 14 non-negotiable principles:
+The project is governed by `.specify/memory/constitution.md` - 14 non-negotiable
+principles:
+
 - Article I: Type Safety (TypeScript strict mode + Zod)
 - Article II: MCP Protocol Compliance
 - Article III: AutoHotkey v2 Purity
@@ -92,7 +107,9 @@ The project is governed by `.specify/memory/constitution.md` - 14 non-negotiable
 
 ### 📐 Architectural Decisions
 
-All major technical decisions documented in `.specify/specs/architecture-decisions.md`:
+All major technical decisions documented in
+`.specify/specs/architecture-decisions.md`:
+
 - ADR-001: Why TypeScript over JavaScript
 - ADR-003: Why FlexSearch for documentation search
 - ADR-006: Why PowerShell for window detection
@@ -101,9 +118,12 @@ All major technical decisions documented in `.specify/specs/architecture-decisio
 
 ### 📚 Specifications & Plans
 
-- **Master Spec**: `.specify/specs/ahk-mcp-master-spec.md` - What the system IS and WHY
-- **Technical Plan**: `.specify/specs/ahk-mcp-technical-plan.md` - HOW it's implemented
-- **Templates**: `.specify/templates/` - Spec, plan, and task templates for new features
+- **Master Spec**: `.specify/specs/ahk-mcp-master-spec.md` - What the system IS
+  and WHY
+- **Technical Plan**: `.specify/specs/ahk-mcp-technical-plan.md` - HOW it's
+  implemented
+- **Templates**: `.specify/templates/` - Spec, plan, and task templates for new
+  features
 
 ### 🔄 Development Workflow
 
@@ -119,20 +139,25 @@ See `.specify/templates/` for starting points.
 ## Features
 
 ### LSP-like Capabilities
-- **Code Completion**: Intelligent suggestions for functions, variables, classes, methods, and keywords
-- **Diagnostics**: Syntax error detection and AutoHotkey v2 coding standards validation
+
+- **Code Completion**: Intelligent suggestions for functions, variables,
+  classes, methods, and keywords
+- **Diagnostics**: Syntax error detection and AutoHotkey v2 coding standards
+  validation
 - **Script Analysis**: Comprehensive code analysis with contextual documentation
-- **Go-to-Definition**: Navigate to symbol definitions *(planned)*
-- **Find References**: Locate symbol usage throughout code *(planned)*
+- **Go-to-Definition**: Navigate to symbol definitions _(planned)_
+- **Find References**: Locate symbol usage throughout code _(planned)_
 
 ### AutoHotkey v2 Specific Features
-- **Built-in Documentation**: Comprehensive AutoHotkey v2 function and class reference
+
+- **Built-in Documentation**: Comprehensive AutoHotkey v2 function and class
+  reference
 - **Coding Standards**: Enforces Claude-defined AutoHotkey v2 best practices
 - **Hotkey Support**: Smart completion for hotkey definitions
-- **Class Analysis**: Object-oriented programming support with method and property completion
-- **Contextual Help**: Real-time documentation and examples for built-in elements
-
-
+- **Class Analysis**: Object-oriented programming support with method and
+  property completion
+- **Contextual Help**: Real-time documentation and examples for built-in
+  elements
 
 ## Installation
 
@@ -146,6 +171,7 @@ Before installing the AutoHotkey v2 MCP Server, ensure you have:
 ### Setup
 
 1. **Clone and install dependencies:**
+
    ```bash
    git clone https://github.com/TrueCrimeAudit/ahk-mcp.git
    cd ahk-mcp
@@ -153,33 +179,36 @@ Before installing the AutoHotkey v2 MCP Server, ensure you have:
    ```
 
 2. **Build the project:**
+
    ```bash
    npm run build
    ```
 
 3. **Start the server:**
+
    ```bash
    npm start
    ```
 
    **For development with auto-reload:**
+
    ```bash
    npm run dev
    ```
 
 ### Claude Desktop Configuration
 
-Add the server to your Claude Desktop configuration file (`claude_desktop_config.json`):
+Add the server to your Claude Desktop configuration file
+(`claude_desktop_config.json`):
 
 **Windows Configuration:**
+
 ```json
 {
   "mcpServers": {
     "ahk": {
       "command": "C:\\Program Files\\nodejs\\node.exe",
-      "args": [
-        "C:\\Users\\YourUsername\\path\\to\\ahk-mcp\\dist\\index.js"
-      ],
+      "args": ["C:\\Users\\YourUsername\\path\\to\\ahk-mcp\\dist\\index.js"],
       "env": {
         "NODE_ENV": "production",
         "AHK_MCP_LOG_LEVEL": "warn"
@@ -190,6 +219,7 @@ Add the server to your Claude Desktop configuration file (`claude_desktop_config
 ```
 
 **Debug Configuration (for troubleshooting):**
+
 ```json
 {
   "mcpServers": {
@@ -203,9 +233,7 @@ Add the server to your Claude Desktop configuration file (`claude_desktop_config
       "disabled": false,
       "timeout": 60,
       "command": "C:\\Program Files\\nodejs\\node.exe",
-      "args": [
-        "C:\\path\\to\\ahk-mcp\\dist\\index.js"
-      ],
+      "args": ["C:\\path\\to\\ahk-mcp\\dist\\index.js"],
       "transportType": "stdio",
       "env": {
         "NODE_ENV": "production",
@@ -214,10 +242,10 @@ Add the server to your Claude Desktop configuration file (`claude_desktop_config
     }
   }
 }
-
 ```
 
 **Important Notes:**
+
 - Replace `YourUsername` with your actual Windows username
 - Replace `path\\to\\ahk-mcp` with the actual path to your installation
 - Use absolute paths for both Node.js and the script
@@ -231,24 +259,26 @@ To add this server in [MCP Jam](https://mcpjam.com):
 1. Click **Add MCP Server**
 2. Fill in the fields:
 
-| Field | Value |
-|-------|-------|
-| **Server Name** | `ahk-mcp` |
-| **Connection Type** | `STDIO` |
-| **Command** | `node C:\Users\YourUsername\path\to\ahk-mcp\dist\server.js` |
+| Field               | Value                                                       |
+| ------------------- | ----------------------------------------------------------- |
+| **Server Name**     | `ahk-mcp`                                                   |
+| **Connection Type** | `STDIO`                                                     |
+| **Command**         | `node C:\Users\YourUsername\path\to\ahk-mcp\dist\server.js` |
 
-> **Important:** The command must point to `dist/server.js` (not `server.js` in root)
+> **Important:** The command must point to `dist/server.js` (not `server.js` in
+> root)
 
 3. **Environment Variables** (optional):
 
-| Variable | Value | Description |
-|----------|-------|-------------|
-| `NODE_ENV` | `production` | Production mode |
-| `AHK_MCP_LOG_LEVEL` | `warn` | Log level (`debug`, `info`, `warn`, `error`) |
+| Variable            | Value        | Description                                  |
+| ------------------- | ------------ | -------------------------------------------- |
+| `NODE_ENV`          | `production` | Production mode                              |
+| `AHK_MCP_LOG_LEVEL` | `warn`       | Log level (`debug`, `info`, `warn`, `error`) |
 
 4. Click **Add Server**
 
 **Alternative using npx** (if published to npm):
+
 ```
 npx ahk-mcp-server
 ```
@@ -257,16 +287,24 @@ npx ahk-mcp-server
 
 ### Tool Naming Convention
 
-- All tools now use the `AHK_<Word>_<Word>` format (e.g. `AHK_File_View`, `AHK_File_Edit_Diff`).
-- Previous lowercase names such as `ahk_file_view` are no longer registered by the server.
-- Mixing the old names in tool chains previously triggered "Unknown tool" errors because `server.ts` only dispatched `ahk_*` handlers. The dispatcher, tool recommendations, and configuration settings now agree on the new `AHK_*` identifiers so chained calls proceed correctly.
+- All tools now use the `AHK_<Word>_<Word>` format (e.g. `AHK_File_View`,
+  `AHK_File_Edit_Diff`).
+- Previous lowercase names such as `ahk_file_view` are no longer registered by
+  the server.
+- Mixing the old names in tool chains previously triggered "Unknown tool" errors
+  because `server.ts` only dispatched `ahk_*` handlers. The dispatcher, tool
+  recommendations, and configuration settings now agree on the new `AHK_*`
+  identifiers so chained calls proceed correctly.
 
 ### Core Analysis Tools
 
 #### `AHK_Smart_Orchestrator` 🆕
-Intelligently orchestrates file operations to minimize redundant tool calls. Automatically chains detect → analyze → read → edit workflow with smart caching.
+
+Intelligently orchestrates file operations to minimize redundant tool calls.
+Automatically chains detect → analyze → read → edit workflow with smart caching.
 
 **Key Benefits:**
+
 - Reduces tool calls from 7-10 to 3-4 (60% reduction)
 - Session-scoped caching with staleness detection
 - Automatic line range calculation
@@ -283,6 +321,7 @@ Intelligently orchestrates file operations to minimize redundant tool calls. Aut
 ```
 
 **Examples:**
+
 ```typescript
 // View a specific class
 { intent: "view the _Dark class", targetEntity: "_Dark", operation: "view" }
@@ -299,6 +338,7 @@ Intelligently orchestrates file operations to minimize redundant tool calls. Aut
 See [docs/SMART_ORCHESTRATOR.md](docs/SMART_ORCHESTRATOR.md) for details.
 
 #### `AHK_Run`
+
 Execute AutoHotkey scripts with window detection and timeout handling.
 
 ```typescript
@@ -314,7 +354,9 @@ Execute AutoHotkey scripts with window detection and timeout handling.
 ```
 
 #### `AHK_Diagnostics`
-Validates code syntax and enforces coding standards with detailed error reporting.
+
+Validates code syntax and enforces coding standards with detailed error
+reporting.
 
 ```typescript
 {
@@ -325,6 +367,7 @@ Validates code syntax and enforces coding standards with detailed error reportin
 ```
 
 #### `AHK_Analyze`
+
 Comprehensive script analysis with contextual documentation and usage insights.
 
 ```typescript
@@ -338,7 +381,8 @@ Comprehensive script analysis with contextual documentation and usage insights.
 
 ## Built-in AutoHotkey Prompts
 
-The server includes 7 ready-to-use AutoHotkey v2 prompts accessible through Claude:
+The server includes 7 ready-to-use AutoHotkey v2 prompts accessible through
+Claude:
 
 1. **File System Watcher** - Monitor directory changes with callbacks
 2. **CPU Usage Monitor** - Display real-time CPU usage in tooltips
@@ -347,9 +391,22 @@ The server includes 7 ready-to-use AutoHotkey v2 prompts accessible through Clau
 5. **Link Manager** - URL validation and browser integration
 6. **Snippet Manager** - Text snippet storage and insertion system
 
-Access these prompts through Claude's interface by typing `/` and selecting from the available AutoHotkey prompts.
+Access these prompts through Claude's interface by typing `/` and selecting from
+the available AutoHotkey prompts.
 
 ## Documentation
+
+### Doc Index
+
+- `docs/README.md` - Documentation index
+- `docs/QUICK_START.md` - Quick start setup
+- `docs/QUICKREFERENCE.md` - One-page overview
+- `docs/PLAINLANGUAGE_SUMMARY.md` - Plain-language walkthrough
+- `docs/ARCHITECTURE_DIAGRAMS.md` - System diagrams
+- `docs/DOCKER.md` - Docker deployment
+- `docs/CODE_EXECUTION.md` - Code execution context
+- `docs/TASKS.md` - MCP task support
+- `docs/TECHNICAL_DEBT_CLEANUP_GUIDE.md` - Technical debt cleanup guide
 
 ### Project Documentation
 
@@ -357,14 +414,17 @@ Access these prompts through Claude's interface by typing `/` and selecting from
 - **Claude Desktop Setup**: `docs/CLAUDE_DESKTOP_SETUP.md`
 - **Claude Code Setup**: `docs/CLAUDE_CODE_SETUP.md`
 - **Settings Guide**: `docs/SETTINGS_GUIDE.md` - Configuration options
-- **Coding Agent Guide**: `docs/CODING_AGENT_GUIDE.md` - AI agent integration patterns
+- **Coding Agent Guide**: `docs/CODING_AGENT_GUIDE.md` - AI agent integration
+  patterns
 - **Release Notes**: `docs/RELEASE_NOTES.md` - Version history
 
 ### Specification Documents
 
 - **Constitution**: `.specify/memory/constitution.md` - Project governance
-- **Master Spec**: `.specify/specs/ahk-mcp-master-spec.md` - System specification
-- **Technical Plan**: `.specify/specs/ahk-mcp-technical-plan.md` - Implementation details
+- **Master Spec**: `.specify/specs/ahk-mcp-master-spec.md` - System
+  specification
+- **Technical Plan**: `.specify/specs/ahk-mcp-technical-plan.md` -
+  Implementation details
 - **ADR Log**: `.specify/specs/architecture-decisions.md` - Decision records
 
 ### AutoHotkey v2 Data
@@ -383,11 +443,15 @@ The server includes comprehensive AutoHotkey v2 documentation:
 
 This project follows **specification-driven development**:
 
-1. **Read the Constitution**: `.specify/memory/constitution.md` - Non-negotiable principles
-2. **Review ADRs**: `.specify/specs/architecture-decisions.md` - Understand past decisions
-3. **Create a Spec**: Use `.specify/templates/spec-template.md` to define WHAT and WHY
+1. **Read the Constitution**: `.specify/memory/constitution.md` - Non-negotiable
+   principles
+2. **Review ADRs**: `.specify/specs/architecture-decisions.md` - Understand past
+   decisions
+3. **Create a Spec**: Use `.specify/templates/spec-template.md` to define WHAT
+   and WHY
 4. **Create a Plan**: Use `.specify/templates/plan-template.md` to define HOW
-5. **Break Down Tasks**: Use `.specify/templates/tasks-template.md` for implementation
+5. **Break Down Tasks**: Use `.specify/templates/tasks-template.md` for
+   implementation
 6. **Follow Test-First**: Write tests BEFORE implementation (Article IV)
 
 ### Key Principles
@@ -402,7 +466,8 @@ See `CONTRIBUTING.md` for detailed guidelines (coming soon).
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
+for details.
 
 ---
 

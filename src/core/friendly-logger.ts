@@ -9,7 +9,7 @@ export enum LogCategory {
   INFO = '[INFO]',
   ERROR = '[FAIL]',
   SUCCESS = '[DONE]',
-  TOOL = '[TOOL]'
+  TOOL = '[TOOL]',
 }
 
 export class FriendlyLogger {
@@ -35,11 +35,11 @@ export class FriendlyLogger {
   public log(category: LogCategory, message: string, details?: string): void {
     const timestamp = new Date().toLocaleTimeString();
     const logEntry = `[${timestamp}] - ${category} - ${message}${details ? ` (${details})` : ''}\n`;
-    
+
     try {
       fs.appendFileSync(this.logFile, logEntry);
       // Also write to stderr for immediate visibility if needed, but keep it clean
-      // process.stderr.write(logEntry); 
+      // process.stderr.write(logEntry);
     } catch (error) {
       console.error('Failed to write to friendly log:', error);
     }

@@ -29,7 +29,7 @@ export enum SemanticTokenType {
   NUMBER = 'number',
   REGEXP = 'regexp',
   OPERATOR = 'operator',
-  DELIMITER = 'delimiter'
+  DELIMITER = 'delimiter',
 }
 
 export enum SemanticTokenModifier {
@@ -42,7 +42,7 @@ export enum SemanticTokenModifier {
   ASYNC = 'async',
   MODIFICATION = 'modification',
   DOCUMENTATION = 'documentation',
-  DEFAULT_LIBRARY = 'defaultLibrary'
+  DEFAULT_LIBRARY = 'defaultLibrary',
 }
 
 export interface SemanticToken {
@@ -65,14 +65,14 @@ export class AhkSemanticTokenProvider {
 
   getSemanticTokens(): SemanticToken[] {
     this.semanticTokens = [];
-    
+
     // Tokenize the source
     const lexer = new AhkLexer(this.source);
     this.tokens = lexer.tokenize();
-    
+
     // Process tokens and assign semantic types
     this.processTokens();
-    
+
     return this.semanticTokens;
   }
 
@@ -80,7 +80,7 @@ export class AhkSemanticTokenProvider {
     for (let i = 0; i < this.tokens.length; i++) {
       const token = this.tokens[i];
       const semanticToken = this.classifyToken(token, i);
-      
+
       if (semanticToken) {
         this.semanticTokens.push(semanticToken);
       }
@@ -202,7 +202,7 @@ export class AhkSemanticTokenProvider {
       character: token.column,
       length: token.value.length,
       tokenType,
-      tokenModifiers: modifiers
+      tokenModifiers: modifiers,
     };
   }
 
@@ -245,53 +245,119 @@ export class AhkSemanticTokenProvider {
 
   private isDocumentationComment(comment: string): boolean {
     // Check for documentation comment patterns
-    return comment.startsWith(';/**') || 
-           comment.startsWith(';///') || 
-           comment.includes('@param') || 
-           comment.includes('@return') ||
-           comment.includes('@description');
+    return (
+      comment.startsWith(';/**') ||
+      comment.startsWith(';///') ||
+      comment.includes('@param') ||
+      comment.includes('@return') ||
+      comment.includes('@description')
+    );
   }
 
   private isBuiltinFunction(name: string): boolean {
     const builtins = [
       // Core functions
-      'MsgBox', 'Send', 'SendText', 'SendInput', 'SendPlay', 'SendRaw',
-      'Click', 'MouseMove', 'MouseClick', 'MouseClickDrag',
-      'Sleep', 'Random', 'SetTimer',
-      
+      'MsgBox',
+      'Send',
+      'SendText',
+      'SendInput',
+      'SendPlay',
+      'SendRaw',
+      'Click',
+      'MouseMove',
+      'MouseClick',
+      'MouseClickDrag',
+      'Sleep',
+      'Random',
+      'SetTimer',
+
       // Window functions
-      'WinActivate', 'WinClose', 'WinExist', 'WinGetTitle', 'WinSetTitle',
-      'WinMove', 'WinRestore', 'WinMaximize', 'WinMinimize',
-      
+      'WinActivate',
+      'WinClose',
+      'WinExist',
+      'WinGetTitle',
+      'WinSetTitle',
+      'WinMove',
+      'WinRestore',
+      'WinMaximize',
+      'WinMinimize',
+
       // File functions
-      'FileRead', 'FileWrite', 'FileAppend', 'FileDelete', 'FileCopy',
-      'FileMove', 'FileExist', 'FileGetSize', 'FileGetTime',
-      
+      'FileRead',
+      'FileWrite',
+      'FileAppend',
+      'FileDelete',
+      'FileCopy',
+      'FileMove',
+      'FileExist',
+      'FileGetSize',
+      'FileGetTime',
+
       // String functions
-      'StrSplit', 'StrReplace', 'StrLower', 'StrUpper', 'StrTitle',
-      'SubStr', 'StrLen', 'Trim', 'LTrim', 'RTrim',
-      
+      'StrSplit',
+      'StrReplace',
+      'StrLower',
+      'StrUpper',
+      'StrTitle',
+      'SubStr',
+      'StrLen',
+      'Trim',
+      'LTrim',
+      'RTrim',
+
       // Array/Object functions
-      'Array', 'Map', 'Object', 'IsObject',
-      
+      'Array',
+      'Map',
+      'Object',
+      'IsObject',
+
       // GUI functions
-      'Gui', 'GuiCreate', 'GuiAdd', 'GuiShow', 'GuiClose',
-      
+      'Gui',
+      'GuiCreate',
+      'GuiAdd',
+      'GuiShow',
+      'GuiClose',
+
       // System functions
-      'Run', 'RunWait', 'ExitApp', 'Reload', 'Suspend',
-      'ToolTip', 'TrayTip', 'SoundPlay', 'SoundBeep',
-      
+      'Run',
+      'RunWait',
+      'ExitApp',
+      'Reload',
+      'Suspend',
+      'ToolTip',
+      'TrayTip',
+      'SoundPlay',
+      'SoundBeep',
+
       // Registry functions
-      'RegRead', 'RegWrite', 'RegDelete',
-      
+      'RegRead',
+      'RegWrite',
+      'RegDelete',
+
       // Math functions
-      'Abs', 'Ceil', 'Floor', 'Round', 'Sqrt', 'Sin', 'Cos', 'Tan',
-      'Exp', 'Log', 'Ln', 'Max', 'Min', 'Mod',
-      
+      'Abs',
+      'Ceil',
+      'Floor',
+      'Round',
+      'Sqrt',
+      'Sin',
+      'Cos',
+      'Tan',
+      'Exp',
+      'Log',
+      'Ln',
+      'Max',
+      'Min',
+      'Mod',
+
       // Conversion functions
-      'Chr', 'Ord', 'Format', 'Number', 'String'
+      'Chr',
+      'Ord',
+      'Format',
+      'Number',
+      'String',
     ];
-    
+
     return builtins.includes(name);
   }
 
@@ -333,9 +399,10 @@ export class AhkSemanticTokenProvider {
         if (parenDepth === 0) {
           // Found closing paren, check for opening brace
           const nextAfterParen = i + 1 < this.tokens.length ? this.tokens[i + 1] : null;
-          return !!(nextAfterParen && 
-                 (nextAfterParen.type === TokenType.LBRACE || 
-                  nextAfterParen.type === TokenType.NEWLINE));
+          return !!(
+            nextAfterParen &&
+            (nextAfterParen.type === TokenType.LBRACE || nextAfterParen.type === TokenType.NEWLINE)
+          );
         }
       }
     }

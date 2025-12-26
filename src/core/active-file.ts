@@ -7,7 +7,7 @@ import {
   resolveFilePath,
   getActiveFile as getPersistedActiveFile,
   setActiveFile as persistActiveFile,
-  clearActiveFile as clearPersistedActiveFile
+  clearActiveFile as clearPersistedActiveFile,
 } from './config.js';
 
 /**
@@ -162,7 +162,7 @@ class ActiveFileManager {
       activeFile: this.activeFilePath,
       lastDetected: this.lastDetectedPath,
       lastModified: this.lastModified,
-      exists: this.activeFilePath ? fs.existsSync(this.activeFilePath) : false
+      exists: this.activeFilePath ? fs.existsSync(this.activeFilePath) : false,
     };
   }
 }

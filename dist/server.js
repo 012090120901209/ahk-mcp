@@ -1,12 +1,16 @@
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { SSEServerTransport } from '@modelcontextprotocol/sdk/server/sse.js';
+import { z } from 'zod';
 import { CallToolRequestSchema, ListToolsRequestSchema, ListPromptsRequestSchema, GetPromptRequestSchema, ListResourcesRequestSchema, ReadResourceRequestSchema, SetLevelRequestSchema, } from '@modelcontextprotocol/sdk/types.js';
 import { initializeDataLoader, getAhkIndex } from './core/loader.js';
 import logger from './logger.js';
 import { ToolRegistry } from './core/tool-registry.js';
 import { envConfig } from './core/env-config.js';
+import { createErrorResponse } from './utils/response-helpers.js';
+import { TaskManager } from './core/task-manager.js';
 import { logDebugEvent, logDebugError } from './debug-journal.js';
+import { getUnifiedLogger } from './core/unified-logger.js';
 // Import tool classes and definitions
 import { AhkDiagnosticsTool } from './tools/ahk-analyze-diagnostics.js';
 import { AhkSummaryTool } from './tools/ahk-analyze-summary.js';
@@ -30,6 +34,7 @@ import { AhkFileTool } from './tools/ahk-file-active.js';
 import { AhkEditTool } from './tools/ahk-file-edit.js';
 import { AhkDiffEditTool } from './tools/ahk-file-edit-diff.js';
 import { AhkSettingsTool } from './tools/ahk-system-settings.js';
+import { AhkVSCodeOpenTool } from './tools/ahk-vscode-open.js';
 import { AhkAlphaTool } from './tools/ahk-system-alpha.js';
 import { AhkFileEditorTool } from './tools/ahk-file-edit-advanced.js';
 import { AhkSmallEditTool } from './tools/ahk-file-edit-small.js';
@@ -41,10 +46,7 @@ import { AhkTraceViewerTool } from './tools/ahk-trace-viewer.js';
 import { AhkLintTool } from './tools/ahk-lint.js';
 import { AhkToolsSearchTool } from './tools/ahk-tools-search.js';
 import { AhkWorkflowAnalyzeFixRunTool } from './tools/ahk-workflow-analyze-fix-run.js';
-import { AhkLspDocumentSymbolsTool } from './tools/ahk-lsp-document-symbols.js';
-import { AhkLspHoverTool } from './tools/ahk-lsp-hover.js';
-import { AhkLspFormatTool } from './tools/ahk-lsp-format.js';
-import { AhkLspCompletionTool } from './tools/ahk-lsp-completion.js';
+import { AhkThqbyDocumentSymbolsTool } from './tools/ahk-thqby-document-symbols.js';
 import { autoDetect, getActiveFilePath } from './core/active-file.js';
 import { toolSettings } from './core/tool-settings.js';
 import { configManager } from './core/path-converter-config.js';
@@ -66,6 +68,15 @@ export class AutoHotkeyMcpServer {
                 resources: {},
                 sampling: {},
                 logging: {},
+                tasks: {
+                    list: {},
+                    cancel: {},
+                    requests: {
+                        tools: {
+                            call: {}
+                        }
+                    }
+                },
             },
         });
         // Initialize tool instances
@@ -91,6 +102,7 @@ export class AutoHotkeyMcpServer {
         this.ahkEditToolInstance = new AhkEditTool();
         this.ahkDiffEditToolInstance = new AhkDiffEditTool();
         this.ahkSettingsToolInstance = new AhkSettingsTool();
+        this.ahkVSCodeOpenToolInstance = new AhkVSCodeOpenTool();
         this.ahkAlphaToolInstance = new AhkAlphaTool();
         this.ahkFileEditorToolInstance = new AhkFileEditorTool();
         this.ahkSmallEditToolInstance = new AhkSmallEditTool();
@@ -99,12 +111,10 @@ export class AutoHotkeyMcpServer {
         this.ahkTestInteractiveToolInstance = new AhkTestInteractiveTool();
         this.ahkTraceViewerToolInstance = new AhkTraceViewerTool();
         this.ahkToolsSearchToolInstance = new AhkToolsSearchTool();
-        this.ahkLspDocumentSymbolsToolInstance = new AhkLspDocumentSymbolsTool();
-        this.ahkLspHoverToolInstance = new AhkLspHoverTool();
-        this.ahkLspFormatToolInstance = new AhkLspFormatTool();
-        this.ahkLspCompletionToolInstance = new AhkLspCompletionTool();
+        this.ahkThqbyDocumentSymbolsToolInstance = new AhkThqbyDocumentSymbolsTool();
         this.ahkLintToolInstance = new AhkLintTool();
         this.toolRegistry = new ToolRegistry(this);
+        this.taskManager = new TaskManager();
         // Initialize workflow tool with dependencies (must be after other tools are initialized)
         this.ahkWorkflowAnalyzeFixRunToolInstance = new AhkWorkflowAnalyzeFixRunTool(this.ahkAnalyzeToolInstance, this.ahkEditToolInstance, this.ahkRunToolInstance, this.ahkLspToolInstance);
         // Initialize Smart Orchestrator after toolRegistry is created
@@ -112,6 +122,7 @@ export class AutoHotkeyMcpServer {
         // Initialize path conversion system
         this.initializePathConversion();
         this.setupToolHandlers();
+        this.setupTaskHandlers();
         this.setupPromptHandlers();
         this.setupResourceHandlers();
         this.setupLoggingHandlers();
@@ -195,15 +206,15 @@ export class AutoHotkeyMcpServer {
         });
         // Call tool handler
         this.server.setRequestHandler(CallToolRequestSchema, async (request) => {
-            const { name, arguments: args } = request.params;
+            const params = request.params;
+            const { name, arguments: args } = params;
+            const taskRequest = params.task;
             const startTime = Date.now();
-            logDebugEvent('tools.call', { status: 'start', message: name, details: {
-                    hasArgs: Boolean(args && typeof args === 'object' && Object.keys(args).length),
-                    argCount: args && typeof args === 'object' ? Object.keys(args).length : 0,
-                    toolType: name.split('_')[1] || 'unknown'
-                } });
-            logger.info(`🔧 Tool called: ${name}`);
-            logger.debug(`🔧 Tool arguments:`, args);
+            const toolTimeoutMs = envConfig.getToolTimeoutMs();
+            // Unified logging: generate call ID and log start
+            const callId = `${name}-${startTime}-${Math.random().toString(36).slice(2, 8)}`;
+            const unifiedLog = getUnifiedLogger();
+            unifiedLog.toolStart(callId, name, args || {});
             // AUTO-DETECT FILE PATHS IN ANY TOOL INPUT (if enabled)
             // Check all string arguments for potential file paths
             if (toolSettings.isFileDetectionAllowed() && args && typeof args === 'object') {
@@ -214,6 +225,24 @@ export class AutoHotkeyMcpServer {
                 }
             }
             try {
+                if (taskRequest) {
+                    const ttl = typeof taskRequest.ttl === 'number' && Number.isFinite(taskRequest.ttl) && taskRequest.ttl > 0
+                        ? taskRequest.ttl
+                        : undefined;
+                    const pollInterval = envConfig.getTaskPollIntervalMs();
+                    const taskTimeoutMs = ttl ?? envConfig.getTaskTimeoutMs();
+                    const task = this.taskManager.createTask({
+                        toolName: name,
+                        ttl,
+                        pollInterval,
+                        execute: () => this.executeToolWithTimeout(name, args, taskTimeoutMs)
+                    });
+                    // Unified logging: task queued (execution is async)
+                    unifiedLog.toolEnd(callId, {
+                        content: [{ type: 'text', text: `task queued: ${task.taskId}` }],
+                    });
+                    return { task };
+                }
                 // Execute tool with distributed tracing
                 const result = await tracer.trace(name, async (span) => {
                     // Add tool metadata to span
@@ -222,7 +251,7 @@ export class AutoHotkeyMcpServer {
                         ? Object.keys(args).length
                         : 0;
                     // Execute the tool
-                    const toolResult = await this.toolRegistry.executeTool(name, args);
+                    const toolResult = await this.executeToolWithTimeout(name, args, toolTimeoutMs);
                     // Add result metadata to span
                     if (toolResult && toolResult.content) {
                         span.attributes.resultContentCount = toolResult.content.length;
@@ -230,18 +259,110 @@ export class AutoHotkeyMcpServer {
                     }
                     return toolResult;
                 }, { toolType: name.split('_')[1] || 'unknown' });
-                logDebugEvent('tools.call', { status: 'success', message: name, details: {
-                        duration: Date.now() - startTime,
-                        hasResult: Boolean(result && result.content && result.content.length > 0)
-                    } });
+                // Unified logging: log success
+                unifiedLog.toolEnd(callId, result);
                 return result;
             }
             catch (error) {
-                logger.error(`Error executing tool ${name}:`, error);
-                logDebugError('tools.call', error, { details: { tool: name } });
-                throw error;
+                // Unified logging: log error
+                unifiedLog.toolError(callId, error instanceof Error ? error : new Error(String(error)));
+                const message = error instanceof Error ? error.message : String(error);
+                return {
+                    content: [{ type: 'text', text: `Error: ${message}` }],
+                    isError: true
+                };
             }
         });
+    }
+    /**
+     * Setup MCP task handlers
+     */
+    setupTaskHandlers() {
+        const taskStatusValues = ['working', 'completed', 'failed', 'canceled'];
+        const TaskStatusSchema = z.enum(taskStatusValues);
+        const TaskListRequestSchema = z.object({
+            method: z.literal('tasks/list'),
+            params: z.object({
+                status: TaskStatusSchema.optional()
+            }).optional()
+        });
+        const TaskGetRequestSchema = z.object({
+            method: z.literal('tasks/get'),
+            params: z.object({
+                taskId: z.string()
+            })
+        });
+        const TaskResultRequestSchema = z.object({
+            method: z.literal('tasks/result'),
+            params: z.object({
+                taskId: z.string()
+            })
+        });
+        const TaskCancelRequestSchema = z.object({
+            method: z.literal('tasks/cancel'),
+            params: z.object({
+                taskId: z.string()
+            })
+        });
+        this.server.setRequestHandler(TaskListRequestSchema, async (request) => {
+            const status = request.params?.status;
+            const tasks = this.taskManager.listTasks(status);
+            return { tasks };
+        });
+        this.server.setRequestHandler(TaskGetRequestSchema, async (request) => {
+            const { taskId } = request.params;
+            const task = this.taskManager.getTask(taskId);
+            if (!task) {
+                throw new Error(`Task not found: ${taskId}`);
+            }
+            return { task };
+        });
+        this.server.setRequestHandler(TaskCancelRequestSchema, async (request) => {
+            const { taskId } = request.params;
+            const task = this.taskManager.cancelTask(taskId);
+            if (!task) {
+                throw new Error(`Task not found: ${taskId}`);
+            }
+            return { task };
+        });
+        this.server.setRequestHandler(TaskResultRequestSchema, async (request) => {
+            const { taskId } = request.params;
+            const outcome = this.taskManager.getTaskResult(taskId);
+            if (!outcome) {
+                throw new Error(`Task not found: ${taskId}`);
+            }
+            const response = outcome.result ?? createErrorResponse(outcome.message || 'Task result unavailable');
+            const meta = {
+                ...response._meta,
+                'io.modelcontextprotocol/related-task': { taskId }
+            };
+            return {
+                ...response,
+                _meta: meta
+            };
+        });
+    }
+    async executeToolWithTimeout(toolName, args, timeoutMs) {
+        if (!timeoutMs || timeoutMs <= 0) {
+            return this.toolRegistry.executeTool(toolName, args);
+        }
+        let timeoutId;
+        const timeoutPromise = new Promise((_, reject) => {
+            timeoutId = setTimeout(() => {
+                reject(new Error(`Tool '${toolName}' timed out after ${timeoutMs}ms`));
+            }, timeoutMs);
+        });
+        try {
+            return await Promise.race([
+                this.toolRegistry.executeTool(toolName, args),
+                timeoutPromise
+            ]);
+        }
+        finally {
+            if (timeoutId) {
+                clearTimeout(timeoutId);
+            }
+        }
     }
     /**
      * Setup MCP prompt handlers

@@ -9,10 +9,9 @@ import logger from './logger.js';
 async function main(): Promise<void> {
   try {
     logger.info('Starting AutoHotkey v2 MCP Server...');
-    
+
     const server = new AutoHotkeyMcpServer();
     await server.start();
-    
   } catch (error) {
     logger.error('Failed to start server:', error);
     process.exit(1);
@@ -26,10 +25,10 @@ process.on('unhandledRejection', (reason, promise) => {
 });
 
 // Handle uncaught exceptions
-process.on('uncaughtException', (error) => {
+process.on('uncaughtException', error => {
   logger.error('Uncaught Exception:', error);
   process.exit(1);
 });
 
 // Start the server
-main(); 
+main();

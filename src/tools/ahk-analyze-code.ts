@@ -10,9 +10,16 @@ export const AhkAnalyzeArgsSchema = z.object({
   includeUsageExamples: z.boolean().optional().default(false),
   analyzeComplexity: z.boolean().optional().default(false),
   // New filtering parameters for token reduction
-  severityFilter: z.array(z.enum(['error', 'warning', 'info'])).optional().describe('Filter issues by severity levels'),
+  severityFilter: z
+    .array(z.enum(['error', 'warning', 'info']))
+    .optional()
+    .describe('Filter issues by severity levels'),
   maxIssues: z.number().optional().describe('Limit number of issues returned'),
-  summaryOnly: z.boolean().optional().default(false).describe('Return only summary counts, not detailed issues')
+  summaryOnly: z
+    .boolean()
+    .optional()
+    .default(false)
+    .describe('Return only summary counts, not detailed issues'),
 });
 
 export const ahkAnalyzeToolDefinition = {
@@ -24,43 +31,43 @@ Analyzes AutoHotkey v2 scripts and provides contextual information about functio
     properties: {
       code: {
         type: 'string',
-        description: 'AutoHotkey code is required'
+        description: 'AutoHotkey code is required',
       },
       includeDocumentation: {
         type: 'boolean',
         description: 'Include documentation for built-in elements',
-        default: true
+        default: true,
       },
       includeUsageExamples: {
         type: 'boolean',
         description: 'Include usage examples',
-        default: false
+        default: false,
       },
       analyzeComplexity: {
         type: 'boolean',
         description: 'Analyze code complexity',
-        default: false
+        default: false,
       },
       severityFilter: {
         type: 'array',
         items: {
           type: 'string',
-          enum: ['error', 'warning', 'info']
+          enum: ['error', 'warning', 'info'],
         },
-        description: 'Filter issues by severity levels (e.g., ["error"] for errors only)'
+        description: 'Filter issues by severity levels (e.g., ["error"] for errors only)',
       },
       maxIssues: {
         type: 'number',
-        description: 'Limit number of issues returned (reduces token usage)'
+        description: 'Limit number of issues returned (reduces token usage)',
       },
       summaryOnly: {
         type: 'boolean',
         description: 'Return only summary counts, not detailed issues (minimal tokens)',
-        default: false
-      }
+        default: false,
+      },
     },
-    required: ['code']
-  }
+    required: ['code'],
+  },
 };
 
 export interface AnalysisResult {
@@ -132,7 +139,15 @@ export class AhkAnalyzeTool {
       if (validatedArgs.code) {
         autoDetect(validatedArgs.code);
       }
-      const { code, includeDocumentation, includeUsageExamples, analyzeComplexity, severityFilter, maxIssues, summaryOnly } = validatedArgs;
+      const {
+        code,
+        includeDocumentation,
+        includeUsageExamples,
+        analyzeComplexity,
+        severityFilter,
+        maxIssues,
+        summaryOnly,
+      } = validatedArgs;
 
       // Use the new compiler system for comprehensive analysis
       const compilerResults = AhkCompiler.analyze(code);
@@ -153,15 +168,20 @@ export class AhkAnalyzeTool {
             syntaxErrors: compilerResults.ast.success ? 0 : compilerResults.ast.errors.length,
             diagnostics: diagnostics.length,
             v2SyntaxIssues: syntaxIssues.length,
-            total: (compilerResults.ast.success ? 0 : compilerResults.ast.errors.length) + diagnostics.length + syntaxIssues.length
-          }
+            total:
+              (compilerResults.ast.success ? 0 : compilerResults.ast.errors.length) +
+              diagnostics.length +
+              syntaxIssues.length,
+          },
         };
 
         return {
-          content: [{
-            type: 'text',
-            text: `# Analysis Summary\n\n${JSON.stringify(summary, null, 2)}`
-          }]
+          content: [
+            {
+              type: 'text',
+              text: `# Analysis Summary\n\n${JSON.stringify(summary, null, 2)}`,
+            },
+          ],
         };
       }
 
@@ -242,23 +262,30 @@ export class AhkAnalyzeTool {
       // Complexity Analysis
       if (analyzeComplexity) {
         report += '## Complexity Analysis\n';
-        const complexityLevel = statistics.complexity <= 5 ? 'Low' :
-          statistics.complexity <= 15 ? 'Medium' : 'High';
+        const complexityLevel =
+          statistics.complexity <= 5 ? 'Low' : statistics.complexity <= 15 ? 'Medium' : 'High';
         report += `- **Complexity Level:** ${complexityLevel}\n`;
-        report += `- **Maintainability:** ${complexityLevel === 'Low' ? 'Excellent' :
-          complexityLevel === 'Medium' ? 'Good' : 'Needs Improvement'}\n\n`;
+        report += `- **Maintainability:** ${
+          complexityLevel === 'Low'
+            ? 'Excellent'
+            : complexityLevel === 'Medium'
+              ? 'Good'
+              : 'Needs Improvement'
+        }\n\n`;
       }
 
       // Recommendations
       report += '## Recommendations\n';
       if (statistics.complexity > 20) {
-        report += '- Consider breaking down complex functions into smaller, more manageable pieces\n';
+        report +=
+          '- Consider breaking down complex functions into smaller, more manageable pieces\n';
       }
       if (statistics.comments === 0 && statistics.lines > 10) {
         report += '- Add comments to explain complex logic and improve code readability\n';
       }
       if (statistics.functions === 0 && statistics.lines > 20) {
-        report += '- Consider organizing code into functions for better structure and reusability\n';
+        report +=
+          '- Consider organizing code into functions for better structure and reusability\n';
       }
       if (!code.includes('#Requires AutoHotkey v2')) {
         report += '- Add "#Requires AutoHotkey v2" directive at the top of your script\n';
@@ -266,32 +293,33 @@ export class AhkAnalyzeTool {
 
       if (includeDocumentation) {
         report += '\n## Documentation Support\n';
-        report += 'Leverage the `AHK_Doc_Search` tool or ChatGPT `search`/`fetch` helpers to pull detailed reference material for the functions and directives found in this script.\n';
+        report +=
+          'Leverage the `AHK_Doc_Search` tool or ChatGPT `search`/`fetch` helpers to pull detailed reference material for the functions and directives found in this script.\n';
       }
 
       if (includeUsageExamples) {
         report += '\n## Usage Examples\n';
-        report += 'Invoke `AHK_Sampling_Enhancer` to generate runnable usage samples for the highlighted APIs and hotkeys.\n';
+        report +=
+          'Invoke `AHK_Sampling_Enhancer` to generate runnable usage samples for the highlighted APIs and hotkeys.\n';
       }
 
       return {
         content: [
           {
             type: 'text',
-            text: report
-          }
-        ]
+            text: report,
+          },
+        ],
       };
-
     } catch (error) {
       logger.error('Error analyzing AutoHotkey script:', error);
       return {
         content: [
           {
             type: 'text',
-            text: `Error analyzing script: ${error instanceof Error ? error.message : 'Unknown error'}`
-          }
-        ]
+            text: `Error analyzing script: ${error instanceof Error ? error.message : 'Unknown error'}`,
+          },
+        ],
       };
     }
   }
@@ -310,8 +338,10 @@ export class AhkAnalyzeTool {
   /**
    * Enhanced regex-based AutoHotkey v2 syntax checking
    */
-  private checkAhkV2Syntax(code: string): Array<{ line: number, message: string, code: string, suggestion?: string }> {
-    const issues: Array<{ line: number, message: string, code: string, suggestion?: string }> = [];
+  private checkAhkV2Syntax(
+    code: string
+  ): Array<{ line: number; message: string; code: string; suggestion?: string }> {
+    const issues: Array<{ line: number; message: string; code: string; suggestion?: string }> = [];
     const lines = code.split('\n');
 
     lines.forEach((line, index) => {
@@ -328,7 +358,7 @@ export class AhkAnalyzeTool {
           line: lineNum,
           message: 'Object literal syntax detected - use Map() constructor in AutoHotkey v2',
           code: trimmedLine,
-          suggestion: 'Map("key", "value") instead of {key: "value"}'
+          suggestion: 'Map("key", "value") instead of {key: "value"}',
         });
       }
 
@@ -341,19 +371,25 @@ export class AhkAnalyzeTool {
             line: lineNum,
             message: 'Remove "new" keyword in AutoHotkey v2',
             code: trimmedLine,
-            suggestion: match[0].replace('new ', '')
+            suggestion: match[0].replace('new ', ''),
           });
         }
       }
 
       // 3. Check for assignment operator (= instead of :=)
       const assignmentRegex = /^\s*\w+\s*=\s*[^=]/;
-      if (assignmentRegex.test(line) && !line.includes('==') && !line.includes('!=') && !line.includes('<=') && !line.includes('>=')) {
+      if (
+        assignmentRegex.test(line) &&
+        !line.includes('==') &&
+        !line.includes('!=') &&
+        !line.includes('<=') &&
+        !line.includes('>=')
+      ) {
         issues.push({
           line: lineNum,
           message: 'Use ":=" for assignment, "=" is for comparison in AutoHotkey v2',
           code: trimmedLine,
-          suggestion: trimmedLine.replace(/(\w+)\s*=\s*/, '$1 := ')
+          suggestion: trimmedLine.replace(/(\w+)\s*=\s*/, '$1 := '),
         });
       }
 
@@ -364,7 +400,7 @@ export class AhkAnalyzeTool {
           line: lineNum,
           message: 'Use semicolon (;) for comments in AutoHotkey v2, not double slash (//)',
           code: trimmedLine,
-          suggestion: trimmedLine.replace('//', ';')
+          suggestion: trimmedLine.replace('//', ';'),
         });
       }
 
@@ -375,7 +411,7 @@ export class AhkAnalyzeTool {
           line: lineNum,
           message: 'String concatenation in AutoHotkey v2 uses space or explicit concatenation',
           code: trimmedLine,
-          suggestion: 'Use "string1" "string2" or "string1" . "string2"'
+          suggestion: 'Use "string1" "string2" or "string1" . "string2"',
         });
       }
 
@@ -388,7 +424,7 @@ export class AhkAnalyzeTool {
             line: lineNum,
             message: `Function "${functionName}" requires parentheses in AutoHotkey v2`,
             code: trimmedLine,
-            suggestion: `${functionName}(...)`
+            suggestion: `${functionName}(...)`,
           });
         }
       }
@@ -400,7 +436,7 @@ export class AhkAnalyzeTool {
           line: lineNum,
           message: 'Legacy variable syntax detected - use direct variable names in AutoHotkey v2',
           code: trimmedLine,
-          suggestion: 'Remove % symbols around variable names'
+          suggestion: 'Remove % symbols around variable names',
         });
       }
 
@@ -410,7 +446,7 @@ export class AhkAnalyzeTool {
           line: 1,
           message: 'Missing #Requires AutoHotkey v2 directive',
           code: 'Top of file',
-          suggestion: 'Add "#Requires AutoHotkey v2" at the beginning of your script'
+          suggestion: 'Add "#Requires AutoHotkey v2" at the beginning of your script',
         });
       }
 
@@ -421,7 +457,7 @@ export class AhkAnalyzeTool {
           line: lineNum,
           message: 'Old-style hotkey with "return" - use function syntax in AutoHotkey v2',
           code: trimmedLine,
-          suggestion: 'Use "Hotkey::FunctionName" or "Hotkey::() => Action"'
+          suggestion: 'Use "Hotkey::FunctionName" or "Hotkey::() => Action"',
         });
       }
 
@@ -432,7 +468,7 @@ export class AhkAnalyzeTool {
           line: lineNum,
           message: 'Use backticks to escape quotes in AutoHotkey v2 strings',
           code: trimmedLine,
-          suggestion: 'Use `" instead of \\"'
+          suggestion: 'Use `" instead of \\"',
         });
       }
     });
@@ -440,7 +476,12 @@ export class AhkAnalyzeTool {
     return issues;
   }
 
-  private async analyzeScript(parseResult: any, code: string, ahkIndex: any, options: any): Promise<AnalysisResult> {
+  private async analyzeScript(
+    parseResult: any,
+    code: string,
+    ahkIndex: any,
+    options: any
+  ): Promise<AnalysisResult> {
     const lines = code.split('\n');
     const analysis: AnalysisResult = {
       summary: {
@@ -450,7 +491,7 @@ export class AhkAnalyzeTool {
         classesUsed: 0,
         hotkeysDefined: parseResult.hotkeys.length,
         builtInFunctions: 0,
-        userDefinedFunctions: parseResult.functions.length
+        userDefinedFunctions: parseResult.functions.length,
       },
       elements: {
         builtInFunctions: [],
@@ -459,10 +500,10 @@ export class AhkAnalyzeTool {
         userDefinedVariables: [],
         classes: [],
         hotkeys: [],
-        directives: []
+        directives: [],
       },
       suggestions: [],
-      warnings: []
+      warnings: [],
     };
 
     // Analyze built-in functions used in the script
@@ -483,7 +524,13 @@ export class AhkAnalyzeTool {
     return analysis;
   }
 
-  private async findBuiltInFunctions(code: string, lines: string[], ahkIndex: any, analysis: AnalysisResult, options: any) {
+  private async findBuiltInFunctions(
+    code: string,
+    lines: string[],
+    ahkIndex: any,
+    analysis: AnalysisResult,
+    options: any
+  ) {
     const builtInFunctions = ahkIndex.functions || [];
 
     for (const func of builtInFunctions) {
@@ -497,7 +544,7 @@ export class AhkAnalyzeTool {
             name: funcName,
             line: index + 1,
             documentation: options.includeDocumentation ? func : undefined,
-            usage: line.trim()
+            usage: line.trim(),
           });
           analysis.summary.builtInFunctions++;
         }
@@ -505,7 +552,13 @@ export class AhkAnalyzeTool {
     }
   }
 
-  private async findBuiltInVariables(code: string, lines: string[], ahkIndex: any, analysis: AnalysisResult, options: any) {
+  private async findBuiltInVariables(
+    code: string,
+    lines: string[],
+    ahkIndex: any,
+    analysis: AnalysisResult,
+    options: any
+  ) {
     const builtInVariables = ahkIndex.variables || [];
 
     for (const variable of builtInVariables) {
@@ -518,14 +571,20 @@ export class AhkAnalyzeTool {
             name: varName,
             line: index + 1,
             documentation: options.includeDocumentation ? variable : undefined,
-            usage: line.trim()
+            usage: line.trim(),
           });
         }
       });
     }
   }
 
-  private async findClassUsage(code: string, lines: string[], ahkIndex: any, analysis: AnalysisResult, options: any) {
+  private async findClassUsage(
+    code: string,
+    lines: string[],
+    ahkIndex: any,
+    analysis: AnalysisResult,
+    options: any
+  ) {
     const builtInClasses = ahkIndex.classes || [];
 
     for (const cls of builtInClasses) {
@@ -538,7 +597,7 @@ export class AhkAnalyzeTool {
             name: className,
             line: index + 1,
             documentation: options.includeDocumentation ? cls : undefined,
-            methods: cls.Methods
+            methods: cls.Methods,
           });
           analysis.summary.classesUsed++;
         }
@@ -552,7 +611,7 @@ export class AhkAnalyzeTool {
       analysis.elements.userDefinedFunctions.push({
         name: func.name,
         line: func.line + 1,
-        parameters: func.parameters
+        parameters: func.parameters,
       });
     });
 
@@ -562,7 +621,7 @@ export class AhkAnalyzeTool {
         name: variable.name,
         line: variable.line + 1,
         value: variable.value,
-        scope: variable.scope
+        scope: variable.scope,
       });
     });
 
@@ -571,7 +630,7 @@ export class AhkAnalyzeTool {
       analysis.elements.hotkeys.push({
         key: hotkey.key,
         modifiers: hotkey.modifiers,
-        line: hotkey.line + 1
+        line: hotkey.line + 1,
       });
     });
 
@@ -580,7 +639,7 @@ export class AhkAnalyzeTool {
       analysis.elements.directives.push({
         name: directive.name,
         value: directive.value,
-        line: directive.line + 1
+        line: directive.line + 1,
       });
     });
   }
@@ -588,21 +647,31 @@ export class AhkAnalyzeTool {
   private generateSuggestions(analysis: AnalysisResult) {
     // Suggest improvements based on analysis
     if (analysis.summary.builtInFunctions === 0 && analysis.summary.userDefinedFunctions === 0) {
-      analysis.suggestions.push("Consider organizing your code into functions for better maintainability.");
+      analysis.suggestions.push(
+        'Consider organizing your code into functions for better maintainability.'
+      );
     }
 
     if (analysis.elements.userDefinedVariables.length > 10) {
-      analysis.suggestions.push("Consider grouping related variables into classes or objects for better organization.");
+      analysis.suggestions.push(
+        'Consider grouping related variables into classes or objects for better organization.'
+      );
     }
 
     if (analysis.elements.hotkeys.length > 5) {
-      analysis.suggestions.push("Consider using a configuration file or GUI for managing many hotkeys.");
+      analysis.suggestions.push(
+        'Consider using a configuration file or GUI for managing many hotkeys.'
+      );
     }
 
     // Check for potential issues
-    const longFunctions = analysis.elements.userDefinedFunctions.filter(f => f.parameters.length > 5);
+    const longFunctions = analysis.elements.userDefinedFunctions.filter(
+      f => f.parameters.length > 5
+    );
     if (longFunctions.length > 0) {
-      analysis.warnings.push(`Functions with many parameters found: ${longFunctions.map(f => f.name).join(', ')}. Consider using objects or configuration parameters.`);
+      analysis.warnings.push(
+        `Functions with many parameters found: ${longFunctions.map(f => f.name).join(', ')}. Consider using objects or configuration parameters.`
+      );
     }
   }
 
@@ -696,4 +765,4 @@ export class AhkAnalyzeTool {
 
     return report;
   }
-} 
+}

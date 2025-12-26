@@ -21,15 +21,16 @@ export interface ToolSettings {
     AHK_Active_File: boolean;
     AHK_Process_Request: boolean;
     AHK_Alpha: boolean;
+    AHK_VSCode_Open: boolean;
     // Other tools can be added here
     [key: string]: boolean;
   };
-  
+
   // Global settings
   allowFileEditing: boolean;
   allowFileDetection: boolean;
   requireExplicitPaths: boolean;
-  
+
   // Safety settings
   alwaysBackup: boolean;
   restrictToAhkFiles: boolean;
@@ -37,44 +38,49 @@ export interface ToolSettings {
 
   // Convenience settings
   autoRunAfterEdit: boolean;
+  autoOpenInVsCodeAfterEdit: boolean;
+
+  // External tooling
+  thqbyLspServerPath?: string;
+  thqbyLspNodePath?: string;
 }
 
 class ToolSettingsManager {
   private static instance: ToolSettingsManager;
   private settings: ToolSettings;
   private settingsPath: string;
-  
+
   private constructor() {
     this.settingsPath = this.getSettingsPath();
     this.settings = this.loadSettings();
   }
-  
+
   static getInstance(): ToolSettingsManager {
     if (!ToolSettingsManager.instance) {
       ToolSettingsManager.instance = new ToolSettingsManager();
     }
     return ToolSettingsManager.instance;
   }
-  
+
   private getSettingsPath(): string {
     // Check for environment override
     if (process.env.AHK_MCP_SETTINGS_PATH) {
       return process.env.AHK_MCP_SETTINGS_PATH;
     }
-    
+
     // Default to config directory
     const appData = process.env.APPDATA || path.join(os.homedir(), 'AppData', 'Roaming');
     const base = process.platform === 'win32' ? appData : path.join(os.homedir(), '.config');
     const configDir = path.join(base, 'ahk-mcp');
-    
+
     // Ensure directory exists
     if (!fs.existsSync(configDir)) {
       fs.mkdirSync(configDir, { recursive: true });
     }
-    
+
     return path.join(configDir, 'tool-settings.json');
   }
-  
+
   private getDefaultSettings(): ToolSettings {
     return {
       enabledTools: {
@@ -107,24 +113,31 @@ class ToolSettingsManager {
         AHK_File_Recent: true,
         AHK_Config: true,
         AHK_LSP: true,
-        AHK_Settings: true
+        AHK_Settings: true,
+        AHK_VSCode_Open: true,
+        AHK_THQBY_Document_Symbols: true,
       },
-      
+
       // Global settings
       allowFileEditing: true,
       allowFileDetection: true,
       requireExplicitPaths: false,
-      
+
       // Safety settings
       alwaysBackup: true,
       restrictToAhkFiles: true,
       maxFileSize: 10 * 1024 * 1024, // 10 MB
 
       // Convenience settings
-      autoRunAfterEdit: false
+      autoRunAfterEdit: false,
+      autoOpenInVsCodeAfterEdit: true,
+
+      // External tooling
+      thqbyLspServerPath: '',
+      thqbyLspNodePath: '',
     };
   }
-  
+
   private loadSettings(): ToolSettings {
     try {
       if (fs.existsSync(this.settingsPath)) {
@@ -148,7 +161,7 @@ class ToolSettingsManager {
 
     return this.getDefaultSettings();
   }
-  
+
   saveSettings(): void {
     try {
       fs.writeFileSync(this.settingsPath, JSON.stringify(this.settings, null, 2), 'utf-8');
@@ -157,7 +170,7 @@ class ToolSettingsManager {
       logger.error('Failed to save tool settings:', error);
     }
   }
-  
+
   /**
    * Check if a tool is enabled
    */
@@ -166,11 +179,11 @@ class ToolSettingsManager {
     if (toolName in this.settings.enabledTools) {
       return this.settings.enabledTools[toolName];
     }
-    
+
     // Default to enabled for unknown tools
     return true;
   }
-  
+
   /**
    * Enable or disable a tool
    */
@@ -179,28 +192,28 @@ class ToolSettingsManager {
     this.saveSettings();
     logger.info(`Tool ${toolName} ${enabled ? 'enabled' : 'disabled'}`);
   }
-  
+
   /**
    * Check if file editing is allowed
    */
   isFileEditingAllowed(): boolean {
     return this.settings.allowFileEditing;
   }
-  
+
   /**
    * Check if file detection is allowed
    */
   isFileDetectionAllowed(): boolean {
     return this.settings.allowFileDetection;
   }
-  
+
   /**
    * Get all settings
    */
   getSettings(): ToolSettings {
     return { ...this.settings };
   }
-  
+
   /**
    * Update settings
    */
@@ -211,7 +224,7 @@ class ToolSettingsManager {
     }
     this.saveSettings();
   }
-  
+
   /**
    * Reset to default settings
    */
@@ -220,7 +233,7 @@ class ToolSettingsManager {
     this.saveSettings();
     logger.info('Tool settings reset to defaults');
   }
-  
+
   /**
    * Enable/disable file editing tools as a group
    */
@@ -236,7 +249,7 @@ class ToolSettingsManager {
       'AHK_File_Active',
       'AHK_File_Create',
       'AHK_Process_Request',
-      'AHK_Alpha'
+      'AHK_Alpha',
     ];
     for (const tool of fileTools) {
       this.settings.enabledTools[tool] = enabled;
@@ -257,6 +270,16 @@ class ToolSettingsManager {
     return this.settings.autoRunAfterEdit;
   }
 
+  setAutoOpenInVsCodeAfterEdit(enabled: boolean): void {
+    this.settings.autoOpenInVsCodeAfterEdit = enabled;
+    this.saveSettings();
+    logger.info(`Auto-open in VS Code after edit ${enabled ? 'enabled' : 'disabled'}`);
+  }
+
+  shouldOpenInVsCodeAfterEdit(): boolean {
+    return this.settings.autoOpenInVsCodeAfterEdit;
+  }
+
   /**
    * Get tool availability message
    */
@@ -264,14 +287,20 @@ class ToolSettingsManager {
     if (!this.isToolEnabled(toolName)) {
       return `⚠️ Tool '${toolName}' is currently disabled.\n\nTo enable it, use the 'AHK_Settings' tool:\n\`\`\`json\n{\n  "tool": "AHK_Settings",\n  "arguments": {\n    "action": "enable_tool",\n    "tool": "${toolName}"\n  }\n}\n\`\`\``;
     }
-    
+
     if (
       !this.settings.allowFileEditing &&
-      ['AHK_File_Edit', 'AHK_File_Edit_Diff', 'AHK_File_Edit_Small', 'AHK_File_Edit_Advanced', 'AHK_File_Create'].includes(toolName)
+      [
+        'AHK_File_Edit',
+        'AHK_File_Edit_Diff',
+        'AHK_File_Edit_Small',
+        'AHK_File_Edit_Advanced',
+        'AHK_File_Create',
+      ].includes(toolName)
     ) {
       return `⚠️ File editing is currently disabled.\n\nTo enable it, use the 'AHK_Settings' tool:\n\`\`\`json\n{\n  "tool": "AHK_Settings",\n  "arguments": {\n    "action": "enable_editing"\n  }\n}\n\`\`\``;
     }
-    
+
     return '';
   }
 }
@@ -289,7 +318,7 @@ export function checkToolAvailability(toolName: string): { enabled: boolean; mes
   if (!enabled) {
     return {
       enabled: false,
-      message: toolSettings.getDisabledMessage(toolName)
+      message: toolSettings.getDisabledMessage(toolName),
     };
   }
   return { enabled: true };

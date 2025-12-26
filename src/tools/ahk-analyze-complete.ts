@@ -30,7 +30,7 @@ export const AhkAnalyzeUnifiedArgsSchema = z.object({
 
   // Output options
   showPerformance: z.boolean().default(false),
-  format: z.enum(['detailed', 'summary', 'json']).default('detailed')
+  format: z.enum(['detailed', 'summary', 'json']).default('detailed'),
 });
 
 export const ahkAnalyzeUnifiedToolDefinition = {
@@ -52,75 +52,75 @@ Combines analysis, diagnostics, auto-fixing, and VS Code integration into one po
     properties: {
       code: {
         type: 'string',
-        description: 'AutoHotkey v2 code to analyze'
+        description: 'AutoHotkey v2 code to analyze',
       },
       mode: {
         type: 'string',
         enum: ['quick', 'deep', 'fix', 'complete', 'vscode'],
         description: 'Analysis mode - determines which operations to perform',
-        default: 'quick'
+        default: 'quick',
       },
       includeDocumentation: {
         type: 'boolean',
         description: 'Include documentation for built-in elements',
-        default: true
+        default: true,
       },
       includeUsageExamples: {
         type: 'boolean',
         description: 'Include usage examples in analysis',
-        default: false
+        default: false,
       },
       analyzeComplexity: {
         type: 'boolean',
         description: 'Include complexity analysis',
-        default: true
+        default: true,
       },
       enableClaudeStandards: {
         type: 'boolean',
         description: 'Enable Claude coding standards validation',
-        default: true
+        default: true,
       },
       severityFilter: {
         type: 'string',
         enum: ['error', 'warning', 'info', 'all'],
         description: 'Filter diagnostics by severity level',
-        default: 'all'
+        default: 'all',
       },
       autoFix: {
         type: 'boolean',
         description: 'Automatically apply safe fixes',
-        default: false
+        default: false,
       },
       fixLevel: {
         type: 'string',
         enum: ['safe', 'aggressive', 'style-only'],
         description: 'Level of automatic fixes to apply',
-        default: 'safe'
+        default: 'safe',
       },
       returnFixedCode: {
         type: 'boolean',
         description: 'Return the fixed code in output',
-        default: true
+        default: true,
       },
       includeVSCodeProblems: {
         type: 'boolean',
         description: 'Include VS Code problems integration',
-        default: false
+        default: false,
       },
       showPerformance: {
         type: 'boolean',
         description: 'Include performance metrics',
-        default: false
+        default: false,
       },
       format: {
         type: 'string',
         enum: ['detailed', 'summary', 'json'],
         description: 'Output format style',
-        default: 'detailed'
-      }
+        default: 'detailed',
+      },
     },
-    required: ['code']
-  }
+    required: ['code'],
+  },
 };
 
 interface UnifiedAnalysisResult {
@@ -183,18 +183,18 @@ export class AhkAnalyzeUnifiedTool {
       // Create a version with all defaults applied for strict typing
       const argsWithDefaults = {
         code: validatedArgs.code,
-        mode: validatedArgs.mode ?? 'quick' as const,
+        mode: validatedArgs.mode ?? ('quick' as const),
         includeDocumentation: validatedArgs.includeDocumentation ?? true,
         includeUsageExamples: validatedArgs.includeUsageExamples ?? false,
         analyzeComplexity: validatedArgs.analyzeComplexity ?? true,
         enableClaudeStandards: validatedArgs.enableClaudeStandards ?? true,
-        severityFilter: validatedArgs.severityFilter ?? 'all' as const,
+        severityFilter: validatedArgs.severityFilter ?? ('all' as const),
         autoFix: validatedArgs.autoFix ?? false,
-        fixLevel: validatedArgs.fixLevel ?? 'safe' as const,
+        fixLevel: validatedArgs.fixLevel ?? ('safe' as const),
         returnFixedCode: validatedArgs.returnFixedCode ?? true,
         includeVSCodeProblems: validatedArgs.includeVSCodeProblems ?? false,
         showPerformance: validatedArgs.showPerformance ?? false,
-        format: validatedArgs.format ?? 'detailed' as const
+        format: validatedArgs.format ?? ('detailed' as const),
       };
 
       const result = await this.runUnifiedAnalysis(argsWithDefaults);
@@ -206,24 +206,26 @@ export class AhkAnalyzeUnifiedTool {
       const output = this.formatOutput(result, argsWithDefaults.format);
 
       return {
-        content: [{ type: 'text', text: output }]
+        content: [{ type: 'text', text: output }],
       };
-
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
       logger.error('Unified AHK analysis failed:', error);
 
       return {
-        content: [{
-          type: 'text',
-          text: `[ERROR] **Unified Analysis Error**\n\n${errorMessage}`
-        }],
-
+        content: [
+          {
+            type: 'text',
+            text: `[ERROR] **Unified Analysis Error**\n\n${errorMessage}`,
+          },
+        ],
       };
     }
   }
 
-  private async runUnifiedAnalysis(args: z.infer<typeof AhkAnalyzeUnifiedArgsSchema>): Promise<UnifiedAnalysisResult> {
+  private async runUnifiedAnalysis(
+    args: z.infer<typeof AhkAnalyzeUnifiedArgsSchema>
+  ): Promise<UnifiedAnalysisResult> {
     const result: UnifiedAnalysisResult = {
       mode: args.mode,
       performance: { totalTime: 0 },
@@ -232,8 +234,8 @@ export class AhkAnalyzeUnifiedTool {
         totalIssues: 0,
         issuesFixed: 0,
         complexity: 0,
-        recommendations: []
-      }
+        recommendations: [],
+      },
     };
 
     // Phase 1: Always run diagnostics for issue detection
@@ -266,17 +268,17 @@ export class AhkAnalyzeUnifiedTool {
         const analysisStart = performance.now();
         const analysisArgs = {
           code: args.code,
-          format: args.format ?? 'detailed' as const,
+          format: args.format ?? ('detailed' as const),
           includeDocumentation: args.includeDocumentation ?? true,
           includeUsageExamples: args.includeUsageExamples ?? false,
           analyzeComplexity: args.analyzeComplexity ?? true,
           enableClaudeStandards: args.enableClaudeStandards ?? true,
-          severityFilter: args.severityFilter ?? 'all' as const,
+          severityFilter: args.severityFilter ?? ('all' as const),
           autoFix: args.autoFix ?? false,
-          fixLevel: args.fixLevel ?? 'safe' as const,
+          fixLevel: args.fixLevel ?? ('safe' as const),
           returnFixedCode: args.returnFixedCode ?? true,
           includeVSCodeProblems: args.includeVSCodeProblems ?? false,
-          showPerformance: args.showPerformance ?? false
+          showPerformance: args.showPerformance ?? false,
         };
         result.analysis = await this.analyzeTool.execute(analysisArgs);
         result.performance.analysisTime = Math.round(performance.now() - analysisStart);
@@ -303,7 +305,7 @@ export class AhkAnalyzeUnifiedTool {
           applied: fixResult.fixes.length,
           remaining: result.summary.totalIssues - fixResult.fixes.length,
           details: fixResult.fixes,
-          fixedCode: fixResult.code
+          fixedCode: fixResult.code,
         };
 
         result.summary.issuesFixed = result.fixes.applied;
@@ -316,7 +318,7 @@ export class AhkAnalyzeUnifiedTool {
           content: args.code,
           severity: args.severityFilter,
           limit: 50,
-          format: 'summary'
+          format: 'summary',
         });
         result.performance.vscodeTime = Math.round(performance.now() - vscodeStart);
         break;
@@ -329,7 +331,9 @@ export class AhkAnalyzeUnifiedTool {
     return result;
   }
 
-  private assessCodeQuality(result: UnifiedAnalysisResult): 'excellent' | 'good' | 'needs-work' | 'poor' {
+  private assessCodeQuality(
+    result: UnifiedAnalysisResult
+  ): 'excellent' | 'good' | 'needs-work' | 'poor' {
     const { totalIssues, complexity } = result.summary;
 
     if (totalIssues === 0 && complexity <= 5) return 'excellent';
@@ -384,7 +388,7 @@ export class AhkAnalyzeUnifiedTool {
       excellent: '[EXCELLENT]',
       good: '[GOOD]',
       'needs-work': '[NEEDS WORK]',
-      poor: '[POOR]'
+      poor: '[POOR]',
     }[summary.codeQuality];
 
     return `${qualityLabel} **Code Quality: ${summary.codeQuality.toUpperCase()}**
@@ -405,10 +409,13 @@ ${summary.recommendations.length > 0 ? `**Recommendations**\n${summary.recommend
     if (result.performance.totalTime) {
       output += `**Performance**\n`;
       output += `- Total time: ${result.performance.totalTime}ms\n`;
-      if (result.performance.analysisTime) output += `- Analysis: ${result.performance.analysisTime}ms\n`;
-      if (result.performance.diagnosticsTime) output += `- Diagnostics: ${result.performance.diagnosticsTime}ms\n`;
+      if (result.performance.analysisTime)
+        output += `- Analysis: ${result.performance.analysisTime}ms\n`;
+      if (result.performance.diagnosticsTime)
+        output += `- Diagnostics: ${result.performance.diagnosticsTime}ms\n`;
       if (result.performance.fixTime) output += `- Fixes: ${result.performance.fixTime}ms\n`;
-      if (result.performance.vscodeTime) output += `- VS Code: ${result.performance.vscodeTime}ms\n`;
+      if (result.performance.vscodeTime)
+        output += `- VS Code: ${result.performance.vscodeTime}ms\n`;
       output += '\n';
     }
 
@@ -417,7 +424,7 @@ ${summary.recommendations.length > 0 ? `**Recommendations**\n${summary.recommend
       excellent: '[EXCELLENT]',
       good: '[GOOD]',
       'needs-work': '[NEEDS WORK]',
-      poor: '[POOR]'
+      poor: '[POOR]',
     }[result.summary.codeQuality];
 
     output += `${qualityLabel} **Code Quality Assessment: ${result.summary.codeQuality.toUpperCase()}**\n\n`;

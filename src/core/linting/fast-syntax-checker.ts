@@ -60,7 +60,7 @@ export class FastSyntaxChecker {
       errors,
       warnings,
       duration: Date.now() - startTime,
-      linesChecked: content.split('\n').length
+      linesChecked: content.split('\n').length,
     };
   }
 
@@ -71,7 +71,7 @@ export class FastSyntaxChecker {
     const pairs = [
       { open: '{', close: '}', name: 'brace' },
       { open: '(', close: ')', name: 'parenthesis' },
-      { open: '[', close: ']', name: 'bracket' }
+      { open: '[', close: ']', name: 'bracket' },
     ];
 
     for (const { open, close, name } of pairs) {
@@ -106,7 +106,7 @@ export class FastSyntaxChecker {
               message: `Unmatched closing ${name} '${close}'`,
               rule: 'brace-matching',
               severity: 'error',
-              fixable: false
+              fixable: false,
             });
           } else {
             stack.pop();
@@ -123,7 +123,7 @@ export class FastSyntaxChecker {
             message: `Unclosed ${name} '${unclosed.char}'`,
             rule: 'brace-matching',
             severity: 'error',
-            fixable: false
+            fixable: false,
           });
         }
       }
@@ -182,7 +182,7 @@ export class FastSyntaxChecker {
           rule: 'string-termination',
           severity: 'error',
           fixable: true,
-          fix: `Add closing quote (") at end of line ${i + 1}`
+          fix: `Add closing quote (") at end of line ${i + 1}`,
         });
       }
     }
@@ -195,29 +195,31 @@ export class FastSyntaxChecker {
     const v1Patterns = [
       {
         regex: /^\s*[A-Z]\w+,/m,
-        message: 'V1 command syntax detected (e.g., "MsgBox, Text"). Use function syntax: MsgBox("Text")',
-        rule: 'v1-command-syntax'
+        message:
+          'V1 command syntax detected (e.g., "MsgBox, Text"). Use function syntax: MsgBox("Text")',
+        rule: 'v1-command-syntax',
       },
       {
         regex: /\bIfWinExist\b/i,
         message: 'V1 control flow detected. Use "if WinExist()" in v2',
-        rule: 'v1-control-flow'
+        rule: 'v1-control-flow',
       },
       {
         regex: /\bStringSplit\b/i,
         message: 'V1 function detected. Use StrSplit() in v2',
-        rule: 'v1-string-function'
+        rule: 'v1-string-function',
       },
       {
         regex: /\bEnvGet\b/i,
         message: 'V1 function detected. Use EnvGet() or A_Env in v2',
-        rule: 'v1-env-function'
+        rule: 'v1-env-function',
       },
       {
         regex: /:=/,
-        message: 'Assignment operator := is valid but verbose in v2. Consider using = for simple assignments',
-        rule: 'v2-assignment-style'
-      }
+        message:
+          'Assignment operator := is valid but verbose in v2. Consider using = for simple assignments',
+        rule: 'v2-assignment-style',
+      },
     ];
 
     for (const { regex, message, rule } of v1Patterns) {
@@ -229,7 +231,7 @@ export class FastSyntaxChecker {
           message,
           rule,
           severity: 'warning',
-          fixable: false // Would need semantic analysis
+          fixable: false, // Would need semantic analysis
         });
       }
     }
@@ -255,7 +257,7 @@ export class FastSyntaxChecker {
           rule: 'invalid-escape',
           severity: 'warning',
           fixable: true,
-          fix: `Replace ${match[0]} with \`${escapedChar}`
+          fix: `Replace ${match[0]} with \`${escapedChar}`,
         });
       }
     }
@@ -277,7 +279,7 @@ export class FastSyntaxChecker {
           message: 'Empty function or class body',
           rule: 'empty-body',
           severity: 'info',
-          fixable: false
+          fixable: false,
         });
       }
 
@@ -289,7 +291,7 @@ export class FastSyntaxChecker {
           rule: 'function-spacing',
           severity: 'error',
           fixable: true,
-          fix: 'Remove space between function name and ('
+          fix: 'Remove space between function name and (',
         });
       }
 
@@ -301,7 +303,7 @@ export class FastSyntaxChecker {
           rule: 'keyword-spacing',
           severity: 'warning',
           fixable: true,
-          fix: 'Add space after keyword'
+          fix: 'Add space after keyword',
         });
       }
     }

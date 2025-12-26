@@ -6,14 +6,32 @@ import { AhkEditTool } from './ahk-file-edit.js';
 import { AhkRunTool } from './ahk-run-script.js';
 import { AhkLspTool } from './ahk-analyze-lsp.js';
 import fs from 'fs/promises';
+import { setLastEditedFile } from '../core/config.js';
+import { toolSettings } from '../core/tool-settings.js';
+import { openFileInVSCode } from '../utils/vscode-open.js';
 
 export const AhkWorkflowAnalyzeFixRunArgsSchema = z.object({
-  filePath: z.string().min(1, 'File path is required').describe('Path to the AHK file to analyze, fix, and optionally run'),
+  filePath: z
+    .string()
+    .min(1, 'File path is required')
+    .describe('Path to the AHK file to analyze, fix, and optionally run'),
   autoFix: z.boolean().optional().default(true).describe('Automatically apply suggested fixes'),
-  runAfterFix: z.boolean().optional().default(false).describe('Run the script after fixing (requires AutoHotkey v2 installed)'),
-  fixTypes: z.array(z.enum(['syntax', 'style', 'performance', 'all'])).optional().default(['all']).describe('Types of fixes to apply (passed to LSP)'),
+  runAfterFix: z
+    .boolean()
+    .optional()
+    .default(false)
+    .describe('Run the script after fixing (requires AutoHotkey v2 installed)'),
+  fixTypes: z
+    .array(z.enum(['syntax', 'style', 'performance', 'all']))
+    .optional()
+    .default(['all'])
+    .describe('Types of fixes to apply (passed to LSP)'),
   dryRun: z.boolean().optional().default(false).describe('Preview changes without applying them'),
-  summaryOnly: z.boolean().optional().default(false).describe('Return only summary, not detailed analysis (minimal tokens)')
+  summaryOnly: z
+    .boolean()
+    .optional()
+    .default(false)
+    .describe('Return only summary, not detailed analysis (minimal tokens)'),
 });
 
 export const ahkWorkflowAnalyzeFixRunToolDefinition = {
@@ -24,40 +42,40 @@ export const ahkWorkflowAnalyzeFixRunToolDefinition = {
     properties: {
       filePath: {
         type: 'string',
-        description: 'Path to the AHK file to analyze, fix, and optionally run'
+        description: 'Path to the AHK file to analyze, fix, and optionally run',
       },
       autoFix: {
         type: 'boolean',
         description: 'Automatically apply suggested fixes',
-        default: true
+        default: true,
       },
       runAfterFix: {
         type: 'boolean',
         description: 'Run the script after fixing (requires AutoHotkey v2 installed)',
-        default: false
+        default: false,
       },
       fixTypes: {
         type: 'array',
         items: {
           type: 'string',
-          enum: ['syntax', 'style', 'performance', 'all']
+          enum: ['syntax', 'style', 'performance', 'all'],
         },
         description: 'Types of fixes to apply',
-        default: ['all']
+        default: ['all'],
       },
       dryRun: {
         type: 'boolean',
         description: 'Preview changes without applying them',
-        default: false
+        default: false,
       },
       summaryOnly: {
         type: 'boolean',
         description: 'Return only summary, not detailed analysis (minimal tokens)',
-        default: false
-      }
+        default: false,
+      },
     },
-    required: ['filePath']
-  }
+    required: ['filePath'],
+  },
 };
 
 export type AhkWorkflowAnalyzeFixRunArgs = z.infer<typeof AhkWorkflowAnalyzeFixRunArgsSchema>;
@@ -73,7 +91,12 @@ export class AhkWorkflowAnalyzeFixRunTool {
   private runTool: AhkRunTool;
   private lspTool: AhkLspTool;
 
-  constructor(analyzeTool: AhkAnalyzeTool, editTool: AhkEditTool, runTool: AhkRunTool, lspTool: AhkLspTool) {
+  constructor(
+    analyzeTool: AhkAnalyzeTool,
+    editTool: AhkEditTool,
+    runTool: AhkRunTool,
+    lspTool: AhkLspTool
+  ) {
     this.analyzeTool = analyzeTool;
     this.editTool = editTool;
     this.runTool = runTool;
@@ -81,7 +104,11 @@ export class AhkWorkflowAnalyzeFixRunTool {
   }
 
   async execute(args: unknown): Promise<any> {
-    const parsed = safeParse(args, AhkWorkflowAnalyzeFixRunArgsSchema, 'AHK_Workflow_Analyze_Fix_Run');
+    const parsed = safeParse(
+      args,
+      AhkWorkflowAnalyzeFixRunArgsSchema,
+      'AHK_Workflow_Analyze_Fix_Run'
+    );
     if (!parsed.success) return parsed.error;
 
     try {
@@ -96,7 +123,7 @@ export class AhkWorkflowAnalyzeFixRunTool {
         issuesFound: 0,
         issuesFixed: 0,
         verificationPassed: false,
-        scriptRan: false
+        scriptRan: false,
       };
 
       // Step 1: Read the file
@@ -105,11 +132,13 @@ export class AhkWorkflowAnalyzeFixRunTool {
         fileContent = await fs.readFile(filePath, 'utf-8');
       } catch (error) {
         return {
-          content: [{
-            type: 'text',
-            text: `**File Read Error**\n\nCould not read file: ${filePath}\n\n${error instanceof Error ? error.message : String(error)}`
-          }],
-          isError: true
+          content: [
+            {
+              type: 'text',
+              text: `**File Read Error**\n\nCould not read file: ${filePath}\n\n${error instanceof Error ? error.message : String(error)}`,
+            },
+          ],
+          isError: true,
         };
       }
 
@@ -117,14 +146,14 @@ export class AhkWorkflowAnalyzeFixRunTool {
       const analyzeStart = Date.now();
       const analyzeResult = await this.analyzeTool.execute({
         code: fileContent,
-        summaryOnly: true // Use summary mode for efficiency
+        summaryOnly: true, // Use summary mode for efficiency
       });
       const analyzeDuration = Date.now() - analyzeStart;
 
       workflow.steps.push({
         step: 'Analyze',
         duration: analyzeDuration,
-        status: 'completed'
+        status: 'completed',
       });
 
       // Extract issues from analysis
@@ -137,7 +166,7 @@ export class AhkWorkflowAnalyzeFixRunTool {
       if (totalIssues === 0 && !runAfterFix) {
         const summary = this.formatSummary(workflow, summaryOnly ?? false);
         return {
-          content: [{ type: 'text', text: summary }]
+          content: [{ type: 'text', text: summary }],
         };
       }
 
@@ -153,7 +182,7 @@ export class AhkWorkflowAnalyzeFixRunTool {
           autoFix: true,
           fixLevel: 'safe', // Default to safe fixes
           returnFixedCode: true,
-          showPerformance: false
+          showPerformance: false,
         });
 
         const lspText = lspResult.content[0]?.text || '';
@@ -170,6 +199,17 @@ export class AhkWorkflowAnalyzeFixRunTool {
             await fs.writeFile(filePath, fixedCode, 'utf-8');
             fixesApplied = fixesCount;
             fileContent = fixedCode; // Update local content for next steps
+            setLastEditedFile(filePath);
+
+            if (toolSettings.shouldOpenInVsCodeAfterEdit()) {
+              try {
+                await openFileInVSCode(filePath, { reuseWindow: true });
+              } catch (openError) {
+                logger.warn(
+                  `VS Code open failed for ${filePath}: ${openError instanceof Error ? openError.message : String(openError)}`
+                );
+              }
+            }
           } catch (error) {
             logger.warn(`Failed to write fixed code to file: ${filePath}`, error);
           }
@@ -182,7 +222,7 @@ export class AhkWorkflowAnalyzeFixRunTool {
           step: 'Fix',
           duration: fixDuration,
           status: dryRun ? 'dry-run' : 'completed',
-          fixesApplied: dryRun ? `${fixesApplied} (preview only)` : fixesApplied
+          fixesApplied: dryRun ? `${fixesApplied} (preview only)` : fixesApplied,
         });
 
         workflow.issuesFixed = fixesApplied;
@@ -197,7 +237,7 @@ export class AhkWorkflowAnalyzeFixRunTool {
 
         const verifyResult = await this.analyzeTool.execute({
           code: fileContent,
-          summaryOnly: true
+          summaryOnly: true,
         });
         const verifyDuration = Date.now() - verifyStart;
 
@@ -211,7 +251,7 @@ export class AhkWorkflowAnalyzeFixRunTool {
           step: 'Verify',
           duration: verifyDuration,
           status: 'completed',
-          remainingIssues
+          remainingIssues,
         });
       }
 
@@ -226,7 +266,7 @@ export class AhkWorkflowAnalyzeFixRunTool {
             wait: true,
             runner: 'native',
             detectWindow: false,
-            timeout: 30000
+            timeout: 30000,
           });
 
           const runDuration = Date.now() - runStart;
@@ -235,7 +275,7 @@ export class AhkWorkflowAnalyzeFixRunTool {
           workflow.steps.push({
             step: 'Run',
             duration: runDuration,
-            status: runSuccess ? 'completed' : 'failed'
+            status: runSuccess ? 'completed' : 'failed',
           });
 
           workflow.scriptRan = runSuccess;
@@ -244,7 +284,7 @@ export class AhkWorkflowAnalyzeFixRunTool {
             step: 'Run',
             duration: Date.now() - runStart,
             status: 'failed',
-            error: error instanceof Error ? error.message : String(error)
+            error: error instanceof Error ? error.message : String(error),
           });
         }
       }
@@ -256,17 +296,18 @@ export class AhkWorkflowAnalyzeFixRunTool {
       const summary = this.formatSummary(workflow, summaryOnly ?? false);
 
       return {
-        content: [{ type: 'text', text: summary }]
+        content: [{ type: 'text', text: summary }],
       };
-
     } catch (error) {
       logger.error('Error in AHK_Workflow_Analyze_Fix_Run:', error);
       return {
-        content: [{
-          type: 'text',
-          text: `**Workflow Error**\n\n${error instanceof Error ? error.message : String(error)}`
-        }],
-        isError: true
+        content: [
+          {
+            type: 'text',
+            text: `**Workflow Error**\n\n${error instanceof Error ? error.message : String(error)}`,
+          },
+        ],
+        isError: true,
       };
     }
   }

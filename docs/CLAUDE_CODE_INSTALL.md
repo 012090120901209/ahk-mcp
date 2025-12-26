@@ -5,25 +5,29 @@
 ### 1. Locate Your Claude Code Config Directory
 
 **Windows:**
+
 ```
 %APPDATA%\Code\User\claude\
 ```
+
 Usually: `C:\Users\[YourUsername]\AppData\Roaming\Code\User\claude\`
 
 **macOS:**
+
 ```
 ~/Library/Application Support/Code/User/claude/
 ```
 
 **Linux:**
+
 ```
 ~/.config/Code/User/claude/
 ```
 
 ### 2. Copy MCP Configuration
 
-**For Windows users:**
-Copy the contents of `.mcp.windows.json` to your Claude Code config:
+**For Windows users:** Copy the contents of `.mcp.windows.json` to your Claude
+Code config:
 
 ```powershell
 # PowerShell command
@@ -31,8 +35,8 @@ Copy-Item "C:\path\to\ahk-mcp\.mcp.windows.json" `
           "$env:APPDATA\Code\User\claude\mcp.json"
 ```
 
-**For WSL/Linux users:**
-Copy the contents of `.mcp.json` to your Claude Code config:
+**For WSL/Linux users:** Copy the contents of `.mcp.json` to your Claude Code
+config:
 
 ```bash
 # Bash command
@@ -84,17 +88,20 @@ If you need to manually configure, add this to your `mcp.json`:
 Once installed, Claude will have access to these AutoHotkey tools:
 
 ### Core Development Tools
+
 - `AHK_Run` - Execute AutoHotkey scripts with window detection
 - `AHK_Analyze` - Advanced code analysis
 - `AHK_Diagnostics` - Error detection and validation
 
 ### Documentation & Context
+
 - `AHK_Doc_Search` - Search AutoHotkey documentation
 - `AHK_Context_Injector` - Auto-inject relevant context
 - `AHK_Sampling_Enhancer` - Enhance code samples
 - `AHK_Summary` - Quick reference summaries
 
 ### Development Workflow
+
 - `AHK_Prompts` - Access prompt templates
 - `AHK_Debug_Agent` - Debug assistance
 - `AHK_Config` - Configuration management
@@ -105,11 +112,13 @@ Once installed, Claude will have access to these AutoHotkey tools:
 ## Troubleshooting
 
 ### Server Not Starting
+
 1. Ensure Node.js is installed: `node --version` (requires v18+)
 2. Build the project first: `npm run build` in the ahk-mcp directory
 3. Check the path in mcp.json points to the correct location
 
 ### Permission Issues
+
 - On Windows, ensure the ahk-mcp folder has read permissions
 - On Linux/macOS, you may need to make the script executable:
   ```bash
@@ -117,7 +126,9 @@ Once installed, Claude will have access to these AutoHotkey tools:
   ```
 
 ### Logs and Debugging
+
 Check Claude Code logs:
+
 - Windows: `%APPDATA%\Code\logs\`
 - macOS: `~/Library/Logs/Code/`
 - Linux: `~/.config/Code/logs/`
@@ -133,6 +144,7 @@ You can customize the server behavior with these environment variables:
 ## Support
 
 For issues or questions:
+
 - GitHub Issues: [Create an issue in the ahk-mcp repository]
 - Documentation: See README.md for detailed tool documentation
 

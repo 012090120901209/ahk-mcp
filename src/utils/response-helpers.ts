@@ -15,19 +15,19 @@ export interface ToolResponse {
  */
 export function createErrorResponse(message: string, details?: unknown): ToolResponse {
   const content: Array<{ type: 'text'; text: string }> = [
-    { type: 'text', text: `Error: ${message}` }
+    { type: 'text', text: `Error: ${message}` },
   ];
 
   if (details) {
     content.push({
       type: 'text',
-      text: typeof details === 'string' ? details : JSON.stringify(details, null, 2)
+      text: typeof details === 'string' ? details : JSON.stringify(details, null, 2),
     });
   }
 
   return {
     content,
-    isError: true
+    isError: true,
   };
 }
 
@@ -38,19 +38,17 @@ export function createErrorResponse(message: string, details?: unknown): ToolRes
  * @returns Standardized MCP success response
  */
 export function createSuccessResponse(message: string, data?: unknown): ToolResponse {
-  const content: Array<{ type: 'text'; text: string }> = [
-    { type: 'text', text: message }
-  ];
+  const content: Array<{ type: 'text'; text: string }> = [{ type: 'text', text: message }];
 
   if (data) {
     content.push({
       type: 'text',
-      text: typeof data === 'string' ? data : JSON.stringify(data, null, 2)
+      text: typeof data === 'string' ? data : JSON.stringify(data, null, 2),
     });
   }
 
   return {
-    content
+    content,
   };
 }
 
@@ -60,13 +58,10 @@ export function createSuccessResponse(message: string, data?: unknown): ToolResp
  * @param isError Whether this is an error response
  * @returns Standardized MCP response
  */
-export function createMultiPartResponse(
-  parts: string[],
-  isError: boolean = false
-): ToolResponse {
+export function createMultiPartResponse(parts: string[], isError: boolean = false): ToolResponse {
   return {
     content: parts.map(part => ({ type: 'text', text: part })),
-    ...(isError && { isError: true })
+    ...(isError && { isError: true }),
   };
 }
 
@@ -154,7 +149,7 @@ export class ResponseBuilder {
    * Add a list of items
    */
   withList(items: string[], ordered: boolean = false): ResponseBuilder {
-    const list = items.map((item, i) => ordered ? `${i + 1}. ${item}` : `• ${item}`).join('\n');
+    const list = items.map((item, i) => (ordered ? `${i + 1}. ${item}` : `• ${item}`)).join('\n');
     this.parts.push(list);
     return this;
   }
@@ -165,7 +160,7 @@ export class ResponseBuilder {
   build(): ToolResponse {
     return {
       content: this.parts.map(part => ({ type: 'text' as const, text: part })),
-      ...(this.isError && { isError: true })
+      ...(this.isError && { isError: true }),
     };
   }
 
@@ -175,7 +170,7 @@ export class ResponseBuilder {
   buildCombined(separator: string = '\n\n'): ToolResponse {
     return {
       content: [{ type: 'text' as const, text: this.parts.join(separator) }],
-      ...(this.isError && { isError: true })
+      ...(this.isError && { isError: true }),
     };
   }
 }

@@ -29,7 +29,7 @@ export class VersionManager {
     return {
       major: parseInt(match[1], 10),
       minor: parseInt(match[2], 10),
-      patch: parseInt(match[3], 10)
+      patch: parseInt(match[3], 10),
     };
   }
 
@@ -63,7 +63,7 @@ export class VersionManager {
     if (!reqVersion && !availVersion) {
       return {
         compatible: true,
-        warning: 'Both libraries are unversioned - compatibility cannot be verified'
+        warning: 'Both libraries are unversioned - compatibility cannot be verified',
       };
     }
 
@@ -73,7 +73,7 @@ export class VersionManager {
         compatible: true,
         warning: reqVersion
           ? `Required version ${required} but library is unversioned`
-          : `Library version ${available} but no version requirement specified`
+          : `Library version ${available} but no version requirement specified`,
       };
     }
 
@@ -81,9 +81,10 @@ export class VersionManager {
     if (reqVersion.major !== availVersion.major) {
       return {
         compatible: false,
-        error: `Breaking change: required v${required} (MAJOR ${reqVersion.major}), ` +
-               `available v${available} (MAJOR ${availVersion.major})`,
-        details: 'MAJOR version mismatch indicates breaking changes'
+        error:
+          `Breaking change: required v${required} (MAJOR ${reqVersion.major}), ` +
+          `available v${available} (MAJOR ${availVersion.major})`,
+        details: 'MAJOR version mismatch indicates breaking changes',
       };
     }
 
@@ -92,7 +93,7 @@ export class VersionManager {
       return {
         compatible: false,
         error: `Required v${required}, available v${available} - missing features`,
-        details: 'Available version is older and may be missing required features'
+        details: 'Available version is older and may be missing required features',
       };
     }
 
@@ -100,7 +101,7 @@ export class VersionManager {
       return {
         compatible: true,
         warning: `Required v${required}, available v${available} - may be missing bug fixes`,
-        details: 'Patch version is older but should be compatible'
+        details: 'Patch version is older but should be compatible',
       };
     }
 
@@ -108,14 +109,14 @@ export class VersionManager {
     if (availVersion.minor > reqVersion.minor || availVersion.patch > reqVersion.patch) {
       return {
         compatible: true,
-        details: `Available v${available} is newer than required v${required} (backward compatible)`
+        details: `Available v${available} is newer than required v${required} (backward compatible)`,
       };
     }
 
     // Exact match
     return {
       compatible: true,
-      details: `Exact version match: v${available}`
+      details: `Exact version match: v${available}`,
     };
   }
 
@@ -185,7 +186,10 @@ export class VersionManager {
    * @param component - Component to increment ('major', 'minor', or 'patch')
    * @returns New semantic version
    */
-  incrementVersion(version: SemanticVersion, component: 'major' | 'minor' | 'patch'): SemanticVersion {
+  incrementVersion(
+    version: SemanticVersion,
+    component: 'major' | 'minor' | 'patch'
+  ): SemanticVersion {
     switch (component) {
       case 'major':
         return { major: version.major + 1, minor: 0, patch: 0 };

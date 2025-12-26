@@ -111,7 +111,10 @@ export class StructureAnalyzer {
   /**
    * Analyze a file and return its structure map
    */
-  async analyzeFile(filePath: string, options: { forceRefresh?: boolean } = {}): Promise<StructureMap> {
+  async analyzeFile(
+    filePath: string,
+    options: { forceRefresh?: boolean } = {}
+  ): Promise<StructureMap> {
     const stats = await fs.stat(filePath);
     const cached = this.cache.get(filePath);
 
@@ -132,7 +135,7 @@ export class StructureAnalyzer {
       structure,
       mtime: stats.mtimeMs,
       timestamp: Date.now(),
-      ttl: this.defaultTTL
+      ttl: this.defaultTTL,
     });
 
     return structure;
@@ -150,7 +153,7 @@ export class StructureAnalyzer {
       hotkeys: this.extractHotkeys(content, lines),
       variables: this.extractVariables(content, lines),
       dependencies: this.extractDependencies(content, lines),
-      metrics: this.calculateMetrics(content, lines)
+      metrics: this.calculateMetrics(content, lines),
     };
   }
 
@@ -182,7 +185,7 @@ export class StructureAnalyzer {
           extends: extendsClass,
           methods,
           properties,
-          staticMethods
+          staticMethods,
         });
       }
     }
@@ -223,7 +226,7 @@ export class StructureAnalyzer {
           startLine,
           endLine,
           params,
-          isStatic
+          isStatic,
         });
       }
     }
@@ -252,7 +255,7 @@ export class StructureAnalyzer {
           name: propName,
           line: classStartLine + i,
           isStatic,
-          defaultValue
+          defaultValue,
         });
       }
     }
@@ -298,7 +301,7 @@ export class StructureAnalyzer {
           startLine,
           endLine,
           params,
-          description
+          description,
         });
       }
     }
@@ -327,7 +330,7 @@ export class StructureAnalyzer {
           trigger,
           line: i + 1,
           type: isHotstring ? 'hotstring' : 'hotkey',
-          description: this.extractDescriptionFromComments(lines, i)
+          description: this.extractDescriptionFromComments(lines, i),
         });
       }
     }
@@ -350,7 +353,7 @@ export class StructureAnalyzer {
         variables.push({
           name: globalMatch[1],
           line: i + 1,
-          scope: 'global'
+          scope: 'global',
         });
         continue;
       }
@@ -361,7 +364,7 @@ export class StructureAnalyzer {
         variables.push({
           name: staticMatch[1],
           line: i + 1,
-          scope: 'static'
+          scope: 'static',
         });
         continue;
       }
@@ -373,7 +376,7 @@ export class StructureAnalyzer {
           variables.push({
             name: assignMatch[1],
             line: i + 1,
-            scope: 'global'
+            scope: 'global',
           });
         }
       }
@@ -397,7 +400,7 @@ export class StructureAnalyzer {
         dependencies.push({
           type: 'include',
           path: includeMatch[1].trim(),
-          line: i + 1
+          line: i + 1,
         });
         continue;
       }
@@ -408,7 +411,7 @@ export class StructureAnalyzer {
         dependencies.push({
           type: 'lib',
           path: libMatch[1].trim(),
-          line: i + 1
+          line: i + 1,
         });
       }
     }
@@ -454,7 +457,7 @@ export class StructureAnalyzer {
       maintainability: Math.round(maintainability),
       classes: (content.match(/\bclass\s+\w+/g) || []).length,
       functions: (content.match(/^\w+\s*\(/gm) || []).length,
-      hotkeys: (content.match(/^[^\s:]+::/gm) || []).length
+      hotkeys: (content.match(/^[^\s:]+::/gm) || []).length,
     };
   }
 
@@ -465,7 +468,18 @@ export class StructureAnalyzer {
     let complexity = 1; // Base complexity
 
     // Count decision points
-    const decisionKeywords = ['if', 'else', 'while', 'for', 'loop', 'switch', 'case', '&&', '||', '?'];
+    const decisionKeywords = [
+      'if',
+      'else',
+      'while',
+      'for',
+      'loop',
+      'switch',
+      'case',
+      '&&',
+      '||',
+      '?',
+    ];
 
     for (const keyword of decisionKeywords) {
       const regex = new RegExp(`\\b${keyword}\\b`, 'gi');
@@ -661,7 +675,7 @@ export class StructureAnalyzer {
   getCacheStats(): { entries: number; totalSize: number } {
     return {
       entries: this.cache.size,
-      totalSize: JSON.stringify(Array.from(this.cache.values())).length
+      totalSize: JSON.stringify(Array.from(this.cache.values())).length,
     };
   }
 }

@@ -60,7 +60,9 @@ The AHK MCP Server includes a comprehensive observability stack:
 
 ### What is Distributed Tracing?
 
-Distributed tracing tracks a request through its entire lifecycle, creating parent-child relationships between operations. Each operation is a "span" with timing, status, and metadata.
+Distributed tracing tracks a request through its entire lifecycle, creating
+parent-child relationships between operations. Each operation is a "span" with
+timing, status, and metadata.
 
 ### How It Works
 
@@ -200,6 +202,7 @@ curl http://localhost:9090/health
 ```
 
 Response:
+
 ```json
 {
   "status": "healthy",
@@ -216,6 +219,7 @@ curl http://localhost:9090/ready
 ```
 
 Response:
+
 ```json
 {
   "ready": true,
@@ -231,6 +235,7 @@ Response:
 #### `GET /traces` - List Traces
 
 Query parameters:
+
 - `limit`: Max traces to return (default: 20, max: 100)
 - `tool`: Filter by tool name
 - `format`: Response format (`summary` or `full`)
@@ -250,6 +255,7 @@ curl -s http://localhost:9090/traces | jq '.traces[] | select(.errorCount > 0)'
 ```
 
 Response (summary format):
+
 ```json
 {
   "count": 10,
@@ -275,6 +281,7 @@ curl http://localhost:9090/traces/a1b2c3d4e5f6 | jq
 ```
 
 Response:
+
 ```json
 {
   "trace": {
@@ -307,6 +314,7 @@ curl http://localhost:9090/metrics | jq
 ```
 
 Response:
+
 ```json
 {
   "timestamp": "2025-10-26T10:15:32.123Z",
@@ -328,6 +336,7 @@ curl http://localhost:9090/stats | jq
 ```
 
 Response:
+
 ```json
 {
   "timestamp": "2025-10-26T10:15:32.123Z",
@@ -437,6 +446,7 @@ Claude: Let me get the full details for that trace.
 ### What's Tracked
 
 For each tool call:
+
 - Tool name
 - Timestamp
 - Success/failure
@@ -491,6 +501,7 @@ Analytics now include trace context:
 ```
 
 This allows you to:
+
 1. Find the trace for a failed tool call
 2. Correlate analytics with distributed traces
 3. Debug performance issues with full context
@@ -501,7 +512,8 @@ This allows you to:
 
 ### What is OpenTelemetry?
 
-OpenTelemetry (OTel) is an industry-standard observability framework. It allows exporting traces to tools like:
+OpenTelemetry (OTel) is an industry-standard observability framework. It allows
+exporting traces to tools like:
 
 - **Jaeger** - Distributed tracing UI
 - **Zipkin** - Alternative tracing backend
@@ -718,6 +730,7 @@ curl -s http://localhost:9090/metrics | jq '.analytics'
 ```
 
 Result shows complete hierarchy:
+
 ```
 AHK_Smart_Orchestrator [500ms]
   ├─ AHK_File_View [50ms]
@@ -927,13 +940,11 @@ AHK_MCP_OTEL_ENDPOINT=https://tempo.example.com/v1/traces
 
 The AHK MCP Server observability stack provides:
 
-✅ **Automatic tracing** of all tool calls
-✅ **Trace context** in logs and analytics
-✅ **HTTP API** for external integrations
-✅ **MCP tool** for in-conversation debugging
-✅ **OpenTelemetry** export for enterprise monitoring
-✅ **Zero configuration** required (works out of the box)
-✅ **Production-ready** with health checks and metrics
+✅ **Automatic tracing** of all tool calls ✅ **Trace context** in logs and
+analytics ✅ **HTTP API** for external integrations ✅ **MCP tool** for
+in-conversation debugging ✅ **OpenTelemetry** export for enterprise monitoring
+✅ **Zero configuration** required (works out of the box) ✅
+**Production-ready** with health checks and metrics
 
 Start with the defaults, then enable additional features as needed:
 
@@ -941,4 +952,5 @@ Start with the defaults, then enable additional features as needed:
 2. **Testing**: Enable HTTP API for programmatic access
 3. **Production**: Export to Jaeger/Grafana with alerting
 
-Questions? See the main documentation or check the source code in `src/core/tracing.ts`.
+Questions? See the main documentation or check the source code in
+`src/core/tracing.ts`.

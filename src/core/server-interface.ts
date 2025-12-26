@@ -76,16 +76,14 @@ export interface IToolServer {
   ahkEditToolInstance: IExecutableTool;
   ahkDiffEditToolInstance: IExecutableTool;
   ahkSettingsToolInstance: IExecutableTool;
+  ahkVSCodeOpenToolInstance: IExecutableTool;
   ahkSmallEditToolInstance: IExecutableTool;
   ahkAlphaToolInstance: IExecutableTool;
   ahkSmartOrchestratorToolInstance: IExecutableTool;
   ahkFileListToolInstance: IExecutableTool;
   ahkToolsSearchToolInstance: IExecutableTool;
   ahkWorkflowAnalyzeFixRunToolInstance: IExecutableTool;
-  ahkLspDocumentSymbolsToolInstance: IExecutableTool;
-  ahkLspHoverToolInstance: IExecutableTool;
-  ahkLspFormatToolInstance: IExecutableTool;
-  ahkLspCompletionToolInstance: IExecutableTool;
+  ahkThqbyDocumentSymbolsToolInstance: IExecutableTool;
   ahkAnalyticsToolInstance: IExecutableTool;
   ahkTestInteractiveToolInstance: IExecutableTool;
   ahkTraceViewerToolInstance: IExecutableTool;

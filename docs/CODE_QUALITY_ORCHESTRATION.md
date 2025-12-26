@@ -1,15 +1,16 @@
 # Code Quality Orchestration
+
 **Intelligent Linting & Code Mapping for AutoHotkey v2 MCP Server**
 
-**Created:** 2025-11-09
-**Status:** Design Proposal
-**Goal:** Integrate code quality checks into orchestration without performance degradation
+**Created:** 2025-11-09 **Status:** Design Proposal **Goal:** Integrate code
+quality checks into orchestration without performance degradation
 
 ---
 
 ## Overview
 
-This document proposes a **layered code quality system** that integrates linting and code mapping into the MCP orchestration flow using:
+This document proposes a **layered code quality system** that integrates linting
+and code mapping into the MCP orchestration flow using:
 
 - ✅ **Smart caching** to avoid redundant analysis
 - ✅ **Tiered linting** (fast → thorough based on operation)
@@ -17,7 +18,8 @@ This document proposes a **layered code quality system** that integrates linting
 - ✅ **Code mapping** for better LLM context
 - ✅ **Automatic fixes** for common issues
 
-**Performance Target:** Add <50ms overhead for cached results, <200ms for fresh analysis
+**Performance Target:** Add <50ms overhead for cached results, <200ms for fresh
+analysis
 
 ---
 
@@ -69,26 +71,29 @@ Return Result + Code Quality Report
 
 **Time:** ~180-350ms (cached), ~600-900ms (uncached with lint)
 
-**Key Insight:** Only +30-100ms overhead by using smart caching and async background checks
+**Key Insight:** Only +30-100ms overhead by using smart caching and async
+background checks
 
 ---
 
 ## 2. Tiered Linting Strategy
 
 ### Tier 0: No Linting (View-Only Operations)
-**When:** User is just viewing/reading code
-**Tools:** AHK_File_View, AHK_Docs_Search
-**Cost:** 0ms (skip entirely)
+
+**When:** User is just viewing/reading code **Tools:** AHK_File_View,
+AHK_Docs_Search **Cost:** 0ms (skip entirely)
 
 ### Tier 1: Fast Syntax Check (Always On)
-**When:** Any file operation
-**Checks:**
+
+**When:** Any file operation **Checks:**
+
 - Balanced braces `{}`, `()`, `[]`
 - Unterminated strings
 - V1 syntax patterns (auto-detected)
 - Invalid escape sequences
 
 **Implementation:**
+
 ```typescript
 // src/core/linting/fast-syntax-check.ts
 export class FastSyntaxChecker {
@@ -102,7 +107,10 @@ export class FastSyntaxChecker {
       if (char === '{') braceStack.push('{');
       else if (char === '}') {
         if (braceStack.length === 0) {
-          errors.push({ line: this.getLine(content, i), message: 'Unmatched closing brace' });
+          errors.push({
+            line: this.getLine(content, i),
+            message: 'Unmatched closing brace',
+          });
         } else {
           braceStack.pop();
         }
@@ -111,9 +119,9 @@ export class FastSyntaxChecker {
 
     // 2. V1 syntax detection (regex)
     const v1Patterns = [
-      /^\s*[A-Z]\w+,/m,  // V1 command syntax
-      /IfWinExist/i,      // V1 control flow
-      /StringSplit/i      // V1 string functions
+      /^\s*[A-Z]\w+,/m, // V1 command syntax
+      /IfWinExist/i, // V1 control flow
+      /StringSplit/i, // V1 string functions
     ];
 
     for (const pattern of v1Patterns) {
@@ -121,7 +129,7 @@ export class FastSyntaxChecker {
         errors.push({
           line: 0,
           message: 'V1 syntax detected - use AHK v2 syntax',
-          severity: 'warning'
+          severity: 'warning',
         });
         break;
       }
@@ -135,14 +143,16 @@ export class FastSyntaxChecker {
 **Cost:** ~10-20ms for 1000-line file
 
 ### Tier 2: Structure Analysis (Cached)
-**When:** Before editing operations
-**Checks:**
+
+**When:** Before editing operations **Checks:**
+
 - Class/function structure
 - Variable declarations
 - Function signatures
 - Hotkey definitions
 
 **Implementation:**
+
 ```typescript
 // src/core/linting/structure-analyzer.ts
 export class StructureAnalyzer {
@@ -160,7 +170,7 @@ export class StructureAnalyzer {
       classes: this.extractClasses(content),
       functions: this.extractFunctions(content),
       hotkeys: this.extractHotkeys(content),
-      variables: this.extractVariables(content)
+      variables: this.extractVariables(content),
     };
 
     // Cache with file modification time
@@ -183,7 +193,7 @@ export class StructureAnalyzer {
         name: className,
         startLine,
         endLine,
-        methods: this.extractMethods(content, match.index, endLine)
+        methods: this.extractMethods(content, match.index, endLine),
       });
     }
 
@@ -195,8 +205,9 @@ export class StructureAnalyzer {
 **Cost:** ~30-50ms (uncached), ~5ms (cached)
 
 ### Tier 3: Deep Semantic Analysis (On-Demand)
-**When:** Explicit lint request or before git commit
-**Checks:**
+
+**When:** Explicit lint request or before git commit **Checks:**
+
 - Unused variables
 - Dead code detection
 - Cyclomatic complexity
@@ -204,6 +215,7 @@ export class StructureAnalyzer {
 - Missing error handling
 
 **Implementation:**
+
 ```typescript
 // src/core/linting/semantic-analyzer.ts
 export class SemanticAnalyzer {
@@ -218,7 +230,7 @@ export class SemanticAnalyzer {
       warnings: [...diagnostics.warnings, ...lspResults.warnings],
       suggestions: this.generateSuggestions(diagnostics, lspResults),
       complexity: this.analyzeComplexity(filePath),
-      coverage: this.checkTestCoverage(filePath) // if tests exist
+      coverage: this.checkTestCoverage(filePath), // if tests exist
     };
   }
 }
@@ -227,9 +239,10 @@ export class SemanticAnalyzer {
 **Cost:** ~100-200ms (can run async in background)
 
 ### Tier 4: Auto-Fix Mode (Optional)
-**When:** User enables auto-fix or explicitly requests
-**Checks:** All of Tier 3 + automatic fixes
-**Actions:**
+
+**When:** User enables auto-fix or explicitly requests **Checks:** All of Tier
+3 + automatic fixes **Actions:**
+
 - Add missing semicolons
 - Fix indentation
 - Convert V1 to V2 syntax
@@ -264,11 +277,13 @@ export class OrchestrationEngine {
   private lintCache = new Map<string, LintCacheEntry>();
   private structureCache = new Map<string, StructureMap>();
 
-  async processIntent(request: OrchestrationRequest): Promise<OrchestrationResult> {
+  async processIntent(
+    request: OrchestrationRequest
+  ): Promise<OrchestrationResult> {
     const context: OrchestrationContext = {
       // ... existing fields
       lintLevel: request.lintLevel || this.detectLintLevel(request),
-      codeQualityReport: null
+      codeQualityReport: null,
     };
 
     // STEP 1: Determine if linting is needed
@@ -293,7 +308,7 @@ export class OrchestrationEngine {
     if (context.codeQualityReport) {
       result.content.push({
         type: 'text',
-        text: this.formatCodeQualityReport(context.codeQualityReport)
+        text: this.formatCodeQualityReport(context.codeQualityReport),
       });
     }
 
@@ -359,7 +374,9 @@ export class OrchestrationEngine {
         report = await this.structureAnalyzer.analyze(filePath);
         break;
       case 'thorough':
-        report = await this.semanticAnalyzer.analyze(filePath, { autoFix: false });
+        report = await this.semanticAnalyzer.analyze(filePath, {
+          autoFix: false,
+        });
         break;
       default:
         report = { errors: [], warnings: [], duration: 0 };
@@ -373,7 +390,7 @@ export class OrchestrationEngine {
       mtime: fileMtime,
       level,
       timestamp: Date.now(),
-      ttl: 300000 // 5 minutes
+      ttl: 300000, // 5 minutes
     });
 
     return report;
@@ -382,12 +399,15 @@ export class OrchestrationEngine {
   /**
    * Schedule background linting (non-blocking)
    */
-  private scheduleBackgroundLint(filePath: string, context: OrchestrationContext): void {
+  private scheduleBackgroundLint(
+    filePath: string,
+    context: OrchestrationContext
+  ): void {
     // Don't block - run in background
     setImmediate(async () => {
       try {
         const report = await this.semanticAnalyzer.analyze(filePath, {
-          thorough: true
+          thorough: true,
         });
 
         // Store for next request
@@ -396,12 +416,14 @@ export class OrchestrationEngine {
           mtime: (await fs.stat(filePath)).mtimeMs,
           level: 'thorough',
           timestamp: Date.now(),
-          ttl: 600000 // 10 minutes for background
+          ttl: 600000, // 10 minutes for background
         });
 
         // Log interesting findings
         if (report.errors.length > 0 || report.warnings.length > 5) {
-          logger.info(`Background lint for ${filePath}: ${report.errors.length} errors, ${report.warnings.length} warnings`);
+          logger.info(
+            `Background lint for ${filePath}: ${report.errors.length} errors, ${report.warnings.length} warnings`
+          );
         }
       } catch (err) {
         logger.debug(`Background lint failed for ${filePath}:`, err);
@@ -470,7 +492,8 @@ export interface CodeMetrics {
 
 ### 4.1 Structure Extraction
 
-When orchestrating an edit operation, extract code structure to help the LLM understand context:
+When orchestrating an edit operation, extract code structure to help the LLM
+understand context:
 
 ```typescript
 // src/core/linting/code-mapper.ts
@@ -486,7 +509,7 @@ export class CodeMapper {
       outline: this.generateOutline(structure),
       dependencies: this.extractDependencies(filePath),
       exports: this.extractExports(structure),
-      complexity: this.calculateComplexity(structure)
+      complexity: this.calculateComplexity(structure),
     };
   }
 
@@ -545,12 +568,13 @@ const editResult = await toolRegistry.executeTool('AHK_File_Edit', {
   _context: {
     codeMap,
     targetClass: 'ButtonManager',
-    targetMethod: 'handleClick'
-  }
+    targetMethod: 'handleClick',
+  },
 });
 ```
 
 This helps the LLM:
+
 - ✅ Find the right code location faster
 - ✅ Understand class/function boundaries
 - ✅ Avoid breaking related code
@@ -573,7 +597,11 @@ export class IncrementalParser {
 
     if (cached && changedRange) {
       // Only re-parse changed section
-      const updatedAST = this.reparseSectionection(cached, content, changedRange);
+      const updatedAST = this.reparseSectionection(
+        cached,
+        content,
+        changedRange
+      );
       this.parseCache.set(filePath, updatedAST);
       return updatedAST;
     }
@@ -657,7 +685,7 @@ export const AhkLintArgsSchema = z.object({
   autoFix: z.boolean().default(false),
   includeCodeMap: z.boolean().default(true),
   rules: z.array(z.string()).optional(), // Specific rules to check
-  ignoreRules: z.array(z.string()).optional()
+  ignoreRules: z.array(z.string()).optional(),
 });
 
 export const ahkLintToolDefinition = {
@@ -703,19 +731,39 @@ Auto-fix common issues:
   inputSchema: {
     type: 'object',
     properties: {
-      filePath: { type: 'string', description: 'File to lint (defaults to active file)' },
+      filePath: {
+        type: 'string',
+        description: 'File to lint (defaults to active file)',
+      },
       level: {
         type: 'string',
         enum: ['fast', 'standard', 'thorough'],
         default: 'standard',
-        description: 'Analysis depth: fast (syntax), standard (+structure), thorough (+semantics)'
+        description:
+          'Analysis depth: fast (syntax), standard (+structure), thorough (+semantics)',
       },
-      autoFix: { type: 'boolean', default: false, description: 'Automatically fix issues' },
-      includeCodeMap: { type: 'boolean', default: true, description: 'Include code structure map' },
-      rules: { type: 'array', items: { type: 'string' }, description: 'Specific rules to check' },
-      ignoreRules: { type: 'array', items: { type: 'string' }, description: 'Rules to ignore' }
-    }
-  }
+      autoFix: {
+        type: 'boolean',
+        default: false,
+        description: 'Automatically fix issues',
+      },
+      includeCodeMap: {
+        type: 'boolean',
+        default: true,
+        description: 'Include code structure map',
+      },
+      rules: {
+        type: 'array',
+        items: { type: 'string' },
+        description: 'Specific rules to check',
+      },
+      ignoreRules: {
+        type: 'array',
+        items: { type: 'string' },
+        description: 'Rules to ignore',
+      },
+    },
+  },
 };
 ```
 
@@ -728,24 +776,24 @@ Configure when linting runs automatically:
 export interface CodeQualitySettings {
   // When to run automatic linting
   autoLintOn: {
-    view: boolean;       // Default: false
-    edit: boolean;       // Default: true
-    analyze: boolean;    // Default: true
+    view: boolean; // Default: false
+    edit: boolean; // Default: true
+    analyze: boolean; // Default: true
   };
 
   // Default lint level per operation
   defaultLevel: {
-    view: LintLevel;     // Default: 'none'
-    edit: LintLevel;     // Default: 'standard'
-    analyze: LintLevel;  // Default: 'thorough'
+    view: LintLevel; // Default: 'none'
+    edit: LintLevel; // Default: 'standard'
+    analyze: LintLevel; // Default: 'thorough'
   };
 
   // Blocking behavior
-  blockOnErrors: boolean;  // Default: false (show errors but continue)
+  blockOnErrors: boolean; // Default: false (show errors but continue)
 
   // Cache settings
-  cacheResults: boolean;   // Default: true
-  cacheTTL: number;        // Default: 300000 (5 min)
+  cacheResults: boolean; // Default: true
+  cacheTTL: number; // Default: 300000 (5 min)
 
   // Background processing
   backgroundLint: boolean; // Default: true (after edits)
@@ -905,6 +953,7 @@ Add to existing observability HTTP server:
 ## 9. Implementation Roadmap
 
 ### Phase 1: Core Infrastructure (Week 1)
+
 - [x] Design review complete
 - [ ] Implement `FastSyntaxChecker`
 - [ ] Implement `StructureAnalyzer` with caching
@@ -912,18 +961,21 @@ Add to existing observability HTTP server:
 - [ ] Add configuration settings
 
 ### Phase 2: MCP Tool (Week 2)
+
 - [ ] Create `AHK_Lint` tool
 - [ ] Create `AHK_Lint_Configure` tool
 - [ ] Add code map generation
 - [ ] Implement auto-fix capabilities
 
 ### Phase 3: Advanced Features (Week 3)
+
 - [ ] Implement `SemanticAnalyzer`
 - [ ] Add background linting
 - [ ] Implement incremental parsing
 - [ ] Add metrics tracking
 
 ### Phase 4: Polish & Testing (Week 4)
+
 - [ ] Performance optimization
 - [ ] Integration tests
 - [ ] Documentation
@@ -934,18 +986,21 @@ Add to existing observability HTTP server:
 ## 10. Expected Impact
 
 ### Performance
+
 - **Fast mode:** +15ms overhead (syntax only)
 - **Standard mode:** +45ms overhead (with structure caching)
 - **Thorough mode:** +180ms (parallel execution)
 - **Cache hit rate:** Expected 60-80% after warmup
 
 ### Code Quality
+
 - **Catch errors before execution:** Reduce runtime errors by ~40%
 - **Maintain coding standards:** Enforce AutoHotkey v2 best practices
 - **Improve maintainability:** Code maps help with refactoring
 - **Reduce debugging time:** Find issues earlier in workflow
 
 ### Developer Experience
+
 - **Non-intrusive:** View operations unaffected
 - **Transparent:** Debug mode shows lint timing
 - **Configurable:** Per-operation settings
@@ -955,12 +1010,12 @@ Add to existing observability HTTP server:
 
 ## 11. Comparison to Alternatives
 
-| Approach | Performance | Integration | Features | Recommendation |
-|----------|-------------|-------------|----------|----------------|
-| **No linting** | ⚡ Fastest | N/A | ❌ No quality checks | ❌ Not recommended |
-| **External linter** | 🐌 Slow (separate process) | ⚠️ Manual | ✅ Full-featured | ⚠️ For CI/CD only |
-| **Always-on thorough** | 🐌 Slow (+200ms) | ✅ Automatic | ✅ Full-featured | ❌ Too slow |
-| **Tiered + cached** | ⚡ Fast (+15-45ms) | ✅ Smart | ✅ Full-featured | ✅ **Recommended** |
+| Approach               | Performance                | Integration  | Features             | Recommendation     |
+| ---------------------- | -------------------------- | ------------ | -------------------- | ------------------ |
+| **No linting**         | ⚡ Fastest                 | N/A          | ❌ No quality checks | ❌ Not recommended |
+| **External linter**    | 🐌 Slow (separate process) | ⚠️ Manual    | ✅ Full-featured     | ⚠️ For CI/CD only  |
+| **Always-on thorough** | 🐌 Slow (+200ms)           | ✅ Automatic | ✅ Full-featured     | ❌ Too slow        |
+| **Tiered + cached**    | ⚡ Fast (+15-45ms)         | ✅ Smart     | ✅ Full-featured     | ✅ **Recommended** |
 
 ---
 
@@ -986,11 +1041,15 @@ Add to existing observability HTTP server:
 
 ## Conclusion
 
-This tiered linting architecture provides **enterprise-grade code quality** without sacrificing the **fast, responsive** orchestration that makes this MCP server excellent.
+This tiered linting architecture provides **enterprise-grade code quality**
+without sacrificing the **fast, responsive** orchestration that makes this MCP
+server excellent.
 
-**Key Innovation:** Smart caching + tiered analysis means 80% of operations see <50ms overhead.
+**Key Innovation:** Smart caching + tiered analysis means 80% of operations see
+<50ms overhead.
 
 **Next Steps:**
+
 1. Review this proposal
 2. Get feedback on performance targets
 3. Start Phase 1 implementation
@@ -998,7 +1057,5 @@ This tiered linting architecture provides **enterprise-grade code quality** with
 
 ---
 
-**Document Version:** 1.0
-**Authors:** Claude (Sonnet 4.5)
-**Status:** Ready for Review
-**Estimated Effort:** 4 weeks (1 developer)
+**Document Version:** 1.0 **Authors:** Claude (Sonnet 4.5) **Status:** Ready for
+Review **Estimated Effort:** 4 weeks (1 developer)

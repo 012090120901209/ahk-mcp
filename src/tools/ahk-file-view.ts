@@ -10,14 +10,17 @@ import { createToolDefinition } from '../utils/schema-generator.js';
 
 export const AhkFileViewArgsSchema = z.object({
   file: z.string().optional().describe('Path to AutoHotkey file to view (defaults to active file)'),
-  mode: z.enum(['structured', 'raw', 'summary', 'outline']).default('structured').describe('View mode'),
+  mode: z
+    .enum(['structured', 'raw', 'summary', 'outline'])
+    .default('structured')
+    .describe('View mode'),
   lineStart: z.number().min(1).optional().describe('Starting line number (1-based)'),
   lineEnd: z.number().min(1).optional().describe('Ending line number (1-based)'),
   maxLines: z.number().min(1).max(1000).default(100).describe('Maximum lines to display'),
   showLineNumbers: z.boolean().default(true).describe('Show line numbers'),
   showMetadata: z.boolean().default(true).describe('Show file metadata'),
   highlightSyntax: z.boolean().default(true).describe('Apply syntax highlighting'),
-  showStructure: z.boolean().default(true).describe('Show code structure info')
+  showStructure: z.boolean().default(true).describe('Show code structure info'),
 });
 
 // Auto-generate inputSchema from Zod schema - no manual duplication!
@@ -87,18 +90,19 @@ export class AhkFileViewTool {
       const output = this.formatOutput(result, validatedArgs);
 
       return {
-        content: [{ type: 'text', text: output }]
+        content: [{ type: 'text', text: output }],
       };
-
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
       logger.error('AHK file view failed:', error);
 
       return {
-        content: [{
-          type: 'text',
-          text: `**File View Error**\n\n${errorMessage}`
-        }],
+        content: [
+          {
+            type: 'text',
+            text: `**File View Error**\n\n${errorMessage}`,
+          },
+        ],
       };
     }
   }
@@ -116,7 +120,9 @@ export class AhkFileViewTool {
     // Use active file
     const activeFile = getActiveFilePath();
     if (!activeFile) {
-      throw new Error('No file specified and no active file set. Use ahk-file-active to set an active file.');
+      throw new Error(
+        'No file specified and no active file set. Use ahk-file-active to set an active file.'
+      );
     }
 
     // Verify active file exists
@@ -163,12 +169,16 @@ export class AhkFileViewTool {
         linesShown: displayLines.length,
         totalLines: lines.length,
         truncated,
-        range: { start, end: end - 1 }
-      }
+        range: { start, end: end - 1 },
+      },
     };
   }
 
-  private async generateMetadata(filePath: string, content: string, lines: string[]): Promise<FileMetadata> {
+  private async generateMetadata(
+    filePath: string,
+    content: string,
+    lines: string[]
+  ): Promise<FileMetadata> {
     const stats = await fs.stat(filePath);
     const sizeInBytes = stats.size;
 
@@ -181,7 +191,7 @@ export class AhkFileViewTool {
       modifiedFormatted: this.formatDate(stats.mtime),
       lines: lines.length,
       encoding: 'UTF-8', // Assume UTF-8 for now
-      extension: path.extname(filePath)
+      extension: path.extname(filePath),
     };
   }
 
@@ -193,7 +203,7 @@ export class AhkFileViewTool {
       hotkeys: [],
       variables: [],
       comments: 0,
-      complexity: 1
+      complexity: 1,
     };
 
     // Use the compiler for better analysis
@@ -224,7 +234,7 @@ export class AhkFileViewTool {
           structure.classes.push({
             name: statement.name || 'Unknown',
             line: (statement.line || 0) + 1,
-            methods: statement.methods?.length || 0
+            methods: statement.methods?.length || 0,
           });
           structure.complexity += 2;
           break;
@@ -233,7 +243,7 @@ export class AhkFileViewTool {
           structure.functions.push({
             name: statement.name || 'Unknown',
             line: (statement.line || 0) + 1,
-            params: statement.params?.map((p: any) => p.name).join(', ') || ''
+            params: statement.params?.map((p: any) => p.name).join(', ') || '',
           });
           structure.complexity += 1;
           break;
@@ -242,7 +252,7 @@ export class AhkFileViewTool {
           structure.hotkeys.push({
             key: statement.key || 'Unknown',
             line: (statement.line || 0) + 1,
-            description: statement.description
+            description: statement.description,
           });
           structure.complexity += 1;
           break;
@@ -267,7 +277,7 @@ export class AhkFileViewTool {
         structure.classes.push({
           name: classMatch[1],
           line: lineNum,
-          methods: 0
+          methods: 0,
         });
         continue;
       }
@@ -278,7 +288,7 @@ export class AhkFileViewTool {
         structure.functions.push({
           name: functionMatch[1],
           line: lineNum,
-          params: ''
+          params: '',
         });
         continue;
       }
@@ -288,7 +298,7 @@ export class AhkFileViewTool {
       if (hotkeyMatch) {
         structure.hotkeys.push({
           key: hotkeyMatch[1],
-          line: lineNum
+          line: lineNum,
         });
         continue;
       }
@@ -299,15 +309,23 @@ export class AhkFileViewTool {
         structure.variables.push({
           name: varMatch[1],
           line: lineNum,
-          scope: 'local'
+          scope: 'local',
         });
       }
     }
 
-    structure.complexity = Math.max(1, structure.classes.length * 2 + structure.functions.length + structure.hotkeys.length);
+    structure.complexity = Math.max(
+      1,
+      structure.classes.length * 2 + structure.functions.length + structure.hotkeys.length
+    );
   }
 
-  private calculateLineRange(totalLines: number, start?: number, end?: number, maxLines?: number): {
+  private calculateLineRange(
+    totalLines: number,
+    start?: number,
+    end?: number,
+    maxLines?: number
+  ): {
     start: number;
     end: number;
     truncated: boolean;
@@ -316,7 +334,7 @@ export class AhkFileViewTool {
     let displayEnd = end || totalLines;
 
     // Apply max lines limit
-    if (maxLines && (displayEnd - displayStart + 1) > maxLines) {
+    if (maxLines && displayEnd - displayStart + 1 > maxLines) {
       displayEnd = displayStart + maxLines - 1;
     }
 
@@ -329,7 +347,7 @@ export class AhkFileViewTool {
     return {
       start: displayStart,
       end: displayEnd + 1, // +1 for slice() end parameter
-      truncated
+      truncated,
     };
   }
 
@@ -353,7 +371,11 @@ export class AhkFileViewTool {
     return content;
   }
 
-  private formatSummaryMode(metadata: FileMetadata, structure: CodeStructure, displayInfo: any): string {
+  private formatSummaryMode(
+    metadata: FileMetadata,
+    structure: CodeStructure,
+    displayInfo: any
+  ): string {
     let output = `📄 **File Summary: ${metadata.name}**\n\n`;
 
     // File info
@@ -377,7 +399,10 @@ export class AhkFileViewTool {
       output += `**Classes**: ${structure.classes.map(c => c.name).join(', ')}\n`;
     }
     if (structure.functions.length > 0) {
-      output += `**Functions**: ${structure.functions.slice(0, 5).map(f => f.name).join(', ')}`;
+      output += `**Functions**: ${structure.functions
+        .slice(0, 5)
+        .map(f => f.name)
+        .join(', ')}`;
       if (structure.functions.length > 5) output += ` (and ${structure.functions.length - 5} more)`;
       output += '\n';
     }
@@ -385,7 +410,11 @@ export class AhkFileViewTool {
     return output;
   }
 
-  private formatOutlineMode(metadata: FileMetadata, structure: CodeStructure, displayInfo: any): string {
+  private formatOutlineMode(
+    metadata: FileMetadata,
+    structure: CodeStructure,
+    displayInfo: any
+  ): string {
     let output = `📋 **Code Outline: ${metadata.name}**\n\n`;
 
     if (structure.classes.length > 0) {
@@ -448,9 +477,18 @@ export class AhkFileViewTool {
 
       if (args.showStructure && structure) {
         const structureParts: string[] = [];
-        if (structure.classes.length > 0) structureParts.push(`${structure.classes.length} class${structure.classes.length > 1 ? 'es' : ''}`);
-        if (structure.functions.length > 0) structureParts.push(`${structure.functions.length} function${structure.functions.length > 1 ? 's' : ''}`);
-        if (structure.hotkeys.length > 0) structureParts.push(`${structure.hotkeys.length} hotkey${structure.hotkeys.length > 1 ? 's' : ''}`);
+        if (structure.classes.length > 0)
+          structureParts.push(
+            `${structure.classes.length} class${structure.classes.length > 1 ? 'es' : ''}`
+          );
+        if (structure.functions.length > 0)
+          structureParts.push(
+            `${structure.functions.length} function${structure.functions.length > 1 ? 's' : ''}`
+          );
+        if (structure.hotkeys.length > 0)
+          structureParts.push(
+            `${structure.hotkeys.length} hotkey${structure.hotkeys.length > 1 ? 's' : ''}`
+          );
 
         if (structureParts.length > 0) {
           output += ` • ${structureParts.join(', ')}`;
@@ -482,7 +520,8 @@ export class AhkFileViewTool {
 
     // Truncation notice
     if (displayInfo.truncated) {
-      output += '\n📄 *File truncated for display. Use lineStart/lineEnd or increase maxLines to see more.*\n';
+      output +=
+        '\n📄 *File truncated for display. Use lineStart/lineEnd or increase maxLines to see more.*\n';
     }
 
     return output;

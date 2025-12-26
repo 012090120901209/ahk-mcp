@@ -53,10 +53,7 @@ class ToolRegistry {
   /**
    * Register a tool with the factory
    */
-  register<T extends ITool>(
-    toolName: string,
-    constructor: new () => T
-  ): void {
+  register<T extends ITool>(toolName: string, constructor: new () => T): void {
     this.tools.set(toolName, { constructor, toolName });
   }
 

@@ -1,5 +1,15 @@
 import logger from '../logger.js';
-import { orchestrationContext, FileAnalysisResult, ClassInfo, MethodInfo, FunctionInfo, HotkeyInfo, LineRange, OrchestrationContext, OperationRecord } from './orchestration-context.js';
+import {
+  orchestrationContext,
+  FileAnalysisResult,
+  ClassInfo,
+  MethodInfo,
+  FunctionInfo,
+  HotkeyInfo,
+  LineRange,
+  OrchestrationContext,
+  OperationRecord,
+} from './orchestration-context.js';
 import { AhkAutoFileTool } from '../tools/ahk-file-detect.js';
 import { AhkAnalyzeTool } from '../tools/ahk-analyze-code.js';
 import { AhkFileViewTool } from '../tools/ahk-file-view.js';
@@ -53,7 +63,10 @@ export class OrchestrationEngine {
       let filePath = request.filePath;
       if (!filePath) {
         logger.info('No file path provided, attempting detection');
-        const detectResult = await this.detectTool.execute({ text: request.intent, autoSet: false });
+        const detectResult = await this.detectTool.execute({
+          text: request.intent,
+          autoSet: false,
+        });
         toolCallsMade++;
         toolsCalled.push('AHK_File_Detect');
 
@@ -89,7 +102,12 @@ export class OrchestrationEngine {
         }
 
         logger.info(`Analyzing file: ${filePath}`);
-        const analyzeResult = await this.analyzeTool.execute({ code: filePath, includeDocumentation: false, includeUsageExamples: false, analyzeComplexity: false });
+        const analyzeResult = await this.analyzeTool.execute({
+          code: filePath,
+          includeDocumentation: false,
+          includeUsageExamples: false,
+          analyzeComplexity: false,
+        });
         toolCallsMade++;
         toolsCalled.push('AHK_Analyze');
 
@@ -102,24 +120,27 @@ export class OrchestrationEngine {
           analysisResult: analysis,
           analysisTimestamp: Date.now(),
           fileModifiedTime: stats.mtimeMs,
-          operationHistory: []
+          operationHistory: [],
         };
         orchestrationContext.set(filePath, ctx);
       }
 
       if (!analysis) {
-        return this.errorResult(
-          ['Failed to analyze file structure'],
-          toolCallsMade,
-          { filePath }
-        );
+        return this.errorResult(['Failed to analyze file structure'], toolCallsMade, { filePath });
       }
 
       // Step 3: Handle based on operation type
       if (request.operation === 'analyze') {
         // Just return analysis structure
         const result = this.formatAnalysisOnly(analysis, toolCallsMade, cacheHit);
-        this.recordOperation(filePath, 'analyze', toolsCalled, Date.now() - startTime, cacheHit, true);
+        this.recordOperation(
+          filePath,
+          'analyze',
+          toolsCalled,
+          Date.now() - startTime,
+          cacheHit,
+          true
+        );
         return result;
       }
 
@@ -131,7 +152,7 @@ export class OrchestrationEngine {
           return this.errorResult(
             [
               `Target entity '${request.targetEntity}' not found in file`,
-              `Available entities: ${this.listAvailableEntities(analysis)}`
+              `Available entities: ${this.listAvailableEntities(analysis)}`,
             ],
             toolCallsMade,
             { filePath, targetEntity: request.targetEntity }
@@ -158,7 +179,7 @@ export class OrchestrationEngine {
         showLineNumbers: true,
         showMetadata: true,
         highlightSyntax: false,
-        showStructure: true
+        showStructure: true,
       });
       toolCallsMade++;
       toolsCalled.push('AHK_File_View');
@@ -173,7 +194,14 @@ export class OrchestrationEngine {
       }
 
       // Record operation
-      this.recordOperation(filePath, request.operation, toolsCalled, Date.now() - startTime, cacheHit, true);
+      this.recordOperation(
+        filePath,
+        request.operation,
+        toolsCalled,
+        Date.now() - startTime,
+        cacheHit,
+        true
+      );
 
       // Step 7: Format result
       return this.formatSuccessResult(
@@ -186,7 +214,6 @@ export class OrchestrationEngine {
         ctx.analysisTimestamp,
         request.operation
       );
-
     } catch (error) {
       logger.error('Orchestration error:', error);
       return this.errorResult(
@@ -220,7 +247,7 @@ export class OrchestrationEngine {
         startLine: parseInt(match[2]),
         endLine: parseInt(match[3]),
         methods: [],
-        properties: []
+        properties: [],
       });
     }
 
@@ -229,7 +256,7 @@ export class OrchestrationEngine {
       functions.push({
         name: match[1],
         startLine: parseInt(match[2]),
-        endLine: parseInt(match[3])
+        endLine: parseInt(match[3]),
       });
     }
 
@@ -238,7 +265,7 @@ export class OrchestrationEngine {
       classes,
       functions,
       hotkeys,
-      globalLines: { start: 1, end: 1000 } // Default, can be improved
+      globalLines: { start: 1, end: 1000 }, // Default, can be improved
     };
   }
 
@@ -285,7 +312,7 @@ export class OrchestrationEngine {
     const lines: string[] = [
       '**File Structure Analysis**\n',
       `Performance: ${toolCallsMade} tool call(s) | Cache: ${cacheHit ? 'HIT' : 'MISS'}`,
-      `File: ${analysis.filePath}\n`
+      `File: ${analysis.filePath}\n`,
     ];
 
     if (analysis.classes.length > 0) {
@@ -312,9 +339,9 @@ export class OrchestrationEngine {
       nextSteps: [
         'Use targetEntity parameter to view specific class/function',
         'Use operation: "view" to read file content',
-        'Use operation: "edit" to prepare for editing'
+        'Use operation: "edit" to prepare for editing',
       ],
-      metadata: { filePath: analysis.filePath }
+      metadata: { filePath: analysis.filePath },
     };
   }
 
@@ -337,7 +364,7 @@ export class OrchestrationEngine {
       targetEntity ? `Target: ${targetEntity} (lines ${linesRead.start}-${linesRead.end})` : '',
       cacheHit ? `Cache age: ${Math.round(analysisAge / 1000)}s` : '',
       '\n---\n',
-      content
+      content,
     ];
 
     const nextSteps: string[] = [];
@@ -359,8 +386,8 @@ export class OrchestrationEngine {
         filePath,
         targetEntity,
         linesRead,
-        analysisAge
-      }
+        analysisAge,
+      },
     };
   }
 
@@ -376,7 +403,7 @@ export class OrchestrationEngine {
       context: '',
       nextSteps: [],
       errors,
-      metadata
+      metadata,
     };
   }
 
@@ -397,7 +424,7 @@ export class OrchestrationEngine {
       toolsCalled,
       duration,
       cacheHit,
-      success
+      success,
     };
 
     ctx.operationHistory.push(record);

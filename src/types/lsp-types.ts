@@ -23,7 +23,7 @@ export enum DiagnosticSeverity {
   Error = 1,
   Warning = 2,
   Information = 3,
-  Hint = 4
+  Hint = 4,
 }
 
 export interface DiagnosticRelatedInformation {
@@ -35,8 +35,6 @@ export interface Location {
   uri: string;
   range: Range;
 }
-
-
 
 export interface SymbolInformation {
   name: string;
@@ -71,7 +69,7 @@ export enum SymbolKind {
   Struct = 23,
   Event = 24,
   Operator = 25,
-  TypeParameter = 26
+  TypeParameter = 26,
 }
 
 export interface DefinitionResult {
@@ -87,4 +85,4 @@ export interface ReferenceResult {
 
 export interface ReferenceContext {
   includeDeclaration: boolean;
-} 
+}

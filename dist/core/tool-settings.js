@@ -59,7 +59,9 @@ class ToolSettingsManager {
                 AHK_File_Recent: true,
                 AHK_Config: true,
                 AHK_LSP: true,
-                AHK_Settings: true
+                AHK_Settings: true,
+                AHK_VSCode_Open: true,
+                AHK_THQBY_Document_Symbols: true
             },
             // Global settings
             allowFileEditing: true,
@@ -70,7 +72,11 @@ class ToolSettingsManager {
             restrictToAhkFiles: true,
             maxFileSize: 10 * 1024 * 1024, // 10 MB
             // Convenience settings
-            autoRunAfterEdit: false
+            autoRunAfterEdit: false,
+            autoOpenInVsCodeAfterEdit: true,
+            // External tooling
+            thqbyLspServerPath: '',
+            thqbyLspNodePath: ''
         };
     }
     loadSettings() {
@@ -191,6 +197,14 @@ class ToolSettingsManager {
     }
     shouldAutoRunAfterEdit() {
         return this.settings.autoRunAfterEdit;
+    }
+    setAutoOpenInVsCodeAfterEdit(enabled) {
+        this.settings.autoOpenInVsCodeAfterEdit = enabled;
+        this.saveSettings();
+        logger.info(`Auto-open in VS Code after edit ${enabled ? 'enabled' : 'disabled'}`);
+    }
+    shouldOpenInVsCodeAfterEdit() {
+        return this.settings.autoOpenInVsCodeAfterEdit;
     }
     /**
      * Get tool availability message

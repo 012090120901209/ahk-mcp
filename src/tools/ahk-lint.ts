@@ -15,33 +15,31 @@ import { structureAnalyzer } from '../core/linting/structure-analyzer.js';
 // ===== Schema Definition =====
 
 export const AhkLintArgsSchema = z.object({
-  filePath: z.string()
-    .optional()
-    .describe('Path to .ahk file to lint (defaults to active file)'),
+  filePath: z.string().optional().describe('Path to .ahk file to lint (defaults to active file)'),
 
-  level: z.enum(['fast', 'standard', 'thorough'])
+  level: z
+    .enum(['fast', 'standard', 'thorough'])
     .default('standard')
     .describe('Analysis depth: fast (syntax), standard (+structure), thorough (+semantics)'),
 
-  includeStructure: z.boolean()
-    .default(true)
-    .describe('Include code structure map in output'),
+  includeStructure: z.boolean().default(true).describe('Include code structure map in output'),
 
-  forceRefresh: z.boolean()
-    .default(false)
-    .describe('Bypass cache and force fresh analysis'),
+  forceRefresh: z.boolean().default(false).describe('Bypass cache and force fresh analysis'),
 
-  autoFix: z.boolean()
+  autoFix: z
+    .boolean()
     .default(false)
     .describe('Automatically fix fixable issues and apply changes to file'),
 
-  dryRun: z.boolean()
+  dryRun: z
+    .boolean()
     .default(false)
     .describe('Preview auto-fix changes without modifying the file (requires autoFix: true)'),
 
-  outputFormat: z.enum(['text', 'json'])
+  outputFormat: z
+    .enum(['text', 'json'])
     .default('text')
-    .describe('Output format: text (markdown) or json (structured)')
+    .describe('Output format: text (markdown) or json (structured)'),
 });
 
 // ===== Tool Definition =====
@@ -55,42 +53,42 @@ export const ahkLintToolDefinition = {
     properties: {
       filePath: {
         type: 'string',
-        description: 'Path to .ahk file (defaults to active file)'
+        description: 'Path to .ahk file (defaults to active file)',
       },
       level: {
         type: 'string',
         enum: ['fast', 'standard', 'thorough'],
         default: 'standard',
-        description: 'Analysis depth'
+        description: 'Analysis depth',
       },
       includeStructure: {
         type: 'boolean',
         default: true,
-        description: 'Include code structure map'
+        description: 'Include code structure map',
       },
       forceRefresh: {
         type: 'boolean',
         default: false,
-        description: 'Bypass cache'
+        description: 'Bypass cache',
       },
       autoFix: {
         type: 'boolean',
         default: false,
-        description: 'Automatically fix fixable issues'
+        description: 'Automatically fix fixable issues',
       },
       dryRun: {
         type: 'boolean',
         default: false,
-        description: 'Preview fixes without modifying file (requires autoFix: true)'
+        description: 'Preview fixes without modifying file (requires autoFix: true)',
       },
       outputFormat: {
         type: 'string',
         enum: ['text', 'json'],
         default: 'text',
-        description: 'Output format'
-      }
-    }
-  }
+        description: 'Output format',
+      },
+    },
+  },
 };
 
 // ===== Tool Implementation =====
@@ -113,22 +111,26 @@ export class AhkLintTool {
 
       if (!filePath) {
         return {
-          content: [{
-            type: 'text',
-            text: '**No File Specified**\n\nPlease provide a `filePath` parameter or set an active file first using AHK_File_Active.'
-          }],
-          isError: true
+          content: [
+            {
+              type: 'text',
+              text: '**No File Specified**\n\nPlease provide a `filePath` parameter or set an active file first using AHK_File_Active.',
+            },
+          ],
+          isError: true,
         };
       }
 
       // Validate .ahk extension
       if (!filePath.toLowerCase().endsWith('.ahk')) {
         return {
-          content: [{
-            type: 'text',
-            text: `**Invalid File Type**\n\nFile must have .ahk extension. Got: ${filePath}`
-          }],
-          isError: true
+          content: [
+            {
+              type: 'text',
+              text: `**Invalid File Type**\n\nFile must have .ahk extension. Got: ${filePath}`,
+            },
+          ],
+          isError: true,
         };
       }
 
@@ -142,7 +144,7 @@ export class AhkLintTool {
         const fixResult = await codeQualityManager.applyAutoFix(filePath, {
           dryRun: isDryRun,
           createBackup: true,
-          maxFixes: 100
+          maxFixes: 100,
         });
 
         const totalDuration = Date.now() - startTime;
@@ -150,16 +152,22 @@ export class AhkLintTool {
         // Format output
         if (validatedArgs.outputFormat === 'json') {
           return {
-            content: [{
-              type: 'text',
-              text: JSON.stringify({
-                success: fixResult.success,
-                appliedFixes: fixResult.appliedFixes.length,
-                failedFixes: fixResult.failedFixes.length,
-                duration: totalDuration,
-                details: fixResult
-              }, null, 2)
-            }]
+            content: [
+              {
+                type: 'text',
+                text: JSON.stringify(
+                  {
+                    success: fixResult.success,
+                    appliedFixes: fixResult.appliedFixes.length,
+                    failedFixes: fixResult.failedFixes.length,
+                    duration: totalDuration,
+                    details: fixResult,
+                  },
+                  null,
+                  2
+                ),
+              },
+            ],
           };
         } else {
           let output = `# Auto-Fix Results\n\n`;
@@ -168,10 +176,12 @@ export class AhkLintTool {
           output += fixResult.summary;
 
           return {
-            content: [{
-              type: 'text',
-              text: output
-            }]
+            content: [
+              {
+                type: 'text',
+                text: output,
+              },
+            ],
           };
         }
       }
@@ -180,7 +190,7 @@ export class AhkLintTool {
       const report = await codeQualityManager.analyzeFile(filePath, {
         level: validatedArgs.level as LintLevel,
         forceRefresh: validatedArgs.forceRefresh,
-        includeStructure: validatedArgs.includeStructure
+        includeStructure: validatedArgs.includeStructure,
       });
 
       const totalDuration = Date.now() - startTime;
@@ -188,26 +198,32 @@ export class AhkLintTool {
       // Format output
       if (validatedArgs.outputFormat === 'json') {
         return {
-          content: [{
-            type: 'text',
-            text: JSON.stringify({
-              status: report.errors.length === 0 ? 'passed' : 'failed',
-              filePath: report.filePath,
-              level: report.level,
-              duration: totalDuration,
-              cached: report.cached,
-              summary: {
-                errors: report.errors.length,
-                warnings: report.warnings.length,
-                suggestions: report.suggestions.length
-              },
-              errors: report.errors,
-              warnings: report.warnings,
-              suggestions: report.suggestions,
-              structure: report.structure,
-              metrics: report.structure?.metrics
-            }, null, 2)
-          }]
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(
+                {
+                  status: report.errors.length === 0 ? 'passed' : 'failed',
+                  filePath: report.filePath,
+                  level: report.level,
+                  duration: totalDuration,
+                  cached: report.cached,
+                  summary: {
+                    errors: report.errors.length,
+                    warnings: report.warnings.length,
+                    suggestions: report.suggestions.length,
+                  },
+                  errors: report.errors,
+                  warnings: report.warnings,
+                  suggestions: report.suggestions,
+                  structure: report.structure,
+                  metrics: report.structure?.metrics,
+                },
+                null,
+                2
+              ),
+            },
+          ],
         };
       }
 
@@ -227,21 +243,24 @@ export class AhkLintTool {
       content += `**Analysis Time:** ${totalDuration}ms ${report.cached ? '(from cache)' : ''}`;
 
       return {
-        content: [{
-          type: 'text',
-          text: content
-        }]
+        content: [
+          {
+            type: 'text',
+            text: content,
+          },
+        ],
       };
-
     } catch (error) {
       logger.error('AHK_Lint execution error:', error);
 
       return {
-        content: [{
-          type: 'text',
-          text: `**Linting Failed**\n\n${error instanceof Error ? error.message : String(error)}`
-        }],
-        isError: true
+        content: [
+          {
+            type: 'text',
+            text: `**Linting Failed**\n\n${error instanceof Error ? error.message : String(error)}`,
+          },
+        ],
+        isError: true,
       };
     }
   }

@@ -25,7 +25,10 @@ export interface OTelSpan {
   name: string;
   startTimeUnixNano: string;
   endTimeUnixNano: string;
-  attributes: Array<{ key: string; value: { stringValue?: string; intValue?: number; boolValue?: boolean } }>;
+  attributes: Array<{
+    key: string;
+    value: { stringValue?: string; intValue?: number; boolValue?: boolean };
+  }>;
   status: { code: number; message?: string };
 }
 

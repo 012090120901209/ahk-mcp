@@ -1,17 +1,17 @@
-import { z } from "zod";
-import logger from "../logger.js";
-import { safeParse } from "../core/validation-middleware.js";
+import { z } from 'zod';
+import logger from '../logger.js';
+import { safeParse } from '../core/validation-middleware.js';
 import {
   getPromptSlug,
   insertPromptIntoModule,
   loadPromptsFromModules,
-  type ModulePrompt
-} from "./ahk-docs-modules.js";
+  type ModulePrompt,
+} from './ahk-docs-modules.js';
 
 export interface PromptTemplate {
   title: string;
   body: string;
-  source: "default" | "module";
+  source: 'default' | 'module';
   module?: string;
   slug: string;
 }
@@ -19,43 +19,43 @@ export interface PromptTemplate {
 export const AhkPromptsArgsSchema = z.object({});
 
 export const ahkPromptsToolDefinition = {
-  name: "AHK_Prompts",
+  name: 'AHK_Prompts',
   description: `AHK Prompts
 Returns a set of built-in AHK v2 prompt templates for code generation and learning.`,
   inputSchema: {
-    type: "object",
+    type: 'object',
     properties: {},
-    required: []
-  }
+    required: [],
+  },
 };
 
 export const DEFAULT_PROMPTS: PromptTemplate[] = [
   {
-    title: "Auto Context",
-    body: "Jumpstart conversations by immediately calling `AHK_Context_Injector`.\n- Paste the user request into `userPrompt`\n- Leave `contextType` as `auto` unless you know the specific category\n- Set `includeModuleInstructions` to `true` to pull module expertise\n\nAfter the tool returns contextual snippets, review them before generating code.",
-    source: "default",
-    slug: getPromptSlug("Auto Context")
+    title: 'Auto Context',
+    body: 'Jumpstart conversations by immediately calling `AHK_Context_Injector`.\n- Paste the user request into `userPrompt`\n- Leave `contextType` as `auto` unless you know the specific category\n- Set `includeModuleInstructions` to `true` to pull module expertise\n\nAfter the tool returns contextual snippets, review them before generating code.',
+    source: 'default',
+    slug: getPromptSlug('Auto Context'),
   },
   {
-    title: "Clipboard Editor",
-    body: "Create a clipboard text editor that:\n- Opens the GUI when the script starts\n- Shows the clipboard contents when the GUI opens in an edit box without the text selected\n- Create three buttons to change the case of the text\n- Save the newly edited version to the users clipboard",
-    source: "default",
-    slug: getPromptSlug("Clipboard Editor")
+    title: 'Clipboard Editor',
+    body: 'Create a clipboard text editor that:\n- Opens the GUI when the script starts\n- Shows the clipboard contents when the GUI opens in an edit box without the text selected\n- Create three buttons to change the case of the text\n- Save the newly edited version to the users clipboard',
+    source: 'default',
+    slug: getPromptSlug('Clipboard Editor'),
   },
   {
-    title: "Link Manager",
-    body: "Create an AutoHotkey v2 script called **Link Manager** that:\n- Stores a multiline string `g_Links` containing several URLs\n- Parses that string on startup into an array with fields `url`, `valid`, and `displayName`\n- Builds a GUI with a ListView (or ListBox) showing each link and a status bar for details\n- Opens the selected link in Microsoft Edge on double-click or Enter, adding https:// if missing (fallback to default browser if Edge fails)\n- Validates URLs with a regex pattern\n- Handles errors such as empty list or invalid URL and shows tooltips or status messages\n- Uses clean AHK v2 syntax, modular functions, and proper event binding",
-    source: "default",
-    slug: getPromptSlug("Link Manager")
+    title: 'Link Manager',
+    body: 'Create an AutoHotkey v2 script called **Link Manager** that:\n- Stores a multiline string `g_Links` containing several URLs\n- Parses that string on startup into an array with fields `url`, `valid`, and `displayName`\n- Builds a GUI with a ListView (or ListBox) showing each link and a status bar for details\n- Opens the selected link in Microsoft Edge on double-click or Enter, adding https:// if missing (fallback to default browser if Edge fails)\n- Validates URLs with a regex pattern\n- Handles errors such as empty list or invalid URL and shows tooltips or status messages\n- Uses clean AHK v2 syntax, modular functions, and proper event binding',
+    source: 'default',
+    slug: getPromptSlug('Link Manager'),
   },
   {
-    title: "Snippet Manager",
-    body: "Create an AutoHotkey v2 script for a Snippet Manager tool with the following features:\n- Store a collection of predefined text snippets (like greetings, closings, reminders)\n- Display them in a listbox GUI\n- Allow copying the selected snippet to clipboard\n- Option to send the snippet directly to the previous active window\n- Show temporary tooltips for user feedback\n\nAdditional Requirements:\n- Store snippets in a static Map\n- Track the previously active window\n- Have a clean, resizable GUI\n- Display tooltips that automatically disappear\n\nInclude these specific snippets: \"Greeting\", \"Closing\", \"Reminder\", and \"Follow-up\" with appropriate text content for each.\nMake sure to follow AutoHotkey v2 best practices with proper event binding, control management, and variable scoping.",
-    source: "default",
-    slug: getPromptSlug("Snippet Manager")
+    title: 'Snippet Manager',
+    body: 'Create an AutoHotkey v2 script for a Snippet Manager tool with the following features:\n- Store a collection of predefined text snippets (like greetings, closings, reminders)\n- Display them in a listbox GUI\n- Allow copying the selected snippet to clipboard\n- Option to send the snippet directly to the previous active window\n- Show temporary tooltips for user feedback\n\nAdditional Requirements:\n- Store snippets in a static Map\n- Track the previously active window\n- Have a clean, resizable GUI\n- Display tooltips that automatically disappear\n\nInclude these specific snippets: "Greeting", "Closing", "Reminder", and "Follow-up" with appropriate text content for each.\nMake sure to follow AutoHotkey v2 best practices with proper event binding, control management, and variable scoping.',
+    source: 'default',
+    slug: getPromptSlug('Snippet Manager'),
   },
   {
-    title: "Layout Debugger",
+    title: 'Layout Debugger',
     body: [
       '---',
       'name: ahk-gui-layout (AHK_OOP MCP inject)',
@@ -438,13 +438,13 @@ export const DEFAULT_PROMPTS: PromptTemplate[] = [
       '- Integrate seamlessly with AHK_OOP outputs and MCP tools',
       '- Run without errors in AutoHotkey v2',
       '',
-      'This inject ensures every GUI produced under AHK_OOP and MCP exhibits professional layout quality with consistent padding, readable GuiForm calls, and maintainable mathematical positioning.'
+      'This inject ensures every GUI produced under AHK_OOP and MCP exhibits professional layout quality with consistent padding, readable GuiForm calls, and maintainable mathematical positioning.',
     ].join('\n'),
-    source: "default",
-    slug: getPromptSlug("Layout Debugger")
+    source: 'default',
+    slug: getPromptSlug('Layout Debugger'),
   },
   {
-    title: "AHK v2 Debug Assistant",
+    title: 'AHK v2 Debug Assistant',
     body: [
       'I need help debugging my AutoHotkey v2 script. Please apply the systematic debug checklist:',
       '',
@@ -516,13 +516,12 @@ export const DEFAULT_PROMPTS: PromptTemplate[] = [
       '}',
       '```',
       '',
-      'Show me the exact fix with before/after code.'
+      'Show me the exact fix with before/after code.',
     ].join('\n'),
-    source: "default",
-    slug: getPromptSlug("Debugging Assistant")
-  }
+    source: 'default',
+    slug: getPromptSlug('Debugging Assistant'),
+  },
 ];
-
 
 export const PROMPTS = DEFAULT_PROMPTS;
 
@@ -546,8 +545,8 @@ export async function getPromptCatalog(): Promise<PromptTemplate[]> {
       title: modulePrompt.title,
       body: modulePrompt.body,
       module: modulePrompt.module,
-      source: "module",
-      slug: modulePrompt.slug
+      source: 'module',
+      slug: modulePrompt.slug,
     });
   }
 
@@ -562,25 +561,26 @@ export class AhkPromptsTool {
     const parsed = safeParse(args, AhkPromptsArgsSchema, 'AHK_Prompts');
     if (!parsed.success) return parsed.error;
 
-    logger.info("Returning AutoHotkey prompt templates");
+    logger.info('Returning AutoHotkey prompt templates');
     const prompts = await getPromptCatalog();
 
     const promptText =
-      "## Built-in AHK v2 Prompts\n" +
+      '## Built-in AHK v2 Prompts\n' +
       prompts
         .map((prompt, index) => {
-          const moduleDescriptor = prompt.source === "module" && prompt.module ? ` (docs/Modules/${prompt.module})` : "";
-          return `### ${index + 1}. ${prompt.title || "Prompt"}${moduleDescriptor}\n${prompt.body}\n`;
+          const moduleDescriptor =
+            prompt.source === 'module' && prompt.module ? ` (docs/Modules/${prompt.module})` : '';
+          return `### ${index + 1}. ${prompt.title || 'Prompt'}${moduleDescriptor}\n${prompt.body}\n`;
         })
-        .join("\n");
+        .join('\n');
 
     return {
       content: [
         {
-          type: "text",
-          text: promptText
-        }
-      ]
+          type: 'text',
+          text: promptText,
+        },
+      ],
     };
   }
 }

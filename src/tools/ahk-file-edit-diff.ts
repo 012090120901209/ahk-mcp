@@ -1,17 +1,23 @@
 import { z } from 'zod';
 import fs from 'fs/promises';
+import path from 'path';
 import logger from '../logger.js';
 import { activeFile } from '../core/active-file.js';
 import { checkToolAvailability, toolSettings } from '../core/tool-settings.js';
 import { AhkRunTool } from './ahk-run-script.js';
 import { safeParse } from '../core/validation-middleware.js';
+import { setLastEditedFile } from '../core/config.js';
+import { openFileInVSCode } from '../utils/vscode-open.js';
 
 export const AhkDiffEditArgsSchema = z.object({
   diff: z.string().describe('Unified diff format patch to apply'),
   filePath: z.string().optional().describe('File path to edit (defaults to activeFilePath)'),
   dryRun: z.boolean().optional().default(false).describe('Preview changes without applying'),
   createBackup: z.boolean().optional().default(true).describe('Create backup before editing'),
-  runAfter: z.boolean().optional().describe('Run the script after the diff is applied (skipped on dryRun).')
+  runAfter: z
+    .boolean()
+    .optional()
+    .describe('Run the script after the diff is applied (skipped on dryRun).'),
 });
 
 export const ahkDiffEditToolDefinition = {
@@ -23,29 +29,29 @@ Apply unified diff patches to edit AutoHotkey files (similar to Claude filesyste
     properties: {
       diff: {
         type: 'string',
-        description: 'Unified diff format patch to apply'
+        description: 'Unified diff format patch to apply',
       },
       filePath: {
         type: 'string',
-        description: 'File path to edit (defaults to activeFilePath)'
+        description: 'File path to edit (defaults to activeFilePath)',
       },
       dryRun: {
         type: 'boolean',
         default: false,
-        description: 'Preview changes without applying'
+        description: 'Preview changes without applying',
       },
       createBackup: {
         type: 'boolean',
         default: true,
-        description: 'Create backup before editing'
+        description: 'Create backup before editing',
       },
       runAfter: {
         type: 'boolean',
-        description: 'Run the script after the diff is applied (skipped on dryRun).'
-      }
+        description: 'Run the script after the diff is applied (skipped on dryRun).',
+      },
     },
-    required: ['diff']
-  }
+    required: ['diff'],
+  },
 };
 
 interface DiffHunk {
@@ -77,7 +83,7 @@ export class AhkDiffEditTool {
     const result: ParsedDiff = {
       oldFile: '',
       newFile: '',
-      hunks: []
+      hunks: [],
     };
 
     let currentHunk: DiffHunk | null = null;
@@ -107,7 +113,7 @@ export class AhkDiffEditTool {
           oldLines: parseInt(hunkMatch[2] || '1', 10),
           newStart: parseInt(hunkMatch[3], 10),
           newLines: parseInt(hunkMatch[4] || '1', 10),
-          lines: []
+          lines: [],
         };
         continue;
       }
@@ -199,13 +205,13 @@ export class AhkDiffEditTool {
     const originalLines = original.split('\n');
     const modifiedLines = modified.split('\n');
     let diff = '';
-    
+
     const maxLines = Math.max(originalLines.length, modifiedLines.length);
-    
+
     for (let i = 0; i < maxLines; i++) {
       const origLine = originalLines[i];
       const modLine = modifiedLines[i];
-      
+
       if (origLine === modLine) {
         // Context line
         if (i < originalLines.length) {
@@ -223,7 +229,7 @@ export class AhkDiffEditTool {
         diff += `+ ${modLine}\n`;
       }
     }
-    
+
     return diff;
   }
 
@@ -239,17 +245,20 @@ export class AhkDiffEditTool {
       const availability = checkToolAvailability('AHK_File_Edit_Diff');
       if (!availability.enabled) {
         return {
-          content: [{ type: 'text', text: availability.message || 'Tool is disabled' }]
+          content: [{ type: 'text', text: availability.message || 'Tool is disabled' }],
         };
       }
 
       const { diff, filePath, dryRun, createBackup, runAfter } = parsed.data;
-      const runAfterEdit = typeof runAfter === 'boolean' ? runAfter : toolSettings.shouldAutoRunAfterEdit();
-      
+      const runAfterEdit =
+        typeof runAfter === 'boolean' ? runAfter : toolSettings.shouldAutoRunAfterEdit();
+
       // Get the target file
       const targetFile = filePath || activeFile.getActiveFile();
       if (!targetFile) {
-        throw new Error('No file specified and no active file set. Use AHK_File_Active to set an active file first.');
+        throw new Error(
+          'No file specified and no active file set. Use AHK_File_Active to set an active file first.'
+        );
       }
 
       // Ensure it's an .ahk file
@@ -267,18 +276,20 @@ export class AhkDiffEditTool {
 
       // Parse the diff
       const parsedDiff = this.parseDiff(diff);
-      
+
       // Apply the diff
       let newContent: string;
       try {
         newContent = this.applyDiff(currentContent, parsedDiff);
       } catch (error) {
         return {
-          content: [{
-            type: 'text',
-            text: `Failed to apply diff: ${error}\n\nMake sure the diff matches the current file content.`
-          }],
-          };
+          content: [
+            {
+              type: 'text',
+              text: `Failed to apply diff: ${error}\n\nMake sure the diff matches the current file content.`,
+            },
+          ],
+        };
       }
 
       // Generate response
@@ -289,11 +300,14 @@ export class AhkDiffEditTool {
         response += '**Preview of changes:**\n```diff\n';
         response += this.createSimpleDiff(currentContent, newContent);
         response += '```\n\n';
-        
-        const linesChanged = Math.abs(newContent.split('\n').length - currentContent.split('\n').length);
+
+        const linesChanged = Math.abs(
+          newContent.split('\n').length - currentContent.split('\n').length
+        );
         response += `**Summary:** ${parsedDiff.hunks.length} hunk(s), ~${linesChanged} line(s) changed`;
         if (runAfterEdit) {
-          response += '\n\n[WARN] Run skipped during dry run. Apply the diff to execute the script.';
+          response +=
+            '\n\n[WARN] Run skipped during dry run. Apply the diff to execute the script.';
         }
       } else {
         // Create backup if requested
@@ -311,9 +325,19 @@ export class AhkDiffEditTool {
         response += `- Hunks applied: ${parsedDiff.hunks.length}\n`;
         response += `- Lines before: ${currentContent.split('\n').length}\n`;
         response += `- Lines after: ${newContent.split('\n').length}\n`;
-        
+
         // Update active file to ensure it's current
         activeFile.setActiveFile(targetFile);
+        setLastEditedFile(targetFile);
+
+        if (toolSettings.shouldOpenInVsCodeAfterEdit()) {
+          try {
+            await openFileInVSCode(targetFile, { reuseWindow: true });
+            response += `\n\n**VS Code:** Opened ${path.basename(targetFile)}`;
+          } catch (openError) {
+            response += `\n\n**VS Code:** Failed to open file (${openError instanceof Error ? openError.message : String(openError)})`;
+          }
+        }
 
         if (runAfterEdit) {
           response += '\n\n**Run Result:**\n';
@@ -326,7 +350,7 @@ export class AhkDiffEditTool {
               scriptArgs: [],
               timeout: 30000,
               killOnExit: true,
-              detectWindow: false
+              detectWindow: false,
             } as any);
 
             if (runResult?.content?.length) {
@@ -345,19 +369,22 @@ export class AhkDiffEditTool {
       }
 
       return {
-        content: [{
-          type: 'text',
-          text: response
-        }]
+        content: [
+          {
+            type: 'text',
+            text: response,
+          },
+        ],
       };
-      
     } catch (error) {
       logger.error('Error in AHK_File_Edit_Diff tool:', error);
       return {
-        content: [{
-          type: 'text',
-          text: `Error: ${error instanceof Error ? error.message : String(error)}`
-        }],
+        content: [
+          {
+            type: 'text',
+            text: `Error: ${error instanceof Error ? error.message : String(error)}`,
+          },
+        ],
       };
     }
   }
@@ -375,15 +402,15 @@ export function createUnifiedDiff(
 ): string {
   const oldLines = oldContent.split('\n');
   const newLines = newContent.split('\n');
-  
+
   let diff = `--- ${oldFile}\n`;
   diff += `+++ ${newFile}\n`;
-  
+
   // Simple diff algorithm (for demonstration)
   // In production, you'd want to use a proper diff algorithm
   let i = 0;
   let j = 0;
-  
+
   while (i < oldLines.length || j < newLines.length) {
     if (i >= oldLines.length) {
       // Remaining new lines
@@ -409,15 +436,15 @@ export function createUnifiedDiff(
       // Find the extent of the change
       const hunkStart = i;
       const hunkStartNew = j;
-      
+
       // Find how many lines differ
       while (i < oldLines.length && j < newLines.length && oldLines[i] !== newLines[j]) {
         i++;
         j++;
       }
-      
+
       diff += `@@ -${hunkStart + 1},${i - hunkStart} +${hunkStartNew + 1},${j - hunkStartNew} @@\n`;
-      
+
       for (let k = hunkStart; k < i; k++) {
         diff += `-${oldLines[k]}\n`;
       }
@@ -426,6 +453,6 @@ export function createUnifiedDiff(
       }
     }
   }
-  
+
   return diff;
 }

@@ -30,7 +30,7 @@ class SimpleHttpServer {
       res.json({
         status: 'ok',
         server: 'AutoHotkey MCP Server',
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       });
     });
 
@@ -49,8 +49,8 @@ class SimpleHttpServer {
           'GET /health - Health check',
           'GET /ping - Simple ping test',
           'GET /info - Server information',
-          'POST /analyze - Analyze AutoHotkey code'
-        ]
+          'POST /analyze - Analyze AutoHotkey code',
+        ],
       });
     });
 
@@ -71,7 +71,7 @@ class SimpleHttpServer {
           hasGUI: /Gui\(/.test(code),
           hasLoops: /(Loop|For|While)/i.test(code),
           functions: (code.match(/^\s*(\w+)\s*\(/gm) || []).length,
-          timestamp: new Date().toISOString()
+          timestamp: new Date().toISOString(),
         };
 
         res.json({
@@ -80,10 +80,9 @@ class SimpleHttpServer {
           suggestions: [
             'Consider using AutoHotkey v2 syntax',
             'Add error handling for robust scripts',
-            'Use descriptive variable names'
-          ]
+            'Use descriptive variable names',
+          ],
         });
-
       } catch (error) {
         logger.error('Error analyzing code:', error);
         res.status(500).json({ error: 'Failed to analyze code' });
@@ -94,7 +93,7 @@ class SimpleHttpServer {
     this.app.use((req, res) => {
       res.status(404).json({
         error: 'Endpoint not found',
-        availableEndpoints: ['/health', '/ping', '/info', '/analyze']
+        availableEndpoints: ['/health', '/ping', '/info', '/analyze'],
       });
     });
   }

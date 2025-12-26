@@ -8,16 +8,38 @@ import { safeParse } from '../core/validation-middleware.js';
 import { checkToolAvailability } from '../core/tool-settings.js';
 
 export const AhkFileListArgsSchema = z.object({
-  directory: z.string().optional().describe('Directory root to enumerate (defaults to active file directory or current working directory).'),
-  nameFilter: z.string().optional().describe('Filter files by name pattern. Supports * wildcards (e.g., "*Hotstring*", "GUI_*", "*Manager.ahk").'),
+  directory: z
+    .string()
+    .optional()
+    .describe(
+      'Directory root to enumerate (defaults to active file directory or current working directory).'
+    ),
+  nameFilter: z
+    .string()
+    .optional()
+    .describe(
+      'Filter files by name pattern. Supports * wildcards (e.g., "*Hotstring*", "GUI_*", "*Manager.ahk").'
+    ),
   recursive: z.boolean().optional().default(false).describe('Include files from subdirectories.'),
-  includeDirectories: z.boolean().optional().default(false).describe('Include directories in the results.'),
+  includeDirectories: z
+    .boolean()
+    .optional()
+    .default(false)
+    .describe('Include directories in the results.'),
   includeHidden: z.boolean().optional().default(false).describe('Include entries beginning with .'),
   extensions: z
     .array(z.string())
     .optional()
-    .describe('Limit results to specific file extensions (defaults to [".ahk"]). Use empty array to include all files.'),
-  maxResults: z.number().min(1).max(2000).optional().default(200).describe('Maximum number of entries to return.'),
+    .describe(
+      'Limit results to specific file extensions (defaults to [".ahk"]). Use empty array to include all files.'
+    ),
+  maxResults: z
+    .number()
+    .min(1)
+    .max(2000)
+    .optional()
+    .default(200)
+    .describe('Maximum number of entries to return.'),
   maxDepth: z
     .number()
     .min(1)
@@ -25,8 +47,16 @@ export const AhkFileListArgsSchema = z.object({
     .optional()
     .default(5)
     .describe('Maximum directory depth when recursive listing is enabled (root depth = 1).'),
-  includeStats: z.boolean().optional().default(true).describe('Include size and modified timestamps when available.'),
-  absolutePaths: z.boolean().optional().default(true).describe('Return absolute paths (false = relative to directory root).'),
+  includeStats: z
+    .boolean()
+    .optional()
+    .default(true)
+    .describe('Include size and modified timestamps when available.'),
+  absolutePaths: z
+    .boolean()
+    .optional()
+    .default(true)
+    .describe('Return absolute paths (false = relative to directory root).'),
 });
 
 export const ahkFileListToolDefinition = {
@@ -35,18 +65,62 @@ export const ahkFileListToolDefinition = {
   inputSchema: {
     type: 'object',
     properties: {
-      directory: { type: 'string', description: 'Directory root to enumerate (defaults to active file directory or current working directory).' },
-      nameFilter: { type: 'string', description: 'Filter by filename pattern with * wildcards (e.g., "*Hotstring*", "GUI_*").' },
-      recursive: { type: 'boolean', default: false, description: 'Include files from subdirectories.' },
-      includeDirectories: { type: 'boolean', default: false, description: 'Include directories in the results.' },
-      includeHidden: { type: 'boolean', default: false, description: 'Include entries beginning with .' },
-      extensions: { type: 'array', items: { type: 'string' }, description: 'Limit results to specific file extensions (defaults to [".ahk"]). Use empty array to include all files.' },
-      maxResults: { type: 'number', minimum: 1, maximum: 2000, default: 200, description: 'Maximum number of entries to return.' },
-      maxDepth: { type: 'number', minimum: 1, maximum: 10, default: 5, description: 'Maximum depth when recursive is true.' },
-      includeStats: { type: 'boolean', default: true, description: 'Include size/modified metadata.' },
-      absolutePaths: { type: 'boolean', default: true, description: 'Return absolute paths in results.' }
-    }
-  }
+      directory: {
+        type: 'string',
+        description:
+          'Directory root to enumerate (defaults to active file directory or current working directory).',
+      },
+      nameFilter: {
+        type: 'string',
+        description: 'Filter by filename pattern with * wildcards (e.g., "*Hotstring*", "GUI_*").',
+      },
+      recursive: {
+        type: 'boolean',
+        default: false,
+        description: 'Include files from subdirectories.',
+      },
+      includeDirectories: {
+        type: 'boolean',
+        default: false,
+        description: 'Include directories in the results.',
+      },
+      includeHidden: {
+        type: 'boolean',
+        default: false,
+        description: 'Include entries beginning with .',
+      },
+      extensions: {
+        type: 'array',
+        items: { type: 'string' },
+        description:
+          'Limit results to specific file extensions (defaults to [".ahk"]). Use empty array to include all files.',
+      },
+      maxResults: {
+        type: 'number',
+        minimum: 1,
+        maximum: 2000,
+        default: 200,
+        description: 'Maximum number of entries to return.',
+      },
+      maxDepth: {
+        type: 'number',
+        minimum: 1,
+        maximum: 10,
+        default: 5,
+        description: 'Maximum depth when recursive is true.',
+      },
+      includeStats: {
+        type: 'boolean',
+        default: true,
+        description: 'Include size/modified metadata.',
+      },
+      absolutePaths: {
+        type: 'boolean',
+        default: true,
+        description: 'Return absolute paths in results.',
+      },
+    },
+  },
 };
 
 interface ListedEntry {
@@ -73,7 +147,7 @@ export class AhkFileListTool {
       const availability = checkToolAvailability('AHK_File_List');
       if (!availability.enabled) {
         return {
-          content: [{ type: 'text', text: availability.message || 'Tool is disabled' }]
+          content: [{ type: 'text', text: availability.message || 'Tool is disabled' }],
         };
       }
 
@@ -105,8 +179,8 @@ export class AhkFileListTool {
         absolutePaths,
       });
 
-      const fileCount = entries.filter((e) => e.type === 'file').length;
-      const dirCount = entries.filter((e) => e.type === 'directory').length;
+      const fileCount = entries.filter(e => e.type === 'file').length;
+      const dirCount = entries.filter(e => e.type === 'directory').length;
 
       const lines = entries.map((entry, index) => {
         const statsParts: string[] = [];
@@ -124,7 +198,9 @@ export class AhkFileListTool {
         `Files: ${fileCount}`,
         includeDirectories ? `Directories: ${dirCount}` : undefined,
         recursive ? `Recursive (max depth ${maxDepth})` : 'Recursive disabled',
-        normalizedExtensions.length ? `Extensions: ${normalizedExtensions.join(', ')}` : 'Extensions: all',
+        normalizedExtensions.length
+          ? `Extensions: ${normalizedExtensions.join(', ')}`
+          : 'Extensions: all',
       ]
         .filter(Boolean)
         .join('\n');
@@ -150,7 +226,7 @@ export class AhkFileListTool {
                 entries,
               },
               null,
-              2,
+              2
             ),
           },
         ],
@@ -205,9 +281,9 @@ export class AhkFileListTool {
     }
 
     return raw
-      .map((ext) => ext.trim())
-      .filter((ext) => ext.length > 0)
-      .map((ext) => (ext.startsWith('.') ? ext.toLowerCase() : `.${ext.toLowerCase()}`));
+      .map(ext => ext.trim())
+      .filter(ext => ext.length > 0)
+      .map(ext => (ext.startsWith('.') ? ext.toLowerCase() : `.${ext.toLowerCase()}`));
   }
 
   private async collectEntries(
@@ -222,7 +298,7 @@ export class AhkFileListTool {
       maxDepth: number;
       includeStats: boolean;
       absolutePaths: boolean;
-    },
+    }
   ): Promise<ListedEntry[]> {
     const results: ListedEntry[] = [];
     const queue: QueueItem[] = [{ directory: root, depth: 1, relativePath: '' }];
@@ -234,7 +310,10 @@ export class AhkFileListTool {
       try {
         dirEntries = await fs.readdir(current.directory, { withFileTypes: true });
       } catch (err) {
-        logger.warn('Failed to read directory', { directory: current.directory, error: String(err) });
+        logger.warn('Failed to read directory', {
+          directory: current.directory,
+          error: String(err),
+        });
         continue;
       }
 
@@ -244,7 +323,9 @@ export class AhkFileListTool {
         }
 
         const fullPath = path.join(current.directory, entry.name);
-        const relativePath = current.relativePath ? path.join(current.relativePath, entry.name) : entry.name;
+        const relativePath = current.relativePath
+          ? path.join(current.relativePath, entry.name)
+          : entry.name;
         const displayPath = options.absolutePaths ? fullPath : relativePath;
 
         if (entry.isDirectory()) {
@@ -270,7 +351,7 @@ export class AhkFileListTool {
 
         if (options.extensions.length > 0) {
           const lowerName = entry.name.toLowerCase();
-          const matchesExtension = options.extensions.some((ext) => lowerName.endsWith(ext));
+          const matchesExtension = options.extensions.some(ext => lowerName.endsWith(ext));
           if (!matchesExtension) {
             continue;
           }
@@ -316,12 +397,10 @@ export class AhkFileListTool {
     // Convert wildcard pattern to regex
     const regexPattern = pattern
       .toLowerCase()
-      .replace(/[.+^${}()|[\]\\]/g, '\\$&')  // Escape regex special chars except *
-      .replace(/\*/g, '.*');  // Convert * to .*
+      .replace(/[.+^${}()|[\]\\]/g, '\\$&') // Escape regex special chars except *
+      .replace(/\*/g, '.*'); // Convert * to .*
 
     const regex = new RegExp(`^${regexPattern}$`, 'i');
     return regex.test(filename);
   }
 }
-
-

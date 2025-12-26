@@ -7,7 +7,11 @@ import fsSync from 'fs';
 import os from 'os';
 import logger from '../logger.js';
 import { activeFile, autoDetect } from '../core/active-file.js';
-import { createErrorResponse, createSuccessResponse, createMultiPartResponse } from '../utils/response-helpers.js';
+import {
+  createErrorResponse,
+  createSuccessResponse,
+  createMultiPartResponse,
+} from '../utils/response-helpers.js';
 import { processManager } from '../core/process-manager.js';
 import { safeParse } from '../core/validation-middleware.js';
 
@@ -28,7 +32,7 @@ export const AhkRunArgsSchema = z.object({
   detectWindow: z.boolean().optional().default(false),
   windowDetectTimeout: z.number().optional().default(3000),
   windowTitle: z.string().optional(),
-  windowClass: z.string().optional()
+  windowClass: z.string().optional(),
 });
 
 export const ahkRunToolDefinition = {
@@ -38,23 +42,69 @@ Run an AutoHotkey v2 script, or watch a file and auto-run it after edits.`,
   inputSchema: {
     type: 'object',
     properties: {
-      mode: { type: 'string', enum: ['run', 'watch'], default: 'run', description: 'Run once or enable edit watch' },
-      filePath: { type: 'string', description: 'Absolute path to .ahk file. If omitted, falls back to active file.' },
-      ahkPath: { type: 'string', description: 'Path to AutoHotkey v2 executable (auto-detected if not provided)' },
-      errorStdOut: { type: 'string', enum: ['utf-8', 'cp1252'], default: 'utf-8', description: 'Encoding for /ErrorStdOut' },
+      mode: {
+        type: 'string',
+        enum: ['run', 'watch'],
+        default: 'run',
+        description: 'Run once or enable edit watch',
+      },
+      filePath: {
+        type: 'string',
+        description: 'Absolute path to .ahk file. If omitted, falls back to active file.',
+      },
+      ahkPath: {
+        type: 'string',
+        description: 'Path to AutoHotkey v2 executable (auto-detected if not provided)',
+      },
+      errorStdOut: {
+        type: 'string',
+        enum: ['utf-8', 'cp1252'],
+        default: 'utf-8',
+        description: 'Encoding for /ErrorStdOut',
+      },
       workingDirectory: { type: 'string', description: 'Working directory for the script' },
-      enabled: { type: 'boolean', default: true, description: 'Enable/disable watcher in watch mode' },
-      runner: { type: 'string', enum: ['native', 'powershell'], default: 'native', description: 'Process runner: native spawn or PowerShell Start-Process' },
-      wait: { type: 'boolean', default: true, description: 'Wait for process to exit (run mode only)' },
-      scriptArgs: { type: 'array', items: { type: 'string' }, default: [], description: 'Arguments forwarded to the AHK script' },
+      enabled: {
+        type: 'boolean',
+        default: true,
+        description: 'Enable/disable watcher in watch mode',
+      },
+      runner: {
+        type: 'string',
+        enum: ['native', 'powershell'],
+        default: 'native',
+        description: 'Process runner: native spawn or PowerShell Start-Process',
+      },
+      wait: {
+        type: 'boolean',
+        default: true,
+        description: 'Wait for process to exit (run mode only)',
+      },
+      scriptArgs: {
+        type: 'array',
+        items: { type: 'string' },
+        default: [],
+        description: 'Arguments forwarded to the AHK script',
+      },
       timeout: { type: 'number', default: 30000, description: 'Process timeout in milliseconds' },
-      killOnExit: { type: 'boolean', default: true, description: 'Kill running processes when stopping watcher' },
-      detectWindow: { type: 'boolean', default: false, description: 'Detect if script creates a window' },
-      windowDetectTimeout: { type: 'number', default: 3000, description: 'Time to wait for window detection (ms)' },
+      killOnExit: {
+        type: 'boolean',
+        default: true,
+        description: 'Kill running processes when stopping watcher',
+      },
+      detectWindow: {
+        type: 'boolean',
+        default: false,
+        description: 'Detect if script creates a window',
+      },
+      windowDetectTimeout: {
+        type: 'number',
+        default: 3000,
+        description: 'Time to wait for window detection (ms)',
+      },
       windowTitle: { type: 'string', description: 'Expected window title pattern (optional)' },
-      windowClass: { type: 'string', description: 'Expected window class pattern (optional)' }
-    }
-  }
+      windowClass: { type: 'string', description: 'Expected window class pattern (optional)' },
+    },
+  },
 };
 
 interface WatchState {
@@ -71,18 +121,21 @@ export class AhkRunTool {
     'C:\\Program Files\\AutoHotkey\\v2\\AutoHotkey64.exe',
     'C:\\Program Files (x86)\\AutoHotkey\\v2\\AutoHotkey64.exe',
     'C:\\Program Files\\AutoHotkey\\v2\\AutoHotkey.exe',
-    'C:\\Program Files (x86)\\AutoHotkey\\v2\\AutoHotkey.exe'
+    'C:\\Program Files (x86)\\AutoHotkey\\v2\\AutoHotkey.exe',
   ];
 
-  private async detectWindow(pid: number, options: { 
-    timeout?: number; 
-    windowTitle?: string; 
-    windowClass?: string 
-  }): Promise<{ detected: boolean; windowInfo?: any }> {
+  private async detectWindow(
+    pid: number,
+    options: {
+      timeout?: number;
+      windowTitle?: string;
+      windowClass?: string;
+    }
+  ): Promise<{ detected: boolean; windowInfo?: any }> {
     const detectTimeout = options.timeout || 3000;
     const startTime = Date.now();
-    
-    return new Promise((resolve) => {
+
+    return new Promise(resolve => {
       const checkInterval = setInterval(async () => {
         try {
           // Use PowerShell to check for windows created by the process
@@ -95,26 +148,28 @@ export class AhkRunTool {
               Write-Output $windows
             }
           `;
-          
-          const { stdout } = await execAsync(`powershell -NoProfile -Command "${psScript.replace(/"/g, '\\"').replace(/\n/g, ' ')}"`);
+
+          const { stdout } = await execAsync(
+            `powershell -NoProfile -Command "${psScript.replace(/"/g, '\\"').replace(/\n/g, ' ')}"`
+          );
           const windowTitle = stdout.trim();
-          
+
           if (windowTitle) {
             clearInterval(checkInterval);
             logger.info(`Window detected for PID ${pid}: ${windowTitle}`);
-            resolve({ 
-              detected: true, 
-              windowInfo: { 
+            resolve({
+              detected: true,
+              windowInfo: {
                 title: windowTitle,
                 pid: pid,
-                detectionTime: Date.now() - startTime
-              } 
+                detectionTime: Date.now() - startTime,
+              },
             });
           }
         } catch (err) {
           // Process might not exist or have no window yet
         }
-        
+
         // Check for timeout
         if (Date.now() - startTime >= detectTimeout) {
           clearInterval(checkInterval);
@@ -155,17 +210,28 @@ export class AhkRunTool {
   }
 
   private runOnce(
-    ahkExe: string, 
-    scriptPath: string, 
-    options: { 
-      cwd?: string; 
-      errorStdOut?: string; 
-      runner?: 'native' | 'powershell'; 
-      wait?: boolean; 
+    ahkExe: string,
+    scriptPath: string,
+    options: {
+      cwd?: string;
+      errorStdOut?: string;
+      runner?: 'native' | 'powershell';
+      wait?: boolean;
       scriptArgs?: string[];
       timeout?: number;
     }
-  ): Promise<{ exitCode: number; command: string; pid?: number } | { started: true; command: string; pid?: number }> {
+  ): Promise<
+    | {
+        exitCode: number;
+        command: string;
+        pid?: number;
+        stdout?: string;
+        stderr?: string;
+        stdoutTruncated?: boolean;
+        stderrTruncated?: boolean;
+      }
+    | { started: true; command: string; pid?: number }
+  > {
     return new Promise((resolve, reject) => {
       try {
         const runner = options.runner ?? 'native';
@@ -173,6 +239,27 @@ export class AhkRunTool {
         const scriptArgs = options.scriptArgs || [];
         const errorStdOut = options.errorStdOut || 'utf-8';
         const timeout = options.timeout || 30000;
+        const maxOutputChars = 8000;
+        let capturedStdout = '';
+        let capturedStderr = '';
+        let stdoutTruncated = false;
+        let stderrTruncated = false;
+
+        const appendOutput = (current: string, chunk: Buffer, type: 'stdout' | 'stderr') => {
+          if (current.length >= maxOutputChars) {
+            if (type === 'stdout') stdoutTruncated = true;
+            if (type === 'stderr') stderrTruncated = true;
+            return current;
+          }
+          const text = chunk.toString();
+          const remaining = maxOutputChars - current.length;
+          if (text.length > remaining) {
+            if (type === 'stdout') stdoutTruncated = true;
+            if (type === 'stderr') stderrTruncated = true;
+            return current + text.slice(0, remaining);
+          }
+          return current + text;
+        };
 
         // Properly escape arguments
         const escapedArgs = scriptArgs.map(arg => {
@@ -199,18 +286,28 @@ export class AhkRunTool {
 
         if (runner === 'native') {
           const args = [`/ErrorStdOut=${errorStdOut}`, scriptPath, ...scriptArgs];
-          logger.info(`Launching AHK (native): "${ahkExe}" ${args.map(a => JSON.stringify(a)).join(' ')}`);
-          
+          logger.info(
+            `Launching AHK (native): "${ahkExe}" ${args.map(a => JSON.stringify(a)).join(' ')}`
+          );
+
           const child = spawn(ahkExe, args, {
             cwd: options.cwd || path.dirname(scriptPath),
             windowsHide: false,
-            stdio: 'inherit'
+            stdio: ['ignore', 'pipe', 'pipe'],
           });
 
           // Register process with global manager
           processManager.registerProcess(child.pid!, scriptPath);
 
-          child.on('error', (err) => {
+          child.stdout?.on('data', (data: Buffer) => {
+            capturedStdout = appendOutput(capturedStdout, data, 'stdout');
+          });
+
+          child.stderr?.on('data', (data: Buffer) => {
+            capturedStderr = appendOutput(capturedStderr, data, 'stderr');
+          });
+
+          child.on('error', err => {
             cleanup();
             if (!isResolved) {
               isResolved = true;
@@ -235,7 +332,15 @@ export class AhkRunTool {
               if (!isResolved) {
                 isResolved = true;
                 logger.info(`AHK exited with code ${code}, signal ${signal}`);
-                resolve({ exitCode: code ?? -1, command: directCmd, pid: child.pid });
+                resolve({
+                  exitCode: code ?? -1,
+                  command: directCmd,
+                  pid: child.pid,
+                  stdout: capturedStdout,
+                  stderr: capturedStderr,
+                  stdoutTruncated,
+                  stderrTruncated,
+                });
               }
             });
 
@@ -262,18 +367,28 @@ export class AhkRunTool {
 
         // PowerShell Start-Process runner
         const psArgs = ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-Command', spCmd];
-        logger.info(`Launching AHK (powershell): pwsh ${psArgs.map(a => JSON.stringify(a)).join(' ')}`);
-        
+        logger.info(
+          `Launching AHK (powershell): pwsh ${psArgs.map(a => JSON.stringify(a)).join(' ')}`
+        );
+
         const child = spawn('pwsh', psArgs, {
           cwd: options.cwd || path.dirname(scriptPath),
           windowsHide: true,
-          stdio: 'inherit'
+          stdio: ['ignore', 'pipe', 'pipe'],
         });
 
         // Register process with global manager
         processManager.registerProcess(child.pid!, scriptPath);
 
-        child.on('error', (err) => {
+        child.stdout?.on('data', (data: Buffer) => {
+          capturedStdout = appendOutput(capturedStdout, data, 'stdout');
+        });
+
+        child.stderr?.on('data', (data: Buffer) => {
+          capturedStderr = appendOutput(capturedStderr, data, 'stderr');
+        });
+
+        child.on('error', err => {
           cleanup();
           if (!isResolved) {
             isResolved = true;
@@ -298,7 +413,15 @@ export class AhkRunTool {
             if (!isResolved) {
               isResolved = true;
               logger.info(`AHK (powershell) exited with code ${code}, signal ${signal}`);
-              resolve({ exitCode: code ?? -1, command: spCmd, pid: child.pid });
+              resolve({
+                exitCode: code ?? -1,
+                command: spCmd,
+                pid: child.pid,
+                stdout: capturedStdout,
+                stderr: capturedStderr,
+                stdoutTruncated,
+                stderrTruncated,
+              });
             }
           });
 
@@ -322,7 +445,11 @@ export class AhkRunTool {
         }
       } catch (err) {
         logger.error('Error in runOnce:', err);
-        reject(new Error(`Error launching AutoHotkey: ${err instanceof Error ? err.message : String(err)}`));
+        reject(
+          new Error(
+            `Error launching AutoHotkey: ${err instanceof Error ? err.message : String(err)}`
+          )
+        );
       }
     });
   }
@@ -332,28 +459,28 @@ export class AhkRunTool {
     if (pathToFile) {
       autoDetect(pathToFile);
     }
-    
+
     // Get the file from either the provided path or the active file
     const file = pathToFile ? path.resolve(pathToFile) : activeFile.getActiveFile();
-    
+
     if (!file) {
       throw new Error('No filePath provided and no active file set.');
     }
-    
+
     try {
       await fs.access(file);
     } catch {
       throw new Error(`File not found: ${file}`);
     }
-    
+
     const normalizedPath = path.resolve(file);
     if (!normalizedPath.toLowerCase().endsWith('.ahk')) {
       throw new Error('filePath must point to a .ahk file');
     }
-    
+
     // Update the shared active file variable
     activeFile.setActiveFile(normalizedPath);
-    
+
     return normalizedPath;
   }
 
@@ -380,17 +507,35 @@ export class AhkRunTool {
       const parsed = safeParse(args, AhkRunArgsSchema, 'AHK_Run');
       if (!parsed.success) return parsed.error;
 
-      const { mode, filePath, ahkPath, errorStdOut, workingDirectory, enabled, runner, wait, scriptArgs, timeout, killOnExit, detectWindow, windowDetectTimeout, windowTitle, windowClass } = parsed.data;
-      
+      const {
+        mode,
+        filePath,
+        ahkPath,
+        errorStdOut,
+        workingDirectory,
+        enabled,
+        runner,
+        wait,
+        scriptArgs,
+        timeout,
+        killOnExit,
+        detectWindow,
+        windowDetectTimeout,
+        windowTitle,
+        windowClass,
+      } = parsed.data;
+
       // Auto-detect AutoHotkey path if not provided
       let resolvedAhkPath = ahkPath;
       if (!resolvedAhkPath) {
         resolvedAhkPath = await AhkRunTool.findAutoHotkeyPath();
         if (!resolvedAhkPath) {
-          throw new Error('AutoHotkey v2 not found. Please install AutoHotkey v2 or provide ahkPath parameter.');
+          throw new Error(
+            'AutoHotkey v2 not found. Please install AutoHotkey v2 or provide ahkPath parameter.'
+          );
         }
       }
-      
+
       // Validate AutoHotkey executable
       try {
         await fs.access(resolvedAhkPath);
@@ -400,19 +545,20 @@ export class AhkRunTool {
 
       if (mode === 'run') {
         const file = await this.ensureFile(filePath);
-        const result = await this.runOnce(resolvedAhkPath, file, { 
-          cwd: workingDirectory, 
-          errorStdOut, 
-          runner, 
-          wait, 
+        const result = await this.runOnce(resolvedAhkPath, file, {
+          cwd: workingDirectory,
+          errorStdOut,
+          runner,
+          wait,
           scriptArgs,
-          timeout
+          timeout,
         });
-        
-        const commandPreview = runner === 'powershell'
-          ? `Start-Process -FilePath '${resolvedAhkPath}' -ArgumentList @('${file}'${(scriptArgs||[]).map(a => `, '${a.replace(/'/g, "''")}'`).join('')})${wait ? ' -Wait' : ''}`
-          : `"${resolvedAhkPath}" "${file}"${(scriptArgs||[]).length ? ' ' + (scriptArgs||[]).join(' ') : ''}`;
-        
+
+        const commandPreview =
+          runner === 'powershell'
+            ? `Start-Process -FilePath '${resolvedAhkPath}' -ArgumentList @('${file}'${(scriptArgs || []).map(a => `, '${a.replace(/'/g, "''")}'`).join('')})${wait ? ' -Wait' : ''}`
+            : `"${resolvedAhkPath}" "${file}"${(scriptArgs || []).length ? ' ' + (scriptArgs || []).join(' ') : ''}`;
+
         const response: any = {
           command: commandPreview,
           runner,
@@ -421,23 +567,32 @@ export class AhkRunTool {
           pid: result.pid || null,
           started: 'started' in result ? result.started : false,
           filePath: file,
-          ahkPath: resolvedAhkPath
+          ahkPath: resolvedAhkPath,
         };
-        
+
+        if ('stdout' in result && result.stdout) {
+          response.stdout = result.stdout;
+          response.stdoutTruncated = result.stdoutTruncated || false;
+        }
+        if ('stderr' in result && result.stderr) {
+          response.stderr = result.stderr;
+          response.stderrTruncated = result.stderrTruncated || false;
+        }
+
         // Detect window if requested and not waiting for process to exit
         if (detectWindow && !wait && result.pid) {
           logger.info(`Detecting window for PID ${result.pid}...`);
           const windowResult = await this.detectWindow(result.pid, {
             timeout: windowDetectTimeout,
             windowTitle,
-            windowClass
+            windowClass,
           });
           response.windowDetected = windowResult.detected;
           if (windowResult.windowInfo) {
             response.windowInfo = windowResult.windowInfo;
           }
         }
-        
+
         // Provide consistent feedback structure
         const statusText = wait
           ? `AHK script completed: ${file} (exit code: ${response.exitCode})`
@@ -445,14 +600,16 @@ export class AhkRunTool {
 
         const windowText = response.windowDetected
           ? `Window detected: ${response.windowInfo?.title}`
-          : (detectWindow ? 'No window detected within timeout' : '');
+          : detectWindow
+            ? 'No window detected within timeout'
+            : '';
 
         return {
           content: [
             { type: 'text', text: statusText },
             ...(windowText ? [{ type: 'text', text: windowText }] : []),
-            { type: 'text', text: `Execution details:\n${JSON.stringify(response, null, 2)}` }
-          ]
+            { type: 'text', text: `Execution details:\n${JSON.stringify(response, null, 2)}` },
+          ],
         };
       }
 
@@ -466,8 +623,13 @@ export class AhkRunTool {
         return {
           content: [
             { type: 'text', text: `File watcher stopped` },
-            { type: 'text', text: killOnExit ? `Cleaned up ${processCount} running process(es)` : 'Running processes left active' }
-          ]
+            {
+              type: 'text',
+              text: killOnExit
+                ? `Cleaned up ${processCount} running process(es)`
+                : 'Running processes left active',
+            },
+          ],
         };
       }
 
@@ -478,47 +640,52 @@ export class AhkRunTool {
       const debounceMs = 250;
 
       this.stopWatcher();
-      
+
       try {
-        AhkRunTool.state.watcher = fsSync.watch(file, { persistent: true }, (event) => {
+        AhkRunTool.state.watcher = fsSync.watch(file, { persistent: true }, event => {
           if (event !== 'change') return;
-          
+
           if (AhkRunTool.state.debounceTimer) {
             clearTimeout(AhkRunTool.state.debounceTimer);
           }
-          
+
           AhkRunTool.state.debounceTimer = setTimeout(async () => {
             try {
               logger.info(`File changed, auto-running: ${file}`);
-              await this.runOnce(resolvedAhkPath, file, { 
-                cwd: workingDirectory, 
-                errorStdOut, 
-                runner, 
-                wait: false, 
+              await this.runOnce(resolvedAhkPath, file, {
+                cwd: workingDirectory,
+                errorStdOut,
+                runner,
+                wait: false,
                 scriptArgs,
-                timeout 
+                timeout,
               });
             } catch (err) {
               logger.error('Auto-run failed:', err);
             }
           }, debounceMs);
         });
-        
-        AhkRunTool.state.watcher.on('error', (err) => {
+
+        AhkRunTool.state.watcher.on('error', err => {
           logger.error('File watcher error:', err);
         });
-        
+
         return {
           content: [
             { type: 'text', text: `File watcher started successfully` },
             { type: 'text', text: `Watching: ${file}` },
             { type: 'text', text: `AutoHotkey: ${resolvedAhkPath}` },
-            { type: 'text', text: `Config: ${runner} runner, ${killOnExit ? 'auto-kill enabled' : 'auto-kill disabled'}` }
-          ]
+            {
+              type: 'text',
+              text: `Config: ${runner} runner, ${killOnExit ? 'auto-kill enabled' : 'auto-kill disabled'}`,
+            },
+          ],
         };
       } catch (watchErr) {
         logger.error('Failed to start file watcher:', watchErr);
-        throw new Error(`Failed to start file watcher: ${watchErr instanceof Error ? watchErr.message : String(watchErr)}`);
+        throw new Error(
+          `Failed to start file watcher: ${watchErr instanceof Error ? watchErr.message : String(watchErr)}`
+        );
       }
     } catch (error) {
       logger.error('Error in AHK_Run tool:', error);
@@ -529,7 +696,8 @@ export class AhkRunTool {
         errorMessage = error.message;
         // Add suggestions for common errors
         if (error.message.includes('AutoHotkey') && error.message.includes('not found')) {
-          errorMessage += '\n\nTip: Install AutoHotkey v2 from https://autohotkey.com or specify the ahkPath parameter.';
+          errorMessage +=
+            '\n\nTip: Install AutoHotkey v2 from https://autohotkey.com or specify the ahkPath parameter.';
         } else if (error.message.includes('File not found')) {
           errorMessage += '\n\nTip: Make sure the .ahk file exists and the path is correct.';
         } else if (error.message.includes('EACCES') || error.message.includes('permission')) {

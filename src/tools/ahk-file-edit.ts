@@ -11,28 +11,57 @@ import { createPreviewGenerator } from '../utils/dry-run-preview.js';
 import { pathConverter, PathFormat } from '../utils/path-converter.js';
 import { pathInterceptor } from '../core/path-interceptor.js';
 import { safeParse } from '../core/validation-middleware.js';
+import { setLastEditedFile } from '../core/config.js';
+import { openFileInVSCode } from '../utils/vscode-open.js';
 
 export const AhkEditArgsSchema = z.object({
   action: z.enum(['replace', 'insert', 'delete', 'append', 'prepend', 'create']).default('replace'),
-  search: z.string().optional().describe('Text to search for during replace/delete operations (supports regex when regex: true)'),
-  content: z.string()
+  search: z
+    .string()
+    .optional()
+    .describe(
+      'Text to search for during replace/delete operations (supports regex when regex: true)'
+    ),
+  content: z
+    .string()
     .optional()
     .describe('⚠️ Deprecated alias for newContent. Prefer newContent: "MsgBox(\\"Updated\\")"'),
-  newContent: z.string()
+  newContent: z
+    .string()
     .optional()
-    .describe('Primary parameter containing the replacement or inserted text. Example: "MsgBox(\\"Ready\\")"'),
+    .describe(
+      'Primary parameter containing the replacement or inserted text. Example: "MsgBox(\\"Ready\\")"'
+    ),
   line: z.number().optional().describe('Line number to target for insert/delete (1-based)'),
   startLine: z.number().optional().describe('Start line for range operations (1-based)'),
   endLine: z.number().optional().describe('End line for range operations (1-based, inclusive)'),
-  filePath: z.string().optional().describe('Absolute or relative path to the AutoHotkey file to edit'),
-  regex: z.boolean().optional().default(false).describe('Enable regular expression matching for the search text'),
-  all: z.boolean().optional().default(false).describe('Replace all occurrences (false = first occurrence only)'),
-  backup: z.boolean().optional().default(true).describe('Create .bak backup before modifying the file'),
-  runAfter: z.boolean().optional().describe('Run the script after the edit completes successfully'),
-  dryRun: z.boolean()
+  filePath: z
+    .string()
+    .optional()
+    .describe('Absolute or relative path to the AutoHotkey file to edit'),
+  regex: z
+    .boolean()
     .optional()
     .default(false)
-    .describe('Preview-only mode. When true, no files are modified and a "DRY RUN - No changes made" report is returned.')
+    .describe('Enable regular expression matching for the search text'),
+  all: z
+    .boolean()
+    .optional()
+    .default(false)
+    .describe('Replace all occurrences (false = first occurrence only)'),
+  backup: z
+    .boolean()
+    .optional()
+    .default(true)
+    .describe('Create .bak backup before modifying the file'),
+  runAfter: z.boolean().optional().describe('Run the script after the edit completes successfully'),
+  dryRun: z
+    .boolean()
+    .optional()
+    .default(false)
+    .describe(
+      'Preview-only mode. When true, no files are modified and a "DRY RUN - No changes made" report is returned.'
+    ),
 });
 
 export const ahkEditToolDefinition = {
@@ -84,62 +113,64 @@ Shows a DRY RUN report instead of touching the file.
         type: 'string',
         enum: ['replace', 'insert', 'delete', 'append', 'prepend', 'create'],
         default: 'replace',
-        description: 'Edit action to perform'
+        description: 'Edit action to perform',
       },
       search: {
         type: 'string',
-        description: 'Text to search for (for replace/delete)'
+        description: 'Text to search for (for replace/delete)',
       },
       newContent: {
         type: 'string',
-        description: 'Preferred parameter containing the replacement or inserted text (e.g., "MsgBox(\\"Updated\\")").'
+        description:
+          'Preferred parameter containing the replacement or inserted text (e.g., "MsgBox(\\"Updated\\")").',
       },
       content: {
         type: 'string',
-        description: '⚠️ Deprecated alias for newContent. Will be removed in a future release.'
+        description: '⚠️ Deprecated alias for newContent. Will be removed in a future release.',
       },
       line: {
         type: 'number',
-        description: 'Line number for insert/delete (1-based)'
+        description: 'Line number for insert/delete (1-based)',
       },
       startLine: {
         type: 'number',
-        description: 'Start line for range operations'
+        description: 'Start line for range operations',
       },
       endLine: {
         type: 'number',
-        description: 'End line for range operations'
+        description: 'End line for range operations',
       },
       filePath: {
         type: 'string',
-        description: 'File to edit (defaults to activeFilePath)'
+        description: 'File to edit (defaults to activeFilePath)',
       },
       regex: {
         type: 'boolean',
         default: false,
-        description: 'Use regex for search'
+        description: 'Use regex for search',
       },
       all: {
         type: 'boolean',
         default: false,
-        description: 'Replace all occurrences'
+        description: 'Replace all occurrences',
       },
       backup: {
         type: 'boolean',
         default: true,
-        description: 'Create backup before editing'
+        description: 'Create backup before editing',
       },
       runAfter: {
         type: 'boolean',
-        description: 'Run the script after the edit completes successfully'
+        description: 'Run the script after the edit completes successfully',
       },
       dryRun: {
         type: 'boolean',
         default: false,
-        description: 'Preview changes without modifying file. Shows affected lines and change count.'
-      }
-    }
-  }
+        description:
+          'Preview changes without modifying file. Shows affected lines and change count.',
+      },
+    },
+  },
 };
 
 export class AhkEditTool {
@@ -151,7 +182,13 @@ export class AhkEditTool {
   /**
    * Perform replace operation
    */
-  private replace(content: string, search: string, replacement: string, useRegex: boolean, all: boolean): string {
+  private replace(
+    content: string,
+    search: string,
+    replacement: string,
+    useRegex: boolean,
+    all: boolean
+  ): string {
     if (useRegex) {
       const regex = new RegExp(search, all ? 'g' : '');
       return content.replace(regex, replacement);
@@ -173,17 +210,17 @@ export class AhkEditTool {
    */
   private insertAtLine(content: string, lineNum: number, newContent: string): string {
     const lines = content.split('\n');
-    
+
     // Convert to 0-based index
     const index = lineNum - 1;
-    
+
     if (index < 0 || index > lines.length) {
       throw new Error(`Line number ${lineNum} is out of range (1-${lines.length + 1})`);
     }
-    
+
     // Insert the new content
     lines.splice(index, 0, newContent);
-    
+
     return lines.join('\n');
   }
 
@@ -192,22 +229,22 @@ export class AhkEditTool {
    */
   private deleteLines(content: string, startLine: number, endLine?: number): string {
     const lines = content.split('\n');
-    
+
     // Convert to 0-based index
     const start = startLine - 1;
     const end = endLine ? endLine - 1 : start;
-    
+
     if (start < 0 || start >= lines.length) {
       throw new Error(`Start line ${startLine} is out of range (1-${lines.length})`);
     }
-    
+
     if (end < start || end >= lines.length) {
       throw new Error(`End line ${endLine} is out of range (${startLine}-${lines.length})`);
     }
-    
+
     // Remove the lines
     lines.splice(start, end - start + 1);
-    
+
     return lines.join('\n');
   }
 
@@ -246,7 +283,7 @@ export class AhkEditTool {
       const availability = checkToolAvailability('AHK_File_Edit');
       if (!availability.enabled) {
         return {
-          content: [{ type: 'text', text: availability.message || 'Tool is disabled' }]
+          content: [{ type: 'text', text: availability.message || 'Tool is disabled' }],
         };
       }
 
@@ -257,21 +294,38 @@ export class AhkEditTool {
       } else {
         validatedArgs = AhkEditArgsSchema.parse(interceptionResult.modifiedData);
         if (interceptionResult.conversions.length > 0) {
-          logger.debug(`Path conversions applied: ${interceptionResult.conversions.length} paths converted`);
+          logger.debug(
+            `Path conversions applied: ${interceptionResult.conversions.length} paths converted`
+          );
         }
       }
-      
-      const { action, search, line, startLine, endLine, filePath, regex, all, backup, runAfter, dryRun } = validatedArgs;
-      const shouldRunAfterEdit = typeof runAfter === 'boolean' ? runAfter : toolSettings.shouldAutoRunAfterEdit();
-      
+
+      const {
+        action,
+        search,
+        line,
+        startLine,
+        endLine,
+        filePath,
+        regex,
+        all,
+        backup,
+        runAfter,
+        dryRun,
+      } = validatedArgs;
+      const shouldRunAfterEdit =
+        typeof runAfter === 'boolean' ? runAfter : toolSettings.shouldAutoRunAfterEdit();
+
       // Apply parameter aliases for backward compatibility
       const { content: resolvedContent, deprecatedUsed } = resolveWithTracking(validatedArgs);
       const content = resolvedContent;
-      
+
       // Get the target file
       let targetFile = filePath || activeFile.getActiveFile();
       if (!targetFile) {
-        throw new Error('No file specified and no active file set. Use AHK_File_Active to set an active file first.');
+        throw new Error(
+          'No file specified and no active file set. Use AHK_File_Active to set an active file first.'
+        );
       }
 
       // Apply path conversion for cross-platform compatibility
@@ -284,7 +338,9 @@ export class AhkEditTool {
           logger.warn(`Path conversion failed: ${pathConversion.error}`);
         }
       } catch (error) {
-        logger.warn(`Path conversion error: ${error instanceof Error ? error.message : String(error)}`);
+        logger.warn(
+          `Path conversion error: ${error instanceof Error ? error.message : String(error)}`
+        );
       }
 
       // Ensure it's an .ahk file
@@ -309,7 +365,7 @@ export class AhkEditTool {
       if (dryRun) {
         const previewGenerator = createPreviewGenerator();
         let preview;
-        
+
         switch (action) {
           case 'replace':
             if (!search) {
@@ -318,9 +374,12 @@ export class AhkEditTool {
             if (content === undefined) {
               throw new Error('Content is required for replace action');
             }
-            preview = previewGenerator.generatePreview(currentContent, search, content, { regex, all });
+            preview = previewGenerator.generatePreview(currentContent, search, content, {
+              regex,
+              all,
+            });
             break;
-            
+
           case 'insert':
             if (!line) {
               throw new Error('Line number is required for insert action');
@@ -330,11 +389,14 @@ export class AhkEditTool {
             }
             preview = previewGenerator.generateInsertPreview(currentContent, line, content);
             break;
-            
+
           case 'delete':
             if (search) {
               // Delete by search
-              preview = previewGenerator.generatePreview(currentContent, search, '', { regex, all });
+              preview = previewGenerator.generatePreview(currentContent, search, '', {
+                regex,
+                all,
+              });
             } else if (line || startLine) {
               // Delete by line
               const start = line || startLine!;
@@ -344,16 +406,20 @@ export class AhkEditTool {
               throw new Error('Either search text or line number is required for delete action');
             }
             break;
-            
+
           case 'append':
             if (content === undefined) {
               throw new Error('Content is required for append action');
             }
             // For append, we'll simulate by inserting at end of file
             const lines = currentContent.split('\n');
-            preview = previewGenerator.generateInsertPreview(currentContent, lines.length + 1, content);
+            preview = previewGenerator.generateInsertPreview(
+              currentContent,
+              lines.length + 1,
+              content
+            );
             break;
-            
+
           case 'prepend':
             if (content === undefined) {
               throw new Error('Content is required for prepend action');
@@ -361,7 +427,7 @@ export class AhkEditTool {
             // For prepend, we'll simulate by inserting at beginning of file
             preview = previewGenerator.generateInsertPreview(currentContent, 1, content);
             break;
-            
+
           case 'create':
             if (content === undefined) {
               throw new Error('Content is required for create action');
@@ -369,38 +435,42 @@ export class AhkEditTool {
             // For create, we'll show what would be created
             preview = previewGenerator.generateInsertPreview('', 1, content);
             break;
-            
+
           default:
             throw new Error(`Unknown action: ${action}`);
         }
-        
+
         let response = previewGenerator.formatPreview(preview, targetFile);
-        
+
         // Add deprecation warnings if any
         if (deprecatedUsed.length > 0) {
-          response = `**Deprecated parameter(s)**: ${deprecatedUsed.join(', ')}\n` +
-            `Please update to new parameter names. See tool documentation for details.\n\n` + response;
+          response =
+            `**Deprecated parameter(s)**: ${deprecatedUsed.join(', ')}\n` +
+            `Please update to new parameter names. See tool documentation for details.\n\n` +
+            response;
         }
-        
+
         let result = {
-          content: [{
-            type: 'text',
-            text: response
-          }]
+          content: [
+            {
+              type: 'text',
+              text: response,
+            },
+          ],
         };
-        
+
         // Add deprecation warnings if any
         if (deprecatedUsed.length > 0) {
           result = addDeprecationWarning(result, deprecatedUsed);
         }
-        
+
         return result;
       }
 
       // Perform the edit operation
       let newContent: string;
       let operationSummary: string;
-      
+
       switch (action) {
         case 'replace': {
           if (!search) {
@@ -413,7 +483,7 @@ export class AhkEditTool {
           operationSummary = `Replaced ${all ? 'all occurrences of' : 'first occurrence of'} "${search}" with "${content}"`;
           break;
         }
-          
+
         case 'insert': {
           if (!line) {
             throw new Error('Line number is required for insert action');
@@ -425,7 +495,7 @@ export class AhkEditTool {
           operationSummary = `Inserted content at line ${line}`;
           break;
         }
-          
+
         case 'delete': {
           if (search) {
             // Delete by search
@@ -445,7 +515,7 @@ export class AhkEditTool {
           }
           break;
         }
-          
+
         case 'append': {
           if (content === undefined) {
             throw new Error('Content is required for append action');
@@ -454,7 +524,7 @@ export class AhkEditTool {
           operationSummary = `Appended content to end of file`;
           break;
         }
-          
+
         case 'prepend': {
           if (content === undefined) {
             throw new Error('Content is required for prepend action');
@@ -463,7 +533,7 @@ export class AhkEditTool {
           operationSummary = `Prepended content to beginning of file`;
           break;
         }
-          
+
         case 'create': {
           if (content === undefined) {
             throw new Error('Content is required for create action');
@@ -498,15 +568,28 @@ export class AhkEditTool {
 
           // Update active file
           activeFile.setActiveFile(targetFile);
+          setLastEditedFile(targetFile);
+
+          let vscodeNote = '';
+          if (toolSettings.shouldOpenInVsCodeAfterEdit()) {
+            try {
+              await openFileInVSCode(targetFile, { reuseWindow: true });
+              vscodeNote = `\n\n**VS Code:** Opened ${path.basename(targetFile)}`;
+            } catch (openError) {
+              vscodeNote = `\n\n**VS Code:** Failed to open file (${openError instanceof Error ? openError.message : String(openError)})`;
+            }
+          }
 
           return {
-            content: [{
-              type: 'text',
-              text: `**File Created Successfully**\n\n- **File**: \`${targetFile}\`\n- **Operation**: ${operationSummary}\n- **Lines**: ${content.split('\n').length}`
-            }]
+            content: [
+              {
+                type: 'text',
+                text: `**File Created Successfully**\n\n- **File**: \`${targetFile}\`\n- **Operation**: ${operationSummary}\n- **Lines**: ${content.split('\n').length}${vscodeNote}`,
+              },
+            ],
           };
         }
-          
+
         default:
           throw new Error(`Unknown action: ${action}`);
       }
@@ -520,20 +603,21 @@ export class AhkEditTool {
 
       // Write the new content
       await fs.writeFile(targetFile, newContent, 'utf-8');
-      
+
       // Update active file to ensure it's current
       activeFile.setActiveFile(targetFile);
+      setLastEditedFile(targetFile);
 
       // Generate response
       let response = `**Edit Successful**\n\n`;
       response += `**File:** ${targetFile}\n`;
       response += `**Operation:** ${operationSummary}\n`;
-      
+
       // Show statistics
       const oldLines = currentContent.split('\n').length;
       const newLines = newContent.split('\n').length;
       const linesDiff = newLines - oldLines;
-      
+
       response += `\n**Statistics:**\n`;
       response += `- Lines before: ${oldLines}\n`;
       response += `- Lines after: ${newLines}\n`;
@@ -542,7 +626,7 @@ export class AhkEditTool {
       } else if (linesDiff < 0) {
         response += `- Lines removed: ${Math.abs(linesDiff)}\n`;
       }
-      
+
       if (backup) {
         response += `\nBackup saved as: ${path.basename(targetFile)}.bak`;
       }
@@ -558,7 +642,7 @@ export class AhkEditTool {
             scriptArgs: [],
             timeout: 30000,
             killOnExit: true,
-            detectWindow: false
+            detectWindow: false,
           } as any);
 
           if (runResult?.content?.length) {
@@ -575,11 +659,22 @@ export class AhkEditTool {
         }
       }
 
+      if (toolSettings.shouldOpenInVsCodeAfterEdit()) {
+        try {
+          await openFileInVSCode(targetFile, { reuseWindow: true });
+          response += `\n\n**VS Code:** Opened ${path.basename(targetFile)}`;
+        } catch (openError) {
+          response += `\n\n**VS Code:** Failed to open file (${openError instanceof Error ? openError.message : String(openError)})`;
+        }
+      }
+
       let result = {
-        content: [{
-          type: 'text',
-          text: response
-        }]
+        content: [
+          {
+            type: 'text',
+            text: response,
+          },
+        ],
       };
 
       // Apply output path interception for cross-platform compatibility
@@ -587,36 +682,41 @@ export class AhkEditTool {
       if (outputInterception.success) {
         result = outputInterception.modifiedData;
         if (outputInterception.conversions.length > 0) {
-          logger.debug(`Output path conversions applied: ${outputInterception.conversions.length} paths converted`);
+          logger.debug(
+            `Output path conversions applied: ${outputInterception.conversions.length} paths converted`
+          );
         }
       } else {
         logger.warn(`Output path interception failed: ${outputInterception.error}`);
       }
 
       return result;
-      
     } catch (error) {
       logger.error('Error in AHK_File_Edit tool:', error);
-      
+
       // Check if we should create an alpha version due to failures
       const targetFile = validatedArgs?.filePath || activeFile.getActiveFile();
       if (targetFile) {
         const alphaCreated = await handleEditFailure(targetFile, error as Error);
         if (alphaCreated) {
           return {
-            content: [{
-              type: 'text',
-              text: `Edit failed. Alpha version created and set as active.\n\nOriginal error: ${error instanceof Error ? error.message : String(error)}\n\nYou can now retry the edit on the alpha version.`
-            }]
+            content: [
+              {
+                type: 'text',
+                text: `Edit failed. Alpha version created and set as active.\n\nOriginal error: ${error instanceof Error ? error.message : String(error)}\n\nYou can now retry the edit on the alpha version.`,
+              },
+            ],
           };
         }
       }
-      
+
       return {
-        content: [{
-          type: 'text',
-          text: `Error: ${error instanceof Error ? error.message : String(error)}`
-        }]
+        content: [
+          {
+            type: 'text',
+            text: `Error: ${error instanceof Error ? error.message : String(error)}`,
+          },
+        ],
       };
     }
   }
@@ -627,41 +727,54 @@ export class AhkEditTool {
  */
 export class EditBuilder {
   private edits: Array<Partial<z.infer<typeof AhkEditArgsSchema>>> = [];
-  
+
   replace(search: string, content: string, all = false): this {
     this.edits.push({ action: 'replace', search, content, all, regex: false, backup: true });
     return this;
   }
-  
+
   insert(line: number, content: string): this {
     this.edits.push({ action: 'insert', line, content, regex: false, all: false, backup: true });
     return this;
   }
-  
+
   delete(searchOrLine: string | number, endLine?: number): this {
     if (typeof searchOrLine === 'string') {
-      this.edits.push({ action: 'delete', search: searchOrLine, regex: false, all: false, backup: true });
+      this.edits.push({
+        action: 'delete',
+        search: searchOrLine,
+        regex: false,
+        all: false,
+        backup: true,
+      });
     } else {
-      this.edits.push({ action: 'delete', startLine: searchOrLine, endLine, regex: false, all: false, backup: true });
+      this.edits.push({
+        action: 'delete',
+        startLine: searchOrLine,
+        endLine,
+        regex: false,
+        all: false,
+        backup: true,
+      });
     }
     return this;
   }
-  
+
   append(content: string): this {
     this.edits.push({ action: 'append', content, regex: false, all: false, backup: true });
     return this;
   }
-  
+
   prepend(content: string): this {
     this.edits.push({ action: 'prepend', content, regex: false, all: false, backup: true });
     return this;
   }
-  
+
   create(content: string): this {
     this.edits.push({ action: 'create', content, regex: false, all: false, backup: false });
     return this;
   }
-  
+
   getEdits(): Array<Partial<z.infer<typeof AhkEditArgsSchema>>> {
     return this.edits;
   }

@@ -18,9 +18,13 @@ Get/Set MCP configuration for A_ScriptDir and additional search directories.`,
     properties: {
       action: { type: 'string', enum: ['get', 'set'], default: 'get' },
       scriptDir: { type: 'string', description: 'Default A_ScriptDir-like root used by tools' },
-      searchDirs: { type: 'array', items: { type: 'string' }, description: 'Additional directories to scan' },
-    }
-  }
+      searchDirs: {
+        type: 'array',
+        items: { type: 'string' },
+        description: 'Additional directories to scan',
+      },
+    },
+  },
 };
 
 export class AhkConfigTool {
@@ -37,7 +41,10 @@ export class AhkConfigTool {
         return {
           content: [
             { type: 'text', text: JSON.stringify({ config: cfg }, null, 2) },
-            { type: 'text', text: `scriptDir: ${cfg.scriptDir || '(unset)'}\nsearchDirs: ${(cfg.searchDirs || []).join('; ')}` },
+            {
+              type: 'text',
+              text: `scriptDir: ${cfg.scriptDir || '(unset)'}\nsearchDirs: ${(cfg.searchDirs || []).join('; ')}`,
+            },
           ],
         };
       }
@@ -48,7 +55,7 @@ export class AhkConfigTool {
         cfg.scriptDir = normalizeDir(scriptDir);
       }
       if (Array.isArray(searchDirs)) {
-        cfg.searchDirs = (searchDirs || []).map((d) => normalizeDir(d)!).filter(Boolean) as string[];
+        cfg.searchDirs = (searchDirs || []).map(d => normalizeDir(d)!).filter(Boolean) as string[];
       }
       saveConfig(cfg);
 
@@ -61,11 +68,14 @@ export class AhkConfigTool {
     } catch (error) {
       logger.error('Error in AHK_Config tool:', error);
       return {
-        content: [{ type: 'text', text: `Runtime Error: ${error instanceof Error ? error.message : String(error)}` }],
-        isError: true
+        content: [
+          {
+            type: 'text',
+            text: `Runtime Error: ${error instanceof Error ? error.message : String(error)}`,
+          },
+        ],
+        isError: true,
       };
     }
   }
 }
-
-

@@ -2,14 +2,33 @@
  * Library Catalog
  *
  * Central catalog for managing AutoHotkey library metadata.
- * Provides search, filtering, and lookup functionality with lazy initialization.
+ * Provides search, filtering, symbol lookup, and fuzzy matching with lazy initialization.
  */
 
-import { LibraryScanner } from './library-scanner.js';
+import { LibraryScanner, type ScanResult } from './library-scanner.js';
 import { MetadataExtractor } from './metadata-extractor.js';
 import { DependencyResolver } from './dependency-resolver.js';
+import { getAllLibraryPaths } from './config.js';
 import type { LibraryMetadata, CatalogStats } from '../types/library-types.js';
 import logger from '../logger.js';
+
+/** Result from symbol search */
+export interface SymbolSearchResult {
+  /** Symbol name */
+  name: string;
+  /** Symbol type: class, method, function, property */
+  type: 'class' | 'method' | 'function' | 'property' | 'variable';
+  /** Library containing the symbol */
+  library: string;
+  /** Library file path */
+  filePath: string;
+  /** Line number (if available) */
+  line?: number;
+  /** Parent class (for methods/properties) */
+  parentClass?: string;
+  /** Match score for fuzzy search (0-1) */
+  score: number;
+}
 
 /**
  * Manages the library catalog with lazy initialization
@@ -21,8 +40,8 @@ export class LibraryCatalog {
   /** Whether the catalog has been initialized */
   private initialized: boolean = false;
 
-  /** Path to the scripts directory */
-  private scriptsDir: string = '';
+  /** Paths that were scanned */
+  private scannedPaths: string[] = [];
 
   /** Scanner instance */
   private scanner: LibraryScanner;
@@ -36,6 +55,9 @@ export class LibraryCatalog {
   /** Last initialization timestamp */
   private lastRefresh: number = 0;
 
+  /** Last scan result */
+  private lastScanResult: ScanResult | null = null;
+
   constructor() {
     this.scanner = new LibraryScanner();
     this.extractor = new MetadataExtractor();
@@ -43,33 +65,47 @@ export class LibraryCatalog {
   }
 
   /**
-   * Initialize the catalog by scanning and analyzing libraries
+   * Initialize the catalog by scanning standard AHK library paths
    *
-   * This is called lazily on first use
-   *
-   * @param scriptsDir - Absolute path to scripts directory
+   * Automatically detects:
+   * - ScriptDir\Lib (active file's directory)
+   * - Documents\AutoHotkey\Lib
+   * - Program Files\AutoHotkey\v2\Lib
+   * - Configured search directories
    */
-  async initialize(scriptsDir: string): Promise<void> {
-    if (this.initialized && this.scriptsDir === scriptsDir) {
-      return; // Already initialized for this directory
-    }
+  async initializeFromStandardPaths(): Promise<ScanResult> {
+    const paths = getAllLibraryPaths();
+    return this.initializeFromMultiplePaths(paths);
+  }
 
+  /**
+   * Initialize the catalog from multiple directories
+   *
+   * @param directories - Array of directory paths to scan
+   */
+  async initializeFromMultiplePaths(directories: string[]): Promise<ScanResult> {
     const startTime = Date.now();
-    this.scriptsDir = scriptsDir;
     this.libraries.clear();
+    this.scannedPaths = [];
 
-    logger.debug(`[LibraryCatalog] Initializing catalog for ${scriptsDir}`);
+    logger.debug(`[LibraryCatalog] Initializing catalog from ${directories.length} directories`);
 
-    // Scan for library files
-    const libraryFiles = await this.scanner.scanDirectory(scriptsDir);
-    logger.debug(`[LibraryCatalog] Found ${libraryFiles.length} library files`);
+    // Scan all directories
+    const scanResult = await this.scanner.scanMultipleDirectories(directories);
+    this.lastScanResult = scanResult;
+    this.scannedPaths = scanResult.scannedDirs;
+
+    logger.debug(`[LibraryCatalog] Found ${scanResult.files.length} library files`);
 
     // Extract metadata from each file
-    const extractionPromises = libraryFiles.map(async (filePath) => {
+    const extractionPromises = scanResult.files.map(async filePath => {
       try {
         const metadata = await this.extractor.extract(filePath);
-        this.libraries.set(metadata.name, metadata);
-        logger.debug(`[LibraryCatalog] Extracted metadata for ${metadata.name}`);
+        // Use filename as key to avoid duplicates from different paths
+        if (!this.libraries.has(metadata.name)) {
+          this.libraries.set(metadata.name, metadata);
+          logger.debug(`[LibraryCatalog] Extracted metadata for ${metadata.name}`);
+        }
       } catch (error) {
         logger.error(`[LibraryCatalog] Failed to extract metadata from ${filePath}:`, error);
       }
@@ -84,7 +120,20 @@ export class LibraryCatalog {
     this.lastRefresh = Date.now();
 
     const elapsed = Date.now() - startTime;
-    logger.debug(`[LibraryCatalog] Initialization complete in ${elapsed}ms (${this.libraries.size} libraries)`);
+    logger.debug(
+      `[LibraryCatalog] Initialization complete in ${elapsed}ms (${this.libraries.size} libraries)`
+    );
+
+    return scanResult;
+  }
+
+  /**
+   * Initialize the catalog by scanning and analyzing libraries (legacy single-dir)
+   *
+   * @param scriptsDir - Absolute path to scripts directory
+   */
+  async initialize(scriptsDir: string): Promise<void> {
+    await this.initializeFromMultiplePaths([scriptsDir]);
   }
 
   /**
@@ -115,10 +164,11 @@ export class LibraryCatalog {
 
     const lowerQuery = query.toLowerCase();
 
-    return Array.from(this.libraries.values()).filter(lib =>
-      lib.name.toLowerCase().includes(lowerQuery) ||
-      lib.documentation.description?.toLowerCase().includes(lowerQuery) ||
-      lib.category?.toLowerCase().includes(lowerQuery)
+    return Array.from(this.libraries.values()).filter(
+      lib =>
+        lib.name.toLowerCase().includes(lowerQuery) ||
+        lib.documentation.description?.toLowerCase().includes(lowerQuery) ||
+        lib.category?.toLowerCase().includes(lowerQuery)
     );
   }
 
@@ -163,11 +213,16 @@ export class LibraryCatalog {
   /**
    * Refresh the catalog (re-scan and rebuild)
    *
-   * @param scriptsDir - Optional new scripts directory path
+   * @param directories - Optional new directories to scan (defaults to previously scanned)
    */
-  async refresh(scriptsDir?: string): Promise<void> {
+  async refresh(directories?: string[]): Promise<void> {
     this.initialized = false;
-    await this.initialize(scriptsDir || this.scriptsDir);
+    const dirsToScan = directories || this.scannedPaths;
+    if (dirsToScan.length > 0) {
+      await this.initializeFromMultiplePaths(dirsToScan);
+    } else {
+      await this.initializeFromStandardPaths();
+    }
   }
 
   /**
@@ -181,9 +236,7 @@ export class LibraryCatalog {
     const libraries = Array.from(this.libraries.values());
 
     // Count libraries with dependencies
-    const librariesWithDependencies = libraries.filter(
-      lib => lib.dependencies.length > 0
-    ).length;
+    const librariesWithDependencies = libraries.filter(lib => lib.dependencies.length > 0).length;
 
     // Count versioned libraries
     const versionedLibraries = libraries.filter(lib => lib.version !== undefined).length;
@@ -206,7 +259,7 @@ export class LibraryCatalog {
       totalClasses,
       totalFunctions,
       categoryCounts,
-      lastRefresh: this.lastRefresh
+      lastRefresh: this.lastRefresh,
     };
   }
 
@@ -218,6 +271,145 @@ export class LibraryCatalog {
   getResolver(): DependencyResolver {
     this.ensureInitialized();
     return this.resolver;
+  }
+
+  /**
+   * Search for symbols (classes, methods, functions, properties) across all libraries
+   *
+   * @param query - Search query (fuzzy matching supported)
+   * @param options - Search options
+   * @returns Array of matching symbols with scores
+   */
+  searchSymbols(
+    query: string,
+    options: {
+      types?: ('class' | 'method' | 'function' | 'property' | 'variable')[];
+      maxResults?: number;
+      minScore?: number;
+    } = {}
+  ): SymbolSearchResult[] {
+    this.ensureInitialized();
+
+    const { types, maxResults = 50, minScore = 0.3 } = options;
+    const lowerQuery = query.toLowerCase();
+    const results: SymbolSearchResult[] = [];
+
+    for (const lib of this.libraries.values()) {
+      // Search classes
+      if (!types || types.includes('class')) {
+        for (const cls of lib.classes) {
+          const score = this.calculateSimilarity(lowerQuery, cls.name.toLowerCase());
+          if (score >= minScore) {
+            results.push({
+              name: cls.name,
+              type: 'class',
+              library: lib.name,
+              filePath: lib.filePath,
+              line: cls.startLine,
+              score,
+            });
+          }
+
+          // Search methods within class
+          if (!types || types.includes('method')) {
+            for (const method of cls.methods || []) {
+              const methodScore = this.calculateSimilarity(lowerQuery, method.name.toLowerCase());
+              if (methodScore >= minScore) {
+                results.push({
+                  name: method.name,
+                  type: 'method',
+                  library: lib.name,
+                  filePath: lib.filePath,
+                  line: method.startLine,
+                  parentClass: cls.name,
+                  score: methodScore,
+                });
+              }
+            }
+          }
+
+          // Search properties within class
+          if (!types || types.includes('property')) {
+            for (const prop of cls.properties || []) {
+              const propScore = this.calculateSimilarity(lowerQuery, prop.name.toLowerCase());
+              if (propScore >= minScore) {
+                results.push({
+                  name: prop.name,
+                  type: 'property',
+                  library: lib.name,
+                  filePath: lib.filePath,
+                  line: prop.line,
+                  parentClass: cls.name,
+                  score: propScore,
+                });
+              }
+            }
+          }
+        }
+      }
+
+      // Search functions
+      if (!types || types.includes('function')) {
+        for (const func of lib.functions) {
+          const score = this.calculateSimilarity(lowerQuery, func.name.toLowerCase());
+          if (score >= minScore) {
+            results.push({
+              name: func.name,
+              type: 'function',
+              library: lib.name,
+              filePath: lib.filePath,
+              line: func.startLine,
+              score,
+            });
+          }
+        }
+      }
+
+      // Search global variables
+      if (!types || types.includes('variable')) {
+        for (const varName of lib.globalVars || []) {
+          const score = this.calculateSimilarity(lowerQuery, varName.toLowerCase());
+          if (score >= minScore) {
+            results.push({
+              name: varName,
+              type: 'variable',
+              library: lib.name,
+              filePath: lib.filePath,
+              score,
+            });
+          }
+        }
+      }
+    }
+
+    // Sort by score descending, then by name
+    results.sort((a, b) => {
+      if (b.score !== a.score) return b.score - a.score;
+      return a.name.localeCompare(b.name);
+    });
+
+    return results.slice(0, maxResults);
+  }
+
+  /**
+   * Fuzzy search for libraries by name
+   *
+   * @param query - Search query
+   * @param maxResults - Maximum results to return
+   * @returns Array of libraries sorted by relevance
+   */
+  fuzzySearch(query: string, maxResults: number = 10): LibraryMetadata[] {
+    this.ensureInitialized();
+
+    const lowerQuery = query.toLowerCase();
+    const scored = Array.from(this.libraries.values()).map(lib => ({
+      lib,
+      score: this.calculateSimilarity(lowerQuery, lib.name.toLowerCase()),
+    }));
+
+    scored.sort((a, b) => b.score - a.score);
+
+    return scored.slice(0, maxResults).map(s => s.lib);
   }
 
   /**
@@ -235,16 +427,30 @@ export class LibraryCatalog {
     const lowerQuery = query.toLowerCase();
     const libraries = Array.from(this.libraries.keys());
 
-    // Calculate similarity scores (simple Levenshtein-like heuristic)
+    // Calculate similarity scores
     const scored = libraries.map(name => ({
       name,
-      score: this.calculateSimilarity(lowerQuery, name.toLowerCase())
+      score: this.calculateSimilarity(lowerQuery, name.toLowerCase()),
     }));
 
     // Sort by score (higher is more similar)
     scored.sort((a, b) => b.score - a.score);
 
     return scored.slice(0, maxResults).map(s => s.name);
+  }
+
+  /**
+   * Get scanned library paths
+   */
+  getScannedPaths(): string[] {
+    return [...this.scannedPaths];
+  }
+
+  /**
+   * Get last scan result
+   */
+  getLastScanResult(): ScanResult | null {
+    return this.lastScanResult;
   }
 
   /**
@@ -266,7 +472,7 @@ export class LibraryCatalog {
     const chars1 = new Set(s1);
     const chars2 = new Set(s2);
     const overlap = [...chars1].filter(c => chars2.has(c)).length;
-    score += overlap / Math.max(chars1.size, chars2.size) * 0.3;
+    score += (overlap / Math.max(chars1.size, chars2.size)) * 0.3;
 
     // Length similarity
     const lenDiff = Math.abs(s1.length - s2.length);
@@ -298,11 +504,11 @@ export class LibraryCatalog {
   }
 
   /**
-   * Get scripts directory path
+   * Get primary scripts directory path (first scanned path)
    *
-   * @returns Scripts directory path
+   * @returns Scripts directory path or empty string if not initialized
    */
   getScriptsDir(): string {
-    return this.scriptsDir;
+    return this.scannedPaths[0] || '';
   }
 }

@@ -7,7 +7,7 @@ export enum TokenType {
   // Keywords
   IF = 'IF',
   ELSE = 'ELSE',
-  ELSEIF = 'ELSEIF', 
+  ELSEIF = 'ELSEIF',
   WHILE = 'WHILE',
   FOR = 'FOR',
   LOOP = 'LOOP',
@@ -30,7 +30,7 @@ export enum TokenType {
   TRUE = 'TRUE',
   FALSE = 'FALSE',
   NULL = 'NULL',
-  
+
   // Operators
   ASSIGN = ':=',
   EQUALS = '=',
@@ -48,7 +48,7 @@ export enum TokenType {
   CONCAT = '.',
   MATCH = '~=',
   NOT_MATCH = '!~',
-  
+
   // Delimiters
   LPAREN = '(',
   RPAREN = ')',
@@ -63,20 +63,20 @@ export enum TokenType {
   QUESTION = '?',
   AMPERSAND = '&',
   PIPE = '|',
-  
+
   // Literals
   NUMBER = 'NUMBER',
   STRING = 'STRING',
   IDENTIFIER = 'IDENTIFIER',
   BUILTIN_VAR = 'BUILTIN_VAR', // A_Variables
-  
+
   // Special
   HOTKEY = 'HOTKEY',
   DIRECTIVE = 'DIRECTIVE', // #Include, #Requires
   COMMENT = 'COMMENT',
   NEWLINE = 'NEWLINE',
   EOF = 'EOF',
-  WHITESPACE = 'WHITESPACE'
+  WHITESPACE = 'WHITESPACE',
 }
 
 export interface Token {
@@ -96,9 +96,31 @@ export class AhkLexer {
   private tokens: Token[] = [];
 
   private keywords = new Set([
-    'if', 'else', 'elseif', 'while', 'for', 'loop', 'break', 'continue',
-    'return', 'class', 'static', 'global', 'local', 'try', 'catch',
-    'finally', 'throw', 'and', 'or', 'not', 'in', 'is', 'true', 'false', 'null'
+    'if',
+    'else',
+    'elseif',
+    'while',
+    'for',
+    'loop',
+    'break',
+    'continue',
+    'return',
+    'class',
+    'static',
+    'global',
+    'local',
+    'try',
+    'catch',
+    'finally',
+    'throw',
+    'and',
+    'or',
+    'not',
+    'in',
+    'is',
+    'true',
+    'false',
+    'null',
   ]);
 
   constructor(source: string) {
@@ -255,7 +277,7 @@ export class AhkLexer {
     while (hotkeyStart > 0 && this.source[hotkeyStart - 1] !== '\n') {
       hotkeyStart--;
     }
-    
+
     const hotkeyTrigger = this.source.substring(hotkeyStart, start);
     this.addToken(TokenType.HOTKEY, hotkeyTrigger.trim() + '::');
   }
@@ -265,7 +287,7 @@ export class AhkLexer {
     while (this.peek() !== '\n' && !this.isAtEnd()) {
       this.advance();
     }
-    
+
     const comment = this.source.substring(start, this.position);
     this.addToken(TokenType.COMMENT, comment);
   }
@@ -275,14 +297,14 @@ export class AhkLexer {
     while (this.isAlphaNumeric(this.peek()) && !this.isAtEnd()) {
       this.advance();
     }
-    
+
     const directive = this.source.substring(start, this.position);
     this.addToken(TokenType.DIRECTIVE, directive);
   }
 
   private scanString(): void {
     const start = this.position - 1;
-    
+
     while (this.peek() !== '"' && !this.isAtEnd()) {
       if (this.peek() === '\n') {
         this.line++;
@@ -297,14 +319,14 @@ export class AhkLexer {
 
     // Consume closing quote
     this.advance();
-    
+
     const value = this.source.substring(start, this.position);
     this.addToken(TokenType.STRING, value);
   }
 
   private scanNumber(): void {
     const start = this.position - 1;
-    
+
     while (this.isDigit(this.peek())) {
       this.advance();
     }
@@ -331,14 +353,14 @@ export class AhkLexer {
 
   private scanIdentifier(): void {
     const start = this.position - 1;
-    
+
     while (this.isAlphaNumeric(this.peek()) || this.peek() === '_') {
       this.advance();
     }
 
     const text = this.source.substring(start, this.position);
     const lowerText = text.toLowerCase();
-    
+
     // Check for keywords
     if (this.keywords.has(lowerText)) {
       this.addToken(TokenType[lowerText.toUpperCase() as keyof typeof TokenType], text);
@@ -350,8 +372,7 @@ export class AhkLexer {
     // Check for MOD operator
     else if (lowerText === 'mod') {
       this.addToken(TokenType.MODULO, text);
-    }
-    else {
+    } else {
       this.addToken(TokenType.IDENTIFIER, text);
     }
   }
@@ -363,7 +384,7 @@ export class AhkLexer {
       line: this.line,
       column: this.column - value.length,
       start: this.position - value.length,
-      end: this.position
+      end: this.position,
     };
     this.tokens.push(token);
   }
@@ -377,7 +398,7 @@ export class AhkLexer {
   private match(expected: string): boolean {
     if (this.isAtEnd()) return false;
     if (this.source.charAt(this.position) !== expected) return false;
-    
+
     this.position++;
     this.column++;
     return true;

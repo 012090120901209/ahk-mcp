@@ -141,7 +141,7 @@ export class CodeQualityManager {
       suggestions: [],
       duration: syntaxResult.duration,
       cached: false,
-      filePath
+      filePath,
     };
   }
 
@@ -155,7 +155,7 @@ export class CodeQualityManager {
     // Run both checks in parallel
     const [syntaxResult, structure] = await Promise.all([
       this.fastChecker.checkFile(filePath),
-      includeStructure ? this.structureAnalyzer.analyzeFile(filePath) : Promise.resolve(undefined)
+      includeStructure ? this.structureAnalyzer.analyzeFile(filePath) : Promise.resolve(undefined),
     ]);
 
     return {
@@ -166,7 +166,7 @@ export class CodeQualityManager {
       structure,
       duration: Math.max(syntaxResult.duration, structure ? 50 : 0),
       cached: false,
-      filePath
+      filePath,
     };
   }
 
@@ -189,7 +189,7 @@ export class CodeQualityManager {
           message: `High complexity (${standardReport.structure.metrics.complexity}). Consider refactoring.`,
           rule: 'high-complexity',
           severity: 'info',
-          fixable: false
+          fixable: false,
         });
       }
 
@@ -200,7 +200,7 @@ export class CodeQualityManager {
           message: `Low maintainability score (${standardReport.structure.metrics.maintainability}/100). Add comments and reduce complexity.`,
           rule: 'low-maintainability',
           severity: 'info',
-          fixable: false
+          fixable: false,
         });
       }
 
@@ -213,7 +213,7 @@ export class CodeQualityManager {
             message: `Class ${cls.name} is very large (${classLines} lines). Consider splitting into smaller classes.`,
             rule: 'large-class',
             severity: 'info',
-            fixable: false
+            fixable: false,
           });
         }
       }
@@ -222,7 +222,7 @@ export class CodeQualityManager {
     return {
       ...standardReport,
       level: 'thorough',
-      suggestions
+      suggestions,
     };
   }
 
@@ -237,7 +237,7 @@ export class CodeQualityManager {
       suggestions: [],
       duration: 0,
       cached: false,
-      filePath
+      filePath,
     };
   }
 
@@ -278,7 +278,7 @@ export class CodeQualityManager {
     // Return cached report with updated flag
     return {
       ...cached.report,
-      cached: true
+      cached: true,
     };
   }
 
@@ -298,7 +298,7 @@ export class CodeQualityManager {
         report,
         mtime: stats.mtimeMs,
         timestamp: Date.now(),
-        ttl: this.defaultTTL
+        ttl: this.defaultTTL,
       });
 
       // Trim cache if too large (max 1000 entries)
@@ -388,17 +388,14 @@ export class CodeQualityManager {
   /**
    * Apply automatic fixes to a file
    */
-  async applyAutoFix(
-    filePath: string,
-    options: AutoFixOptions = {}
-  ): Promise<AutoFixResult> {
+  async applyAutoFix(filePath: string, options: AutoFixOptions = {}): Promise<AutoFixResult> {
     logger.info(`Applying auto-fixes to ${filePath}`);
 
     // First, analyze the file to get errors
     const report = await this.analyzeFile(filePath, {
       level: options.dryRun ? 'fast' : 'standard',
       forceRefresh: true,
-      includeStructure: false
+      includeStructure: false,
     });
 
     // Collect all fixable errors (errors + warnings)
@@ -413,7 +410,7 @@ export class CodeQualityManager {
         fixedContent: '',
         appliedFixes: [],
         failedFixes: [],
-        summary: 'No fixable errors found'
+        summary: 'No fixable errors found',
       };
     }
 
@@ -469,7 +466,7 @@ export class CodeQualityManager {
     return {
       entries,
       hitRate: 0, // Would need tracking of hits vs misses
-      avgAge: totalAge / entries
+      avgAge: totalAge / entries,
     };
   }
 }

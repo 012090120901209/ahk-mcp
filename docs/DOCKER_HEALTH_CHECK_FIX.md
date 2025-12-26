@@ -1,18 +1,18 @@
 # Docker Health Check Fix
 
-**Date:** October 20, 2025
-**Status:** ✅ **COMPLETE** - All containers healthy
-**Issue:** SSE container failing health checks
-**Resolution:** Added `/health` endpoint to SSE server
+**Date:** October 20, 2025 **Status:** ✅ **COMPLETE** - All containers healthy
+**Issue:** SSE container failing health checks **Resolution:** Added `/health`
+endpoint to SSE server
 
 ---
 
 ## Problem Summary
 
 ### Initial Status
-| Container | Status | Issue |
-|-----------|--------|-------|
-| `ahk-mcp` (stdio) | ✅ Healthy | None - working perfectly |
+
+| Container           | Status       | Issue                                            |
+| ------------------- | ------------ | ------------------------------------------------ |
+| `ahk-mcp` (stdio)   | ✅ Healthy   | None - working perfectly                         |
 | `ahk-mcp-sse` (SSE) | ❌ Unhealthy | Health check failing for 5938 consecutive checks |
 
 ### Root Cause
@@ -21,16 +21,26 @@ The SSE server was configured with a health check in `docker-compose.yml`:
 
 ```yaml
 healthcheck:
-  test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider",
-         "http://localhost:3000/health"]
+  test:
+    [
+      'CMD',
+      'wget',
+      '--no-verbose',
+      '--tries=1',
+      '--spider',
+      'http://localhost:3000/health',
+    ]
 ```
 
-However, the SSE server implementation in `src/server.ts` only defined two routes:
+However, the SSE server implementation in `src/server.ts` only defined two
+routes:
+
 - ✅ `GET /sse` - SSE endpoint (working)
 - ✅ `POST /message` - Message handling (working)
 - ❌ `GET /health` - **Missing!**
 
 **Health Check Error:**
+
 ```
 http://localhost:3000/health:
 Remote file does not exist -- broken link!!!
@@ -38,6 +48,7 @@ ExitCode: 8
 ```
 
 **Server Response:**
+
 ```html
 Cannot GET /health
 ```
@@ -45,11 +56,13 @@ Cannot GET /health
 ### Secondary Issue
 
 Both containers showed log permission errors:
+
 ```
 [debug-journal] failed to write log: EACCES: permission denied, open '/app/logs/mcp-debug.log'
 ```
 
-This is a non-critical issue (server functions normally) but indicates the debug journal can't write to the volume-mounted logs directory.
+This is a non-critical issue (server functions normally) but indicates the debug
+journal can't write to the volume-mounted logs directory.
 
 ---
 
@@ -67,12 +80,13 @@ app.get('/health', (req, res) => {
     server: 'AutoHotkey MCP Server',
     mode: 'SSE',
     uptime: process.uptime(),
-    memory: process.memoryUsage()
+    memory: process.memoryUsage(),
   });
 });
 ```
 
 **Health Response:**
+
 ```json
 {
   "status": "ok",
@@ -106,11 +120,13 @@ Docker Compose v2 doesn't require the `version` field and warns about it.
 ## Deployment Steps
 
 ### 1. Rebuild TypeScript
+
 ```bash
 npm run build
 ```
 
 ### 2. Rebuild Docker Image
+
 ```bash
 docker-compose build ahk-mcp
 ```
@@ -118,6 +134,7 @@ docker-compose build ahk-mcp
 **Build Time:** ~6 seconds (with cache)
 
 ### 3. Recreate SSE Container
+
 ```bash
 docker stop ahk-mcp-sse
 docker rm ahk-mcp-sse
@@ -127,6 +144,7 @@ docker-compose up -d sse
 **Important:** Must recreate (not just restart) to use the new image.
 
 ### 4. Verify Health Status
+
 ```bash
 # Check container status
 docker-compose ps
@@ -195,12 +213,15 @@ $ docker inspect ahk-mcp-sse --format '{{json .State.Health}}'
 ## Files Modified
 
 ### Source Code
+
 - `src/server.ts` - Added `/health` endpoint to SSE server (line 1356-1365)
 
 ### Configuration
+
 - `docker-compose.yml` - Removed obsolete `version: '3.8'` field
 
 ### Docker Image
+
 - `dist/server.js` - Compiled TypeScript with health endpoint
 - Size changed: 55,845 → 56,259 bytes (+414 bytes)
 
@@ -209,11 +230,13 @@ $ docker inspect ahk-mcp-sse --format '{{json .State.Health}}'
 ## Benefits
 
 ### 1. Accurate Health Monitoring ✅
+
 - Docker now correctly detects when SSE server is healthy
 - Health checks pass consistently (FailingStreak: 0)
 - Can use for orchestration decisions (Kubernetes, Docker Swarm, etc.)
 
 ### 2. Better Observability ✅
+
 - Health endpoint provides server metrics:
   - Uptime
   - Memory usage
@@ -222,6 +245,7 @@ $ docker inspect ahk-mcp-sse --format '{{json .State.Health}}'
 - Useful for monitoring and debugging
 
 ### 3. Proper Container Lifecycle ✅
+
 - Containers marked unhealthy can be auto-restarted
 - Health checks enable zero-downtime deployments
 - Better integration with container orchestration platforms
@@ -235,22 +259,26 @@ $ docker inspect ahk-mcp-sse --format '{{json .State.Health}}'
 **Status:** Non-critical, does not affect functionality
 
 **Issue:**
+
 ```
 [debug-journal] failed to write log: EACCES: permission denied,
   open '/app/logs/mcp-debug.log'
 ```
 
 **Cause:**
+
 - Debug journal tries to write to `/app/logs/mcp-debug.log`
 - Volume-mounted directory may have incorrect permissions
 - Container runs as non-root user `ahk-mcp:1001`
 
 **Impact:**
+
 - Debug journal can't write logs
 - **Server functions normally** - uses console logging instead
 - No data loss or functional impact
 
 **Potential Fix:**
+
 ```dockerfile
 # In Dockerfile, ensure logs directory has correct permissions
 RUN mkdir -p /app/logs && \
@@ -259,6 +287,7 @@ RUN mkdir -p /app/logs && \
 ```
 
 Or in docker-compose.yml:
+
 ```yaml
 volumes:
   ahk-mcp-logs:
@@ -279,23 +308,30 @@ volumes:
 
 ```yaml
 healthcheck:
-  test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider",
-         "http://localhost:3000/health"]
-  interval: 30s      # Check every 30 seconds
-  timeout: 10s       # Fail if check takes >10s
-  retries: 3         # 3 failures = unhealthy
-  start_period: 40s  # Grace period after startup
+  test:
+    [
+      'CMD',
+      'wget',
+      '--no-verbose',
+      '--tries=1',
+      '--spider',
+      'http://localhost:3000/health',
+    ]
+  interval: 30s # Check every 30 seconds
+  timeout: 10s # Fail if check takes >10s
+  retries: 3 # 3 failures = unhealthy
+  start_period: 40s # Grace period after startup
 ```
 
 ### Health Check Behavior
 
-| Scenario | Container State | Action |
-|----------|----------------|--------|
-| Startup | `starting` | Wait `start_period` (40s) before checking |
-| 1st Success | `healthy` | Continue monitoring every 30s |
-| 1st Failure | `healthy` | Increment FailingStreak, retry |
-| 3rd Failure | `unhealthy` | Mark container unhealthy |
-| Recovery | `healthy` | Reset FailingStreak to 0 |
+| Scenario    | Container State | Action                                    |
+| ----------- | --------------- | ----------------------------------------- |
+| Startup     | `starting`      | Wait `start_period` (40s) before checking |
+| 1st Success | `healthy`       | Continue monitoring every 30s             |
+| 1st Failure | `healthy`       | Increment FailingStreak, retry            |
+| 3rd Failure | `unhealthy`     | Mark container unhealthy                  |
+| Recovery    | `healthy`       | Reset FailingStreak to 0                  |
 
 ---
 
@@ -318,6 +354,7 @@ healthcheck:
 ### 1. Health Checks Need Endpoints
 
 When configuring Docker health checks, ensure the endpoint exists:
+
 - ✅ Define the route in your application
 - ✅ Test the endpoint before deploying
 - ✅ Return appropriate status codes (200 = healthy)
@@ -325,11 +362,13 @@ When configuring Docker health checks, ensure the endpoint exists:
 ### 2. Restart vs. Recreate
 
 **Restart** uses the existing container (old image):
+
 ```bash
 docker restart container-name  # Old image
 ```
 
 **Recreate** uses the new image:
+
 ```bash
 docker stop container-name
 docker rm container-name
@@ -339,12 +378,14 @@ docker-compose up -d service-name  # New image
 ### 3. Health Endpoint Design
 
 Good health endpoints should:
+
 - Return quickly (<1s)
 - Check critical dependencies (optional)
 - Provide useful metrics (uptime, memory)
 - Use standard status codes (200/503)
 
 Example:
+
 ```typescript
 app.get('/health', (req, res) => {
   // Quick check
@@ -353,7 +394,7 @@ app.get('/health', (req, res) => {
   res.status(healthy ? 200 : 503).json({
     status: healthy ? 'ok' : 'degraded',
     uptime: process.uptime(),
-    memory: process.memoryUsage()
+    memory: process.memoryUsage(),
   });
 });
 ```
@@ -363,26 +404,30 @@ app.get('/health', (req, res) => {
 ## Related Documentation
 
 - [SECURITY.md](../SECURITY.md) - Security policies and false positive analysis
-- [DOCKER_SETUP_SUMMARY.md](./DOCKER_SETUP_SUMMARY.md) - Docker optimization details
-- [VALIDATION_MIGRATION_COMPLETE.md](./VALIDATION_MIGRATION_COMPLETE.md) - Input validation implementation
-- [SECURITY_INVESTIGATION_SUMMARY.md](./SECURITY_INVESTIGATION_SUMMARY.md) - CVE false positive investigation
+- [DOCKER_SETUP_SUMMARY.md](./DOCKER_SETUP_SUMMARY.md) - Docker optimization
+  details
+- [VALIDATION_MIGRATION_COMPLETE.md](./VALIDATION_MIGRATION_COMPLETE.md) - Input
+  validation implementation
+- [SECURITY_INVESTIGATION_SUMMARY.md](./SECURITY_INVESTIGATION_SUMMARY.md) - CVE
+  false positive investigation
 
 ---
 
 ## Success Metrics
 
-| Metric | Before | After | Improvement |
-|--------|--------|-------|-------------|
-| Healthy Containers | 1/2 (50%) | 2/2 (100%) | +50% |
-| FailingStreak | 5938 | 0 | -100% |
-| Health Endpoint | Missing | Working | ✅ |
-| Docker Warnings | 1 | 0 | -100% |
+| Metric             | Before    | After      | Improvement |
+| ------------------ | --------- | ---------- | ----------- |
+| Healthy Containers | 1/2 (50%) | 2/2 (100%) | +50%        |
+| FailingStreak      | 5938      | 0          | -100%       |
+| Health Endpoint    | Missing   | Working    | ✅          |
+| Docker Warnings    | 1         | 0          | -100%       |
 
 ---
 
 ## Next Steps (Optional)
 
 ### Immediate
+
 - [x] ✅ Add health endpoint
 - [x] ✅ Rebuild and deploy
 - [x] ✅ Verify both containers healthy
@@ -390,6 +435,7 @@ app.get('/health', (req, res) => {
 - [ ] Update CHANGELOG.md
 
 ### Future Enhancements
+
 - [ ] Add detailed health checks (check doc loader, tool registry)
 - [ ] Fix log permission issue (non-critical)
 - [ ] Add health metrics to monitoring dashboard
@@ -398,6 +444,5 @@ app.get('/health', (req, res) => {
 
 ---
 
-*Last Updated: October 20, 2025*
-*Status: ✅ All containers healthy*
-*Health Check: ✅ Passing*
+_Last Updated: October 20, 2025_ _Status: ✅ All containers healthy_ _Health
+Check: ✅ Passing_

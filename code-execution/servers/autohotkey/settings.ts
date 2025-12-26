@@ -24,6 +24,8 @@ Manage tool settings and enable/disable features`,
         "disable_editing",
         "enable_auto_run",
         "disable_auto_run",
+        "enable_vscode_open",
+        "disable_vscode_open",
         "enable_all",
         "disable_all",
         "reset"
@@ -59,6 +61,15 @@ Manage tool settings and enable/disable features`,
         },
         "autoRunAfterEdit": {
           "type": "boolean"
+        },
+        "autoOpenInVsCodeAfterEdit": {
+          "type": "boolean"
+        },
+        "thqbyLspServerPath": {
+          "type": "string"
+        },
+        "thqbyLspNodePath": {
+          "type": "string"
         }
       }
     }

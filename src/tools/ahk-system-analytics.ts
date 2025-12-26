@@ -7,7 +7,7 @@ import { McpToolResponse, createTextResponse, createErrorResponse } from '../typ
 export const AhkAnalyticsArgsSchema = z.object({
   action: z.enum(['summary', 'tool_stats', 'recent', 'export', 'clear']).default('summary'),
   toolName: z.string().optional().describe('Tool name for tool_stats action'),
-  limit: z.number().min(1).max(500).optional().default(50).describe('Limit for recent metrics')
+  limit: z.number().min(1).max(500).optional().default(50).describe('Limit for recent metrics'),
 });
 
 export type AhkAnalyticsToolArgs = z.infer<typeof AhkAnalyticsArgsSchema>;
@@ -22,21 +22,21 @@ export const ahkAnalyticsToolDefinition = {
         type: 'string',
         enum: ['summary', 'tool_stats', 'recent', 'export', 'clear'],
         default: 'summary',
-        description: 'Action to perform'
+        description: 'Action to perform',
       },
       toolName: {
         type: 'string',
-        description: 'Tool name for tool_stats action'
+        description: 'Tool name for tool_stats action',
       },
       limit: {
         type: 'number',
         minimum: 1,
         maximum: 500,
         default: 50,
-        description: 'Limit for recent metrics'
-      }
-    }
-  }
+        description: 'Limit for recent metrics',
+      },
+    },
+  },
 };
 
 export class AhkAnalyticsTool {
@@ -71,7 +71,7 @@ export class AhkAnalyticsTool {
 
           if (summary.problematicTools.length > 0) {
             response += `## [WARN] Problematic Tools (High Failure Rate)\n`;
-            summary.problematicTools.forEach((tool) => {
+            summary.problematicTools.forEach(tool => {
               response += `- **${tool.toolName}**: ${tool.failureRate.toFixed(2)}% failure rate\n`;
             });
             response += `\n`;
@@ -82,20 +82,24 @@ export class AhkAnalyticsTool {
         case 'tool_stats': {
           if (!toolName) {
             return {
-              content: [{
-                type: 'text',
-                text: 'Error: toolName parameter required for tool_stats action'
-              }]
+              content: [
+                {
+                  type: 'text',
+                  text: 'Error: toolName parameter required for tool_stats action',
+                },
+              ],
             };
           }
 
           const stats = toolAnalytics.getToolStats(toolName);
           if (!stats) {
             return {
-              content: [{
-                type: 'text',
-                text: `No statistics found for tool: ${toolName}`
-              }]
+              content: [
+                {
+                  type: 'text',
+                  text: `No statistics found for tool: ${toolName}`,
+                },
+              ],
             };
           }
 
@@ -149,19 +153,22 @@ export class AhkAnalyticsTool {
       }
 
       return {
-        content: [{
-          type: 'text',
-          text: response
-        }]
+        content: [
+          {
+            type: 'text',
+            text: response,
+          },
+        ],
       };
-
     } catch (error) {
       logger.error('Error in analytics tool:', error);
       return {
-        content: [{
-          type: 'text',
-          text: `Error: ${error instanceof Error ? error.message : 'Unknown error'}`
-        }]
+        content: [
+          {
+            type: 'text',
+            text: `Error: ${error instanceof Error ? error.message : 'Unknown error'}`,
+          },
+        ],
       };
     }
   }

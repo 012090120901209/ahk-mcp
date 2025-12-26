@@ -15,45 +15,62 @@
 ### 🔧 Essential Tools
 
 #### Quick Edit
+
 ```json
-{"tool": "AHK_File_Edit", "arguments": {"action": "replace", "search": "old text", "content": "new text"}}
+{
+  "tool": "AHK_File_Edit",
+  "arguments": {
+    "action": "replace",
+    "search": "old text",
+    "content": "new text"
+  }
+}
 ```
 
 #### Apply Git Diff
+
 ```json
-{"tool": "AHK_File_Edit_Diff", "arguments": {"diff": "--- file.ahk\n+++ file.ahk\n@@ -1,3 +1,4 @@\n code"}}
+{
+  "tool": "AHK_File_Edit_Diff",
+  "arguments": { "diff": "--- file.ahk\n+++ file.ahk\n@@ -1,3 +1,4 @@\n code" }
+}
 ```
 
 #### Create Alpha Version
+
 ```json
-{"tool": "AHK_Alpha", "arguments": {"action": "create"}}
+{ "tool": "AHK_Alpha", "arguments": { "action": "create" } }
 ```
 
 #### Manage Settings
+
 ```json
-{"tool": "AHK_Settings", "arguments": {"action": "disable_editing"}}
+{ "tool": "AHK_Settings", "arguments": { "action": "disable_editing" } }
 ```
 
 ### 📋 Common Workflows
 
 #### 1. Quick Text Replace
+
 ```
 User: "Change all 'Hello' to 'Hi' in the active file"
 Tool: AHK_File_Edit with action "replace", search "Hello", content "Hi", all true
 ```
 
 #### 2. Multi-line Input
+
 ```
 test.ahk
 
 Fix syntax errors and add logging
 
 → Detects file path
-→ Sets as active  
+→ Sets as active
 → Processes request automatically
 ```
 
 #### 3. Alpha Version Creation
+
 ```
 Edit fails → Edit fails → Edit fails
 → AUTO: Creates test_a1.ahk
@@ -74,7 +91,7 @@ Edit fails → Edit fails → Edit fails
 // Read-only mode
 {"tool": "AHK_Settings", "arguments": {"action": "disable_editing"}}
 
-// Full editing mode  
+// Full editing mode
 {"tool": "AHK_Settings", "arguments": {"action": "enable_editing"}}
 
 // Check what's enabled
@@ -83,11 +100,12 @@ Edit fails → Edit fails → Edit fails
 
 ### 🎯 Token Efficiency
 
-**Most Efficient**: `AHK_File_Edit` (20-30 tokens per operation)
-**Less Efficient**: `AHK_File_Edit_Diff` (100-200 tokens per operation)
+**Most Efficient**: `AHK_File_Edit` (20-30 tokens per operation) **Less
+Efficient**: `AHK_File_Edit_Diff` (100-200 tokens per operation)
 
 **Use `AHK_File_Edit` for**: Simple replacements, line insertions, quick changes
-**Use `AHK_File_Edit_Diff` for**: Complex multi-location changes, when you have existing diffs
+**Use `AHK_File_Edit_Diff` for**: Complex multi-location changes, when you have
+existing diffs
 
 ### 📁 File Locations
 
@@ -98,15 +116,19 @@ Edit fails → Edit fails → Edit fails
 ### 🆘 Troubleshooting
 
 **File not detected?**
+
 - Ensure `.ahk` extension is present
 - Use full paths or set script directory
 - Check path format (quotes for spaces)
 
 **Tool disabled?**
+
 - Run: `{"tool": "AHK_Settings", "arguments": {"action": "get"}}`
-- Enable with: `{"tool": "AHK_Settings", "arguments": {"action": "enable_editing"}}`
+- Enable with:
+  `{"tool": "AHK_Settings", "arguments": {"action": "enable_editing"}}`
 
 **Edit failed?**
+
 - Check file permissions
 - Verify file exists and is readable
 - Look for syntax in search patterns
@@ -122,8 +144,10 @@ Edit fails → Edit fails → Edit fails
 ### 🔗 Full Documentation
 
 - **Setup Guides:**
-  - [Claude Desktop Setup](docs/CLAUDE_DESKTOP_SETUP.md) - Configure for Claude Desktop
-  - [Claude Code Setup](docs/CLAUDE_CODE_SETUP.md) - Configure for Claude Code CLI
+  - [Claude Desktop Setup](docs/CLAUDE_DESKTOP_SETUP.md) - Configure for Claude
+    Desktop
+  - [Claude Code Setup](docs/CLAUDE_CODE_SETUP.md) - Configure for Claude Code
+    CLI
 - **Feature Guides:**
   - [Edit Tools Guide](EDIT_TOOLS_GUIDE.md) - Complete editing documentation
   - [Settings Guide](SETTINGS_GUIDE.md) - Configuration options

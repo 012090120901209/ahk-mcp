@@ -3,21 +3,29 @@ import fs from 'fs/promises';
 import path from 'path';
 import logger from '../logger.js';
 import { activeFile } from '../core/active-file.js';
-import { checkToolAvailability } from '../core/tool-settings.js';
+import { checkToolAvailability, toolSettings } from '../core/tool-settings.js';
 import { pathInterceptor } from '../core/path-interceptor.js';
 import { pathConverter, PathFormat } from '../utils/path-converter.js';
 import { createErrorResponse } from '../utils/response-helpers.js';
 import { safeParse } from '../core/validation-middleware.js';
+import { setLastEditedFile } from '../core/config.js';
+import { openFileInVSCode } from '../utils/vscode-open.js';
 
 const UTF8_ENCODING = 'utf8';
 
 export const AhkFileCreateArgsSchema = z.object({
-  filePath: z.string().min(1, 'filePath is required').describe('Absolute or relative path to the new AutoHotkey file'),
+  filePath: z
+    .string()
+    .min(1, 'filePath is required')
+    .describe('Absolute or relative path to the new AutoHotkey file'),
   content: z.string().default('').describe('Initial content to write into the file'),
   overwrite: z.boolean().default(false).describe('Allow overwriting an existing file'),
-  createDirectories: z.boolean().default(true).describe('Create parent directories when they do not exist'),
+  createDirectories: z
+    .boolean()
+    .default(true)
+    .describe('Create parent directories when they do not exist'),
   dryRun: z.boolean().default(false).describe('Preview the operation without writing to disk'),
-  setActive: z.boolean().default(true).describe('Set the newly created file as the active file')
+  setActive: z.boolean().default(true).describe('Set the newly created file as the active file'),
 });
 
 export const ahkFileCreateToolDefinition = {
@@ -33,35 +41,35 @@ export const ahkFileCreateToolDefinition = {
     properties: {
       filePath: {
         type: 'string',
-        description: 'Absolute or relative path to the new AutoHotkey file'
+        description: 'Absolute or relative path to the new AutoHotkey file',
       },
       content: {
         type: 'string',
-        description: 'Initial content to write into the file'
+        description: 'Initial content to write into the file',
       },
       overwrite: {
         type: 'boolean',
         default: false,
-        description: 'Allow overwriting an existing file'
+        description: 'Allow overwriting an existing file',
       },
       createDirectories: {
         type: 'boolean',
         default: true,
-        description: 'Create parent directories if they are missing'
+        description: 'Create parent directories if they are missing',
       },
       dryRun: {
         type: 'boolean',
         default: false,
-        description: 'Preview the operation without writing to disk'
+        description: 'Preview the operation without writing to disk',
       },
       setActive: {
         type: 'boolean',
         default: true,
-        description: 'Set the newly created file as the active file'
-      }
+        description: 'Set the newly created file as the active file',
+      },
     },
-    required: ['filePath']
-  }
+    required: ['filePath'],
+  },
 };
 
 async function pathExists(targetPath: string): Promise<boolean> {
@@ -83,9 +91,7 @@ export class AhkFileCreateTool {
     // Check if the tool is enabled in settings
     const availability = checkToolAvailability('AHK_File_Create');
     if (!availability.enabled) {
-      return createErrorResponse(
-        availability.message || 'AHK_File_Create tool is disabled.'
-      );
+      return createErrorResponse(availability.message || 'AHK_File_Create tool is disabled.');
     }
 
     // Intercept incoming paths for cross-platform compatibility
@@ -93,7 +99,9 @@ export class AhkFileCreateTool {
     if (interception.success) {
       validatedArgs = AhkFileCreateArgsSchema.parse(interception.modifiedData);
       if (interception.conversions.length > 0) {
-        logger.debug(`AHK_File_Create input conversions: ${interception.conversions.length} path(s) converted.`);
+        logger.debug(
+          `AHK_File_Create input conversions: ${interception.conversions.length} path(s) converted.`
+        );
       }
     } else if (interception.error) {
       logger.warn(`AHK_File_Create path interception failed: ${interception.error}`);
@@ -113,12 +121,16 @@ export class AhkFileCreateTool {
         const conversion = pathConverter.autoConvert(targetFilePath, PathFormat.WINDOWS);
         if (conversion.success) {
           targetFilePath = conversion.convertedPath;
-          logger.debug(`Path auto-converted for creation: ${conversion.originalPath} -> ${targetFilePath}`);
+          logger.debug(
+            `Path auto-converted for creation: ${conversion.originalPath} -> ${targetFilePath}`
+          );
         } else if (conversion.error) {
           logger.debug(`Path auto-conversion skipped: ${conversion.error}`);
         }
       } catch (conversionError) {
-        logger.warn(`Path conversion error: ${conversionError instanceof Error ? conversionError.message : String(conversionError)}`);
+        logger.warn(
+          `Path conversion error: ${conversionError instanceof Error ? conversionError.message : String(conversionError)}`
+        );
       }
 
       const resolvedPath = path.resolve(targetFilePath);
@@ -132,7 +144,9 @@ export class AhkFileCreateTool {
       const directoriesWillBeCreated = !directoryExists && createDirectories;
 
       if (!directoryExists && !createDirectories) {
-        throw new Error(`Directory does not exist: ${directoryPath}. Enable createDirectories to create it automatically.`);
+        throw new Error(
+          `Directory does not exist: ${directoryPath}. Enable createDirectories to create it automatically.`
+        );
       }
 
       const contentToWrite = validatedArgs.content ?? '';
@@ -160,11 +174,16 @@ export class AhkFileCreateTool {
             await fs.writeFile(resolvedPath, contentToWrite, { encoding: UTF8_ENCODING });
           } else {
             // Atomic create-or-fail
-            await fs.writeFile(resolvedPath, contentToWrite, { encoding: UTF8_ENCODING, flag: 'wx' });
+            await fs.writeFile(resolvedPath, contentToWrite, {
+              encoding: UTF8_ENCODING,
+              flag: 'wx',
+            });
           }
         } catch (writeError) {
           if ((writeError as NodeJS.ErrnoException).code === 'EEXIST') {
-            throw new Error(`File already exists: ${resolvedPath}. Enable overwrite to replace it.`);
+            throw new Error(
+              `File already exists: ${resolvedPath}. Enable overwrite to replace it.`
+            );
           }
           throw writeError;
         }
@@ -175,6 +194,8 @@ export class AhkFileCreateTool {
             logger.warn(`Failed to set active file after creation: ${resolvedPath}`);
           }
         }
+
+        setLastEditedFile(resolvedPath);
       }
 
       const resultPayload = {
@@ -193,7 +214,7 @@ export class AhkFileCreateTool {
           ? 'Dry run complete. No changes were written to disk.'
           : fileAlreadyExists && overwrite
             ? 'Existing file overwritten with new content.'
-            : 'New AutoHotkey file created successfully.'
+            : 'New AutoHotkey file created successfully.',
       };
 
       let response = {
@@ -202,14 +223,29 @@ export class AhkFileCreateTool {
             type: 'text',
             text: dryRun
               ? '[DRY RUN] AutoHotkey file creation preview.'
-              : 'AutoHotkey file created successfully.'
+              : 'AutoHotkey file created successfully.',
           },
           {
             type: 'text',
-            text: JSON.stringify(resultPayload, null, 2)
-          }
-        ]
+            text: JSON.stringify(resultPayload, null, 2),
+          },
+        ],
       };
+
+      if (!dryRun && toolSettings.shouldOpenInVsCodeAfterEdit()) {
+        try {
+          await openFileInVSCode(resolvedPath, { reuseWindow: true });
+          response.content.push({
+            type: 'text',
+            text: `VS Code opened ${path.basename(resolvedPath)}`,
+          });
+        } catch (openError) {
+          response.content.push({
+            type: 'text',
+            text: `VS Code open failed: ${openError instanceof Error ? openError.message : String(openError)}`,
+          });
+        }
+      }
 
       // Intercept outgoing data for path conversion when needed
       const outputInterception = pathInterceptor.interceptOutput('AHK_File_Create', response);

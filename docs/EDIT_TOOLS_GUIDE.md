@@ -1,21 +1,28 @@
 # AutoHotkey File Editing Tools
 
-You now have powerful file editing capabilities that work with the `activeFilePath` variable, similar to Claude's filesystem MCP tools.
+You now have powerful file editing capabilities that work with the
+`activeFilePath` variable, similar to Claude's filesystem MCP tools.
 
 ## 🔧 Available Tools
 
 ### 1. `AHK_File_Edit` - Simple Edit Operations
+
 For basic file editing operations like replace, insert, delete, append, prepend.
 
 ### 2. `AHK_File_Edit_Diff` - Unified Diff Patches
+
 For applying unified diff patches (like Git diffs) to files.
 
 ### 3. `AHK_File_Edit_Small` - Targeted, Low-Token Updates
-Optimised for quick tweaks without sharing whole files. Supports regex or literal replacements and line-level inserts/deletes across one or many files. Optional `preview` shows a diff instead of writing.
+
+Optimised for quick tweaks without sharing whole files. Supports regex or
+literal replacements and line-level inserts/deletes across one or many files.
+Optional `preview` shows a diff instead of writing.
 
 ## 📝 AHK_File_Edit Tool
 
 ### Replace Text
+
 ```json
 {
   "tool": "AHK_File_Edit",
@@ -29,6 +36,7 @@ Optimised for quick tweaks without sharing whole files. Supports regex or litera
 ```
 
 ### Insert at Line
+
 ```json
 {
   "tool": "AHK_File_Edit",
@@ -41,6 +49,7 @@ Optimised for quick tweaks without sharing whole files. Supports regex or litera
 ```
 
 ### Delete Text or Lines
+
 ```json
 {
   "tool": "AHK_File_Edit",
@@ -63,6 +72,7 @@ Optimised for quick tweaks without sharing whole files. Supports regex or litera
 ```
 
 ### Append to End
+
 ```json
 {
   "tool": "AHK_File_Edit",
@@ -74,6 +84,7 @@ Optimised for quick tweaks without sharing whole files. Supports regex or litera
 ```
 
 ### Replace and Run Immediately
+
 ```json
 {
   "tool": "AHK_File_Edit",
@@ -85,9 +96,12 @@ Optimised for quick tweaks without sharing whole files. Supports regex or litera
   }
 }
 ```
-> Tip: Toggle the default behaviour via `AHK_Settings` (`enable_auto_run` / `disable_auto_run`).
+
+> Tip: Toggle the default behaviour via `AHK_Settings` (`enable_auto_run` /
+> `disable_auto_run`).
 
 ### Prepend to Beginning
+
 ```json
 {
   "tool": "AHK_File_Edit",
@@ -101,6 +115,7 @@ Optimised for quick tweaks without sharing whole files. Supports regex or litera
 ## ⚡ AHK_File_Edit_Small Quick Examples
 
 ### Regex Replace with Preview
+
 ```json
 {
   "tool": "AHK_File_Edit_Small",
@@ -115,15 +130,13 @@ Optimised for quick tweaks without sharing whole files. Supports regex or litera
 ```
 
 ### Literal Replace Across Multiple Files
+
 ```json
 {
   "tool": "AHK_File_Edit_Small",
   "arguments": {
     "action": "replace_literal",
-    "files": [
-      "README.md",
-      "docs/PROJECT_STATUS.md"
-    ],
+    "files": ["README.md", "docs/PROJECT_STATUS.md"],
     "find": "AutoHotkey v2",
     "replace": "AHK v2",
     "all": true,
@@ -133,6 +146,7 @@ Optimised for quick tweaks without sharing whole files. Supports regex or litera
 ```
 
 ### Insert After Specific Line
+
 ```json
 {
   "tool": "AHK_File_Edit_Small",
@@ -145,6 +159,7 @@ Optimised for quick tweaks without sharing whole files. Supports regex or litera
   }
 }
 ```
+
 > Tip: Enable persistent auto-run with `AHK_Settings` → `enable_auto_run`.
 
 ## 🔀 AHK_File_Edit_Diff Tool
@@ -162,13 +177,14 @@ Apply unified diff patches like Git diffs:
 ```
 
 ### Diff Format Example
+
 ```diff
 --- test.ahk
 +++ test.ahk
 @@ -1,5 +1,6 @@
  ; AutoHotkey Test Script
 +#Requires AutoHotkey v2.0
- 
+
  main() {
 -    MsgBox("Old message")
 +    MsgBox("New message")
@@ -178,6 +194,7 @@ Apply unified diff patches like Git diffs:
 ## 🎯 Usage Examples
 
 ### Example 1: Add Error Handling
+
 ```
 User: Add error handling to the active file
 
@@ -185,7 +202,7 @@ Tool Call:
 {
   "tool": "AHK_File_Edit",
   "arguments": {
-    "action": "replace", 
+    "action": "replace",
     "search": "MsgBox(\"Hello\")",
     "content": "try {\n    MsgBox(\"Hello\")\n} catch Error as e {\n    MsgBox(\"Error: \" e.Message)\n}"
   }
@@ -193,6 +210,7 @@ Tool Call:
 ```
 
 ### Apply Diff and Run Right Away
+
 ```json
 {
   "tool": "AHK_File_Edit_Diff",
@@ -202,9 +220,12 @@ Tool Call:
   }
 }
 ```
-> Tip: Toggle the default behaviour via `AHK_Settings` if you want scripts to run automatically every time.
+
+> Tip: Toggle the default behaviour via `AHK_Settings` if you want scripts to
+> run automatically every time.
 
 ### Example 2: Insert Function
+
 ```
 User: Add a new function after line 10
 
@@ -220,6 +241,7 @@ Tool Call:
 ```
 
 ### Example 3: Apply Git Diff
+
 ```
 User: Apply this diff patch:
 
@@ -228,7 +250,7 @@ User: Apply this diff patch:
 @@ -1,3 +1,4 @@
  ; My AutoHotkey Script
 +#SingleInstance Force
- 
+
  F1::MsgBox("F1 pressed")
 
 Tool Call:
@@ -252,10 +274,13 @@ Both tools automatically work with the `activeFilePath`:
 ## 🛡️ Safety Features
 
 ### Automatic Backups
+
 Both tools create backup files (`.bak`) before making changes:
+
 - `script.ahk` → `script.ahk.bak`
 
 ### Dry Run Mode (AHK_File_Edit_Diff)
+
 ```json
 {
   "tool": "AHK_File_Edit_Diff",
@@ -265,9 +290,11 @@ Both tools create backup files (`.bak`) before making changes:
   }
 }
 ```
+
 Shows what would change without applying it.
 
 ### Validation
+
 - File existence checks
 - `.ahk` extension requirement
 - Line number bounds checking
@@ -276,6 +303,7 @@ Shows what would change without applying it.
 ## 🔍 Diff Format Guide
 
 ### Basic Unified Diff Structure
+
 ```diff
 --- original_file
 +++ modified_file
@@ -287,11 +315,13 @@ Shows what would change without applying it.
 ```
 
 ### Hunk Header Explained
+
 - `@@ -1,3 +1,4 @@` means:
   - Original: start at line 1, 3 lines
   - Modified: start at line 1, 4 lines
 
 ### Line Prefixes
+
 - ` ` (space): Context line (unchanged)
 - `-`: Removed from original
 - `+`: Added to modified
@@ -299,6 +329,7 @@ Shows what would change without applying it.
 ## 🚀 Advanced Usage
 
 ### Regex Replace
+
 ```json
 {
   "tool": "AHK_File_Edit",
@@ -313,9 +344,10 @@ Shows what would change without applying it.
 ```
 
 ### Range Deletion
+
 ```json
 {
-  "tool": "AHK_File_Edit", 
+  "tool": "AHK_File_Edit",
   "arguments": {
     "action": "delete",
     "startLine": 5,
@@ -332,4 +364,5 @@ Shows what would change without applying it.
 4. **Regex patterns** use JavaScript regex syntax
 5. **Context matters** - diffs require exact line matches
 
-These tools give you the same powerful editing capabilities as Claude's filesystem MCP, specifically tailored for AutoHotkey development!
+These tools give you the same powerful editing capabilities as Claude's
+filesystem MCP, specifically tailored for AutoHotkey development!

@@ -31,7 +31,7 @@ export const metadata = {
   "dryRun": true
 }
 \`\`\`
-Shows a 🔬 DRY RUN report instead of touching the file.
+Shows a DRY RUN report instead of touching the file.
 
 **Create New Script**
 \`\`\`json
@@ -43,9 +43,9 @@ Shows a 🔬 DRY RUN report instead of touching the file.
 \`\`\`
 
 **What to Avoid**
-- ❌ Using deprecated "content" parameter → migrate to "newContent"
-- ❌ Running batch replacements without \`dryRun: true\` first
-- ❌ Disabling backups on production files unless absolutely necessary
+- Using deprecated "content" parameter - migrate to "newContent"
+- Running batch replacements without \`dryRun: true\` first
+- Disabling backups on production files unless absolutely necessary
 
 **See also:** AHK_File_Edit_Advanced, AHK_File_Edit_Small, AHK_File_View, AHK_Smart_Orchestrator`,
   inputSchema: {

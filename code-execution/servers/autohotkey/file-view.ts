@@ -8,24 +8,7 @@ export const metadata = {
   name: 'AHK_File_View',
   slug: 'file-view',
   category: 'file',
-  description: `📖 AutoHotkey File Viewer (File Chain)
-
-Premier file viewing tool in the ahk-file-* chain. Provides structured, intelligent viewing of AutoHotkey files with multiple display modes.
-
-**Modes:**
-- \`structured\`: Formatted view with line numbers, syntax highlighting, and metadata
-- \`raw\`: Plain text content without formatting
-- \`summary\`: File overview with statistics and structure
-- \`outline\`: Code structure breakdown (classes, functions, hotkeys)
-
-**Features:**
-- Automatic syntax highlighting for AutoHotkey v2
-- File metadata (size, modified date, encoding)
-- Code structure analysis (classes, functions, hotkeys)
-- Line range selection for large files
-- Integration with active file context
-
-Part of the **ahk-file-*** tool chain for file operations.`,
+  description: `View AHK files with structure analysis. Modes: structured (default), raw, summary, outline. Supports line ranges and syntax highlighting.`,
   inputSchema: {
   "type": "object",
   "properties": {
@@ -41,8 +24,8 @@ Part of the **ahk-file-*** tool chain for file operations.`,
         "summary",
         "outline"
       ],
-      "description": "View mode",
-      "default": "structured"
+      "default": "structured",
+      "description": "View mode"
     },
     "lineStart": {
       "type": "number",
@@ -58,30 +41,31 @@ Part of the **ahk-file-*** tool chain for file operations.`,
       "type": "number",
       "minimum": 1,
       "maximum": 1000,
-      "description": "Maximum lines to display",
-      "default": 100
+      "default": 100,
+      "description": "Maximum lines to display"
     },
     "showLineNumbers": {
       "type": "boolean",
-      "description": "Show line numbers",
-      "default": true
+      "default": true,
+      "description": "Show line numbers"
     },
     "showMetadata": {
       "type": "boolean",
-      "description": "Show file metadata",
-      "default": true
+      "default": true,
+      "description": "Show file metadata"
     },
     "highlightSyntax": {
       "type": "boolean",
-      "description": "Apply syntax highlighting",
-      "default": true
+      "default": true,
+      "description": "Apply syntax highlighting"
     },
     "showStructure": {
       "type": "boolean",
-      "description": "Show code structure info",
-      "default": true
+      "default": true,
+      "description": "Show code structure info"
     }
-  }
+  },
+  "additionalProperties": false
 }
 } as const;
 

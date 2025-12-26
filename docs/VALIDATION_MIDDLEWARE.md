@@ -1,10 +1,13 @@
 # Validation Middleware Guide
 
-The validation middleware (`src/core/validation-middleware.ts`) provides centralized, consistent error handling for Zod schema validation across all MCP tools.
+The validation middleware (`src/core/validation-middleware.ts`) provides
+centralized, consistent error handling for Zod schema validation across all MCP
+tools.
 
 ## Overview
 
 This utility eliminates inconsistent validation error handling by:
+
 - ✅ Formatting Zod errors into field-level issues
 - ✅ Generating consistent MCP error responses
 - ✅ Logging validation failures with context
@@ -36,7 +39,11 @@ export class MyTool {
 For cases where you need to handle validation differently:
 
 ```typescript
-import { validateWithSchema, createValidationErrorResponse, MyArgsSchema } from '../core/validation-middleware.js';
+import {
+  validateWithSchema,
+  createValidationErrorResponse,
+  MyArgsSchema,
+} from '../core/validation-middleware.js';
 
 export class MyTool {
   async execute(args: unknown): Promise<ToolResponse> {
@@ -75,9 +82,11 @@ export class MyTool {
 
 #### `safeParse<T>(data, schema, toolName?): SafeParseResult<T>`
 
-One-liner validation that returns either `{ success: true, data }` or `{ success: false, error }`.
+One-liner validation that returns either `{ success: true, data }` or
+`{ success: false, error }`.
 
 **Usage:**
+
 ```typescript
 const parsed = safeParse(args, ArgsSchema, 'ToolName');
 if (!parsed.success) return parsed.error;
@@ -91,6 +100,7 @@ const validated = parsed.data; // Typed correctly
 Detailed validation that returns all issues and original error.
 
 **Returns:**
+
 ```typescript
 {
   success: true,
@@ -103,6 +113,7 @@ Detailed validation that returns all issues and original error.
 ```
 
 **Usage:**
+
 ```typescript
 const result = validateWithSchema(args, ArgsSchema);
 if (!result.success) {
@@ -118,6 +129,7 @@ if (!result.success) {
 Formats validation errors into an MCP-compliant error response.
 
 **Output Example:**
+
 ```
 ❌ **Validation Error**
 
@@ -131,24 +143,26 @@ Formats validation errors into an MCP-compliant error response.
 
 #### `formatZodError(error): ValidationError[]`
 
-Extracts and formats Zod validation issues. Used internally by `validateWithSchema`.
+Extracts and formats Zod validation issues. Used internally by
+`validateWithSchema`.
 
 **Returns:**
+
 ```typescript
 [
   {
     field: 'filePath',
     message: 'String is required',
     code: 'Type mismatch',
-    received: 123
+    received: 123,
   },
   {
     field: 'timeout',
     message: 'Number must be less than or equal to 60000',
     code: 'Value too large',
-    received: 99999
-  }
-]
+    received: 99999,
+  },
+];
 ```
 
 ---
@@ -158,12 +172,15 @@ Extracts and formats Zod validation issues. Used internally by `validateWithSche
 Class method decorator that validates execute() arguments automatically.
 
 **Usage:**
+
 ```typescript
 import { validateArgs } from '../core/validation-middleware.js';
 
 export class AhkEditTool {
   @validateArgs(AhkEditArgsSchema)
-  async execute(args: z.infer<typeof AhkEditArgsSchema>): Promise<ToolResponse> {
+  async execute(
+    args: z.infer<typeof AhkEditArgsSchema>
+  ): Promise<ToolResponse> {
     // args is guaranteed valid; validation errors are handled automatically
     const { action, filePath } = args;
     // ... proceed with tool logic
@@ -178,6 +195,7 @@ export class AhkEditTool {
 Converts ZodError into a field-to-message map for custom handling.
 
 **Usage:**
+
 ```typescript
 const errorMap = extractValidationErrors(zodError);
 errorMap.forEach((message, field) => {
@@ -192,6 +210,7 @@ errorMap.forEach((message, field) => {
 Combines multiple validation results into a single result with all errors.
 
 **Usage:**
+
 ```typescript
 const r1 = validateWithSchema(data1, Schema1);
 const r2 = validateWithSchema(data2, Schema2);
@@ -208,26 +227,29 @@ if (!combined.success) {
 ### Types
 
 #### `ValidationError`
+
 ```typescript
 interface ValidationError {
-  field: string;              // Field path (e.g., "filePath", "options.timeout")
-  message: string;            // Human-readable error message
-  code: string;               // Error type (e.g., "Type mismatch", "Required")
-  received?: unknown;         // The value that was received
+  field: string; // Field path (e.g., "filePath", "options.timeout")
+  message: string; // Human-readable error message
+  code: string; // Error type (e.g., "Type mismatch", "Required")
+  received?: unknown; // The value that was received
 }
 ```
 
 #### `ValidationResult<T>`
+
 ```typescript
 interface ValidationResult<T> {
   success: boolean;
-  data?: T;                   // Validated data (if success: true)
+  data?: T; // Validated data (if success: true)
   errors?: ValidationError[]; // Field errors (if success: false)
-  rawError?: z.ZodError;      // Original ZodError (if success: false)
+  rawError?: z.ZodError; // Original ZodError (if success: false)
 }
 ```
 
 #### `SafeParseResult<T>`
+
 ```typescript
 type SafeParseResult<T> =
   | { success: true; data: T }
@@ -245,6 +267,7 @@ import { safeParse } from '../core/validation-middleware.js';
 ### Step 2: Replace existing validation pattern
 
 **Before:**
+
 ```typescript
 async execute(args: z.infer<typeof MyArgsSchema>): Promise<ToolResponse> {
   try {
@@ -258,6 +281,7 @@ async execute(args: z.infer<typeof MyArgsSchema>): Promise<ToolResponse> {
 ```
 
 **After:**
+
 ```typescript
 async execute(args: unknown): Promise<ToolResponse> {
   const parsed = safeParse(args, MyArgsSchema, 'MyTool');
@@ -271,6 +295,7 @@ async execute(args: unknown): Promise<ToolResponse> {
 ### Step 3: Apply to other tools
 
 Recommended tools to update (in priority order):
+
 1. `ahk-system-config.ts` - Complex config validation
 2. `ahk-run-script.ts` - Multiple validation branches
 3. `ahk-analyze-diagnostics.ts` - Severity enum validation
@@ -280,6 +305,7 @@ Recommended tools to update (in priority order):
 ## Error Response Examples
 
 ### Example 1: Type Mismatch
+
 ```
 ❌ **Validation Error**
 
@@ -290,6 +316,7 @@ Recommended tools to update (in priority order):
 ```
 
 ### Example 2: Missing Required Fields
+
 ```
 ❌ **Validation Error**
 
@@ -300,6 +327,7 @@ Recommended tools to update (in priority order):
 ```
 
 ### Example 3: Invalid Enum
+
 ```
 ❌ **Validation Error**
 
@@ -344,9 +372,7 @@ const result = validateWithSchema(args, MyArgsSchema);
 
 if (!result.success) {
   // Access individual errors
-  const fieldErrors = new Map(
-    result.errors!.map(e => [e.field, e.message])
-  );
+  const fieldErrors = new Map(result.errors!.map(e => [e.field, e.message]));
 
   // Custom logic based on error type
   if (fieldErrors.has('filePath')) {
@@ -383,5 +409,4 @@ if (baseResult.data.action === 'advanced') {
 
 ---
 
-**Last Updated:** October 16, 2025
-**Status:** Production Ready ✅
+**Last Updated:** October 16, 2025 **Status:** Production Ready ✅

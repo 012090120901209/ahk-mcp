@@ -19,38 +19,38 @@ export const ahkLspToolDefinition = {
     properties: {
       code: {
         type: 'string',
-        description: 'The AutoHotkey v2 code to analyze or fix'
+        description: 'The AutoHotkey v2 code to analyze or fix',
       },
       mode: {
         type: 'string',
         enum: ['analyze', 'fix'],
         description: 'Mode of operation: analyze (default) or fix',
-        default: 'analyze'
+        default: 'analyze',
       },
       fixLevel: {
         type: 'string',
         enum: ['safe', 'style-only', 'aggressive'],
         description: 'Aggressiveness of fixes (only for mode="fix")',
-        default: 'safe'
+        default: 'safe',
       },
       autoFix: {
         type: 'boolean',
         description: 'Automatically apply fixes (legacy parameter, use mode="fix")',
-        default: false
+        default: false,
       },
       returnFixedCode: {
         type: 'boolean',
         description: 'Return the fixed code in the output (legacy parameter)',
-        default: false
+        default: false,
       },
       showPerformance: {
         type: 'boolean',
         description: 'Show performance metrics (legacy parameter)',
-        default: false
-      }
+        default: false,
+      },
     },
-    required: ['code']
-  }
+    required: ['code'],
+  },
 };
 
 export class AhkLspTool {
@@ -97,7 +97,7 @@ export class AhkLspTool {
       output += `\n\nUpdated Code:\n\`\`\`autohotkey\n${fixResult.code}\n\`\`\``;
 
       return {
-        content: [{ type: 'text', text: output }]
+        content: [{ type: 'text', text: output }],
       };
     }
 
@@ -116,7 +116,7 @@ export class AhkLspTool {
     }
 
     return {
-      content: [{ type: 'text', text: output }]
+      content: [{ type: 'text', text: output }],
     };
   }
 }

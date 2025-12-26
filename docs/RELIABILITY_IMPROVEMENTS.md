@@ -1,21 +1,23 @@
 # MCP Tool Reliability Improvements
 
-**Date:** 2025-10-01
-**Status:** Completed
+**Date:** 2025-10-01 **Status:** Completed
 
 ## Summary
 
-Deep scan identified 56 issues affecting tool calling reliability. Implemented critical fixes to improve error handling, resource management, and type safety.
+Deep scan identified 56 issues affecting tool calling reliability. Implemented
+critical fixes to improve error handling, resource management, and type safety.
 
 ## Critical Fixes Implemented
 
 ### 1. Error Response Standardization ✓
 
-**Problem:** MCP clients couldn't distinguish errors from successful responses (15+ tools affected)
+**Problem:** MCP clients couldn't distinguish errors from successful responses
+(15+ tools affected)
 
 **Solution:** Added `isError: true` flag to all error responses
 
 **Files Modified:**
+
 - `src/tools/ahk-file-edit.ts:366`
 - `src/tools/ahk-file-edit-diff.ts:276, 357`
 - `src/tools/ahk-file-active.ts:104, 154`
@@ -28,28 +30,33 @@ Deep scan identified 56 issues affecting tool calling reliability. Implemented c
 - `src/tools/ahk-docs-search.ts:157`
 
 **Standard Pattern:**
+
 ```typescript
 return {
   content: [{ type: 'text', text: `Error: ${message}` }],
-  isError: true  // ← NOW INCLUDED
+  isError: true, // ← NOW INCLUDED
 };
 ```
 
 ### 2. Resource Cleanup (File Watchers & Processes) ✓
 
-**Problem:** File watchers not cleaned up on error paths, process cleanup had race conditions
+**Problem:** File watchers not cleaned up on error paths, process cleanup had
+race conditions
 
 **Solution:**
+
 - Added cleanup on watcher error events
 - Implemented async process lifecycle management with polling
 - 100ms check intervals, 5s timeout for SIGKILL
 
 **Files Modified:**
+
 - `src/tools/ahk-run-script.ts:530` - Watcher error cleanup
 - `src/tools/ahk-run-script.ts:543` - Catch block cleanup
 - `src/tools/ahk-run-script.ts:383-421` - Async process termination
 
 **Improved Pattern:**
+
 ```typescript
 AhkRunTool.state.watcher.on('error', (err) => {
   logger.error('File watcher error:', err);
@@ -87,14 +94,17 @@ private async killRunningProcesses(): Promise<void> {
 
 ### 3. Regex Validation ✓
 
-**Problem:** `new RegExp(search)` could throw on invalid patterns, crashing tools
+**Problem:** `new RegExp(search)` could throw on invalid patterns, crashing
+tools
 
 **Solution:** Wrapped RegExp construction in try-catch with descriptive errors
 
 **Files Modified:**
+
 - `src/tools/ahk-file-edit.ts:94-99`
 
 **Pattern:**
+
 ```typescript
 if (useRegex) {
   try {
@@ -108,14 +118,17 @@ if (useRegex) {
 
 ### 4. Shared File Resolution Helper ✓
 
-**Problem:** File path resolution duplicated across 15+ tools with inconsistent error handling
+**Problem:** File path resolution duplicated across 15+ tools with inconsistent
+error handling
 
 **Solution:** Centralized helper function with configurable validation
 
 **Files Modified:**
+
 - `src/core/active-file.ts:203-239`
 
 **New Function:**
+
 ```typescript
 export function resolveAndValidateFilePath(
   providedPath?: string,
@@ -132,7 +145,9 @@ export function resolveAndValidateFilePath(
     : activeFile.getActiveFile();
 
   if (!targetPath) {
-    throw new Error('No file specified and no active file set. Use AHK_File_Active to set an active file first.');
+    throw new Error(
+      'No file specified and no active file set. Use AHK_File_Active to set an active file first.'
+    );
   }
 
   if (requireAhk && !targetPath.toLowerCase().endsWith('.ahk')) {
@@ -155,14 +170,17 @@ export function resolveAndValidateFilePath(
 **Solution:** Created centralized type export system
 
 **Files Created:**
+
 - `src/core/tool-types.ts`
 
 **Files Modified:**
+
 - `src/server.ts:250, 354` - AHK_File_Edit_Advanced, AHK_Memory_Context
 - `src/tools/ahk-file-edit-advanced.ts:12` - Exported type
 - `src/tools/ahk-memory-context.ts` - Already had exported type
 
 **Pattern:**
+
 ```typescript
 // In tool file:
 export type ToolArgs = z.infer<typeof ToolArgsSchema>;
@@ -173,20 +191,21 @@ result = await toolInstance.execute(args as ToolArgs);
 
 ### 6. Tool Naming Consistency ✓
 
-**Problem:** Memory tool used lowercase `ahk_memory_context` instead of title case
+**Problem:** Memory tool used lowercase `ahk_memory_context` instead of title
+case
 
 **Solution:** Standardized to `AHK_Memory_Context`
 
 **Files Modified:**
+
 - `src/tools/ahk-memory-context.ts:12`
 - `src/server.ts:353`
 - `.claude/memories/README.md:7, 33, 49`
 
 ## Build Status
 
-✅ All changes compiled successfully
-✅ No TypeScript errors
-✅ No runtime errors introduced
+✅ All changes compiled successfully ✅ No TypeScript errors ✅ No runtime
+errors introduced
 
 ## Remaining Recommendations
 
@@ -240,20 +259,18 @@ result = await toolInstance.execute(args as ToolArgs);
 
 ## Impact Analysis
 
-| Improvement | Tools Affected | Severity | Status |
-|-------------|----------------|----------|--------|
-| Error flag standardization | 10 | Critical | ✅ Done |
-| Resource cleanup | 1 (ahk-run-script) | Critical | ✅ Done |
-| Regex validation | 1 (ahk-file-edit) | High | ✅ Done |
-| File resolution helper | 15+ (available) | High | ✅ Done |
-| Type safety | 2/28 | High | 🟡 Partial |
-| Tool naming | 1 | Medium | ✅ Done |
+| Improvement                | Tools Affected     | Severity | Status     |
+| -------------------------- | ------------------ | -------- | ---------- |
+| Error flag standardization | 10                 | Critical | ✅ Done    |
+| Resource cleanup           | 1 (ahk-run-script) | Critical | ✅ Done    |
+| Regex validation           | 1 (ahk-file-edit)  | High     | ✅ Done    |
+| File resolution helper     | 15+ (available)    | High     | ✅ Done    |
+| Type safety                | 2/28               | High     | 🟡 Partial |
+| Tool naming                | 1                  | Medium   | ✅ Done    |
 
 ## Files Changed
 
-**Modified:** 59 files
-**Additions:** ~14,392 lines
-**Deletions:** ~15,044 lines
+**Modified:** 59 files **Additions:** ~14,392 lines **Deletions:** ~15,044 lines
 **Net change:** -652 lines (improved efficiency)
 
 ## Next Steps
@@ -267,4 +284,5 @@ result = await toolInstance.execute(args as ToolArgs);
 
 ---
 
-*This document tracks improvements from the deep reliability scan performed on 2025-10-01.*
+_This document tracks improvements from the deep reliability scan performed on
+2025-10-01._

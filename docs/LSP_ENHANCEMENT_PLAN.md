@@ -3,12 +3,14 @@
 ## Current LSP Features
 
 ### Existing Tools:
+
 - **AHK_LSP** (`src/tools/ahk-analyze-lsp.ts`)
   - Diagnostics (syntax, semantic, standards)
   - Auto-fix with multiple levels (safe, aggressive, style-only)
   - Performance metrics
 
 ### Existing Infrastructure:
+
 - **Diagnostic Provider** (`src/lsp/diagnostics.ts`)
 - **Compiler Suite** (`src/compiler/`)
   - `ahk-compiler.ts` - Main compiler
@@ -29,7 +31,8 @@
 // src/tools/ahk-lsp-completion.ts
 export const AhkLspCompletionToolDefinition = {
   name: 'AHK_LSP_Completion',
-  description: 'Get code completion suggestions (IntelliSense) for AutoHotkey v2',
+  description:
+    'Get code completion suggestions (IntelliSense) for AutoHotkey v2',
   inputSchema: {
     type: 'object',
     properties: {
@@ -39,14 +42,15 @@ export const AhkLspCompletionToolDefinition = {
       triggerCharacter: {
         type: 'string',
         description: 'Trigger character (., :, etc.)',
-        optional: true
-      }
-    }
-  }
+        optional: true,
+      },
+    },
+  },
 };
 ```
 
 **Features:**
+
 - Variable completion (local, global, class properties)
 - Function/method completion with signatures
 - Built-in AHK v2 function completion
@@ -54,6 +58,7 @@ export const AhkLspCompletionToolDefinition = {
 - Class member completion (after `.` or `::`)
 
 **Implementation:**
+
 ```typescript
 class AhkLspCompletionTool {
   async execute(args) {
@@ -72,18 +77,24 @@ class AhkLspCompletionTool {
     );
 
     return {
-      content: [{
-        type: 'text',
-        text: JSON.stringify({
-          completions: completions.map(c => ({
-            label: c.label,
-            kind: c.kind, // function, variable, class, keyword
-            detail: c.detail,
-            documentation: c.documentation,
-            insertText: c.insertText
-          }))
-        }, null, 2)
-      }]
+      content: [
+        {
+          type: 'text',
+          text: JSON.stringify(
+            {
+              completions: completions.map(c => ({
+                label: c.label,
+                kind: c.kind, // function, variable, class, keyword
+                detail: c.detail,
+                documentation: c.documentation,
+                insertText: c.insertText,
+              })),
+            },
+            null,
+            2
+          ),
+        },
+      ],
     };
   }
 }
@@ -104,13 +115,14 @@ export const AhkLspHoverToolDefinition = {
     properties: {
       code: { type: 'string' },
       line: { type: 'number' },
-      character: { type: 'number' }
-    }
-  }
+      character: { type: 'number' },
+    },
+  },
 };
 ```
 
 **Features:**
+
 - Show function signatures with parameter documentation
 - Show variable types and values
 - Show class/method documentation
@@ -132,13 +144,14 @@ export const AhkLspDefinitionToolDefinition = {
       code: { type: 'string' },
       filePath: { type: 'string' },
       line: { type: 'number' },
-      character: { type: 'number' }
-    }
-  }
+      character: { type: 'number' },
+    },
+  },
 };
 ```
 
 **Returns:**
+
 ```json
 {
   "definitions": [
@@ -169,9 +182,9 @@ export const AhkLspReferencesToolDefinition = {
     properties: {
       code: { type: 'string' },
       filePath: { type: 'string' },
-      symbolName: { type: 'string' }
-    }
-  }
+      symbolName: { type: 'string' },
+    },
+  },
 };
 ```
 
@@ -184,7 +197,8 @@ export const AhkLspReferencesToolDefinition = {
 ```typescript
 export const AhkLspCodeActionsToolDefinition = {
   name: 'AHK_LSP_Code_Actions',
-  description: 'Get available code actions (quick fixes, refactorings) for a range',
+  description:
+    'Get available code actions (quick fixes, refactorings) for a range',
   inputSchema: {
     type: 'object',
     properties: {
@@ -192,20 +206,33 @@ export const AhkLspCodeActionsToolDefinition = {
       range: {
         type: 'object',
         properties: {
-          start: { type: 'object', properties: { line: { type: 'number' }, character: { type: 'number' } } },
-          end: { type: 'object', properties: { line: { type: 'number' }, character: { type: 'number' } } }
-        }
+          start: {
+            type: 'object',
+            properties: {
+              line: { type: 'number' },
+              character: { type: 'number' },
+            },
+          },
+          end: {
+            type: 'object',
+            properties: {
+              line: { type: 'number' },
+              character: { type: 'number' },
+            },
+          },
+        },
       },
       diagnostics: {
         type: 'array',
-        description: 'Diagnostics at this location (optional)'
-      }
-    }
-  }
+        description: 'Diagnostics at this location (optional)',
+      },
+    },
+  },
 };
 ```
 
 **Actions:**
+
 - Quick fixes for diagnostics (convert `=` to `:=`, add missing brackets)
 - Refactorings (extract function, rename symbol)
 - Source actions (organize imports, format document)
@@ -219,7 +246,8 @@ export const AhkLspCodeActionsToolDefinition = {
 ```typescript
 export const AhkLspDocumentSymbolsToolDefinition = {
   name: 'AHK_LSP_Document_Symbols',
-  description: 'Get document outline (all symbols: functions, classes, variables)',
+  description:
+    'Get document outline (all symbols: functions, classes, variables)',
   inputSchema: {
     type: 'object',
     properties: {
@@ -227,31 +255,41 @@ export const AhkLspDocumentSymbolsToolDefinition = {
       hierarchical: {
         type: 'boolean',
         default: true,
-        description: 'Return hierarchical structure (classes contain methods)'
-      }
-    }
-  }
+        description: 'Return hierarchical structure (classes contain methods)',
+      },
+    },
+  },
 };
 ```
 
 **Returns:**
+
 ```json
 {
   "symbols": [
     {
       "name": "MyClass",
       "kind": "class",
-      "range": { "start": { "line": 0, "character": 0 }, "end": { "line": 20, "character": 1 } },
+      "range": {
+        "start": { "line": 0, "character": 0 },
+        "end": { "line": 20, "character": 1 }
+      },
       "children": [
         {
           "name": "__New",
           "kind": "constructor",
-          "range": { "start": { "line": 1, "character": 2 }, "end": { "line": 5, "character": 3 } }
+          "range": {
+            "start": { "line": 1, "character": 2 },
+            "end": { "line": 5, "character": 3 }
+          }
         },
         {
           "name": "DoSomething",
           "kind": "method",
-          "range": { "start": { "line": 7, "character": 2 }, "end": { "line": 12, "character": 3 } }
+          "range": {
+            "start": { "line": 7, "character": 2 },
+            "end": { "line": 12, "character": 3 }
+          }
         }
       ]
     }
@@ -278,11 +316,11 @@ export const AhkLspFormatToolDefinition = {
         properties: {
           indentSize: { type: 'number', default: 2 },
           useTabs: { type: 'boolean', default: false },
-          maxLineLength: { type: 'number', default: 120 }
-        }
-      }
-    }
-  }
+          maxLineLength: { type: 'number', default: 120 },
+        },
+      },
+    },
+  },
 };
 ```
 
@@ -303,22 +341,29 @@ export const AhkLspRenameToolDefinition = {
       filePath: { type: 'string' },
       line: { type: 'number' },
       character: { type: 'number' },
-      newName: { type: 'string' }
-    }
-  }
+      newName: { type: 'string' },
+    },
+  },
 };
 ```
 
 **Returns:**
+
 ```json
 {
   "changes": [
     {
-      "range": { "start": { "line": 5, "character": 10 }, "end": { "line": 5, "character": 20 } },
+      "range": {
+        "start": { "line": 5, "character": 10 },
+        "end": { "line": 5, "character": 20 }
+      },
       "newText": "newFunctionName"
     },
     {
-      "range": { "start": { "line": 15, "character": 5 }, "end": { "line": 15, "character": 15 } },
+      "range": {
+        "start": { "line": 15, "character": 5 },
+        "end": { "line": 15, "character": 15 }
+      },
       "newText": "newFunctionName"
     }
   ]
@@ -330,16 +375,19 @@ export const AhkLspRenameToolDefinition = {
 ## Implementation Priority
 
 ### Phase 1 (High Value, Low Effort):
+
 1. ✅ **AHK_LSP_Document_Symbols** - Already have parser, just expose symbols
 2. ✅ **AHK_LSP_Hover** - Reuse existing documentation data
 3. ✅ **AHK_LSP_Format** - Add simple formatter
 
 ### Phase 2 (High Value, Medium Effort):
+
 4. **AHK_LSP_Completion** - Most requested feature
 5. **AHK_LSP_Code_Actions** - Extend existing auto-fix
 6. **AHK_LSP_References** - Use existing parser
 
 ### Phase 3 (Medium Value, Higher Effort):
+
 7. **AHK_LSP_Definition** - Requires cross-file analysis
 8. **AHK_LSP_Rename** - Requires reference tracking
 
@@ -348,13 +396,16 @@ export const AhkLspRenameToolDefinition = {
 ## Integration with VS Code
 
 ### Option A: MCP Tools Only (Current)
+
 Agents call MCP tools to get LSP-like functionality:
+
 ```
 Agent: Use AHK_LSP_Completion to get completions at line 10, character 5
 Agent: Use AHK_LSP_Hover to get documentation for symbol at cursor
 ```
 
 ### Option B: Real VS Code LSP Extension
+
 Create a VS Code extension that wraps your MCP server:
 
 ```typescript
@@ -368,10 +419,10 @@ export function activate(context: vscode.ExtensionContext) {
     'AutoHotkey LSP',
     {
       command: 'node',
-      args: ['/path/to/ahk-mcp/dist/lsp-server.js'] // New LSP server mode
+      args: ['/path/to/ahk-mcp/dist/lsp-server.js'], // New LSP server mode
     },
     {
-      documentSelector: [{ scheme: 'file', language: 'ahk' }]
+      documentSelector: [{ scheme: 'file', language: 'ahk' }],
     }
   );
 
@@ -380,6 +431,7 @@ export function activate(context: vscode.ExtensionContext) {
 ```
 
 ### Option C: Hybrid Approach
+
 - Use MCP tools for AI agent interactions
 - Use native LSP for real-time VS Code editing
 - Share same compiler/parser infrastructure
@@ -389,6 +441,7 @@ export function activate(context: vscode.ExtensionContext) {
 ## Example Usage After Implementation
 
 ### Agent Using LSP Tools:
+
 ```
 Agent: I need to understand what MyFunction does at line 50
 
@@ -403,6 +456,7 @@ Agent: I need to understand what MyFunction does at line 50
 ```
 
 ### Efficiency with New Tools:
+
 ```
 Traditional:
 - AHK_File_View (5KB → 1,250 tokens)

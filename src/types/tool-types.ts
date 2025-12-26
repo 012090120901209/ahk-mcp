@@ -28,8 +28,6 @@ export interface AhkCompleteArgs {
   context?: 'function' | 'variable' | 'class' | 'auto';
 }
 
-
-
 export interface AhkDiagnosticsArgs {
   code: string;
   enableClaudeStandards?: boolean;
@@ -169,4 +167,4 @@ export interface StandardViolation {
   column: number;
   severity: 'error' | 'warning' | 'info';
   suggestion?: string;
-} 
+}

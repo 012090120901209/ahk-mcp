@@ -1,24 +1,24 @@
 # Security & Best Practices Action Plan
+
 **Priority Fixes for AutoHotkey v2 MCP Server**
 
-**Created:** 2025-11-09
-**Target Completion:** 2025-11-16 (1 week)
-**Related Document:** [MCP_BEST_PRACTICES_REVIEW.md](./MCP_BEST_PRACTICES_REVIEW.md)
+**Created:** 2025-11-09 **Target Completion:** 2025-11-16 (1 week) **Related
+Document:** [MCP_BEST_PRACTICES_REVIEW.md](./MCP_BEST_PRACTICES_REVIEW.md)
 
 ---
 
 ## Overview
 
-This document provides **ready-to-implement code** for the 3 priority security fixes identified in the MCP Best Practices Review.
+This document provides **ready-to-implement code** for the 3 priority security
+fixes identified in the MCP Best Practices Review.
 
 ---
 
 ## Priority 1: Replace execAsync with spawn in PowerShell calls
 
-**Risk:** Command injection via shell interpolation
-**File:** `src/tools/ahk-run-script.ts:77-126`
-**Effort:** 30 minutes
-**Impact:** High (eliminates shell injection vector)
+**Risk:** Command injection via shell interpolation **File:**
+`src/tools/ahk-run-script.ts:77-126` **Effort:** 30 minutes **Impact:** High
+(eliminates shell injection vector)
 
 ### Current Code (Vulnerable)
 
@@ -120,6 +120,7 @@ private async detectWindow(pid: number, options: {
 ```
 
 **Key Changes:**
+
 1. ✅ `spawn()` instead of `execAsync()`
 2. ✅ `shell: false` prevents shell interpretation
 3. ✅ Arguments passed as array (no string concatenation)
@@ -130,10 +131,8 @@ private async detectWindow(pid: number, options: {
 
 ## Priority 2: Add Rate Limiting Middleware
 
-**Risk:** Denial of service via tool call spam
-**File:** New `src/core/rate-limiter.ts`
-**Effort:** 2 hours
-**Impact:** High (prevents abuse)
+**Risk:** Denial of service via tool call spam **File:** New
+`src/core/rate-limiter.ts` **Effort:** 2 hours **Impact:** High (prevents abuse)
 
 ### Implementation
 
@@ -165,10 +164,10 @@ export class RateLimiter {
 
   constructor(
     private config: RateLimitConfig = {
-      requestsPerMinute: 100,     // Total tool calls
-      scriptsPerMinute: 10,        // AHK script executions
-      writesPerWindow: 5,          // File writes per 10s
-      windowMs: 60000              // 1 minute window
+      requestsPerMinute: 100, // Total tool calls
+      scriptsPerMinute: 10, // AHK script executions
+      writesPerWindow: 5, // File writes per 10s
+      windowMs: 60000, // 1 minute window
     }
   ) {}
 
@@ -192,7 +191,7 @@ export class RateLimiter {
       return {
         allowed: false,
         reason: `Too many requests. Limit: ${this.config.requestsPerMinute}/min`,
-        retryAfter: globalLimit.retryAfter
+        retryAfter: globalLimit.retryAfter,
       };
     }
 
@@ -207,11 +206,13 @@ export class RateLimiter {
       );
 
       if (!scriptLimit.allowed) {
-        logger.warn(`Rate limit exceeded for session ${sessionId}: script executions`);
+        logger.warn(
+          `Rate limit exceeded for session ${sessionId}: script executions`
+        );
         return {
           allowed: false,
           reason: `Too many script executions. Limit: ${this.config.scriptsPerMinute}/min`,
-          retryAfter: scriptLimit.retryAfter
+          retryAfter: scriptLimit.retryAfter,
         };
       }
     }
@@ -227,11 +228,13 @@ export class RateLimiter {
       );
 
       if (!writeLimit.allowed) {
-        logger.warn(`Rate limit exceeded for session ${sessionId}: file writes`);
+        logger.warn(
+          `Rate limit exceeded for session ${sessionId}: file writes`
+        );
         return {
           allowed: false,
           reason: `Too many file writes. Limit: ${this.config.writesPerWindow}/10s`,
-          retryAfter: writeLimit.retryAfter
+          retryAfter: writeLimit.retryAfter,
         };
       }
     }
@@ -271,24 +274,37 @@ export class RateLimiter {
   /**
    * Record a request timestamp
    */
-  private recordRequest(sessionId: string, toolName: string, now: number): void {
+  private recordRequest(
+    sessionId: string,
+    toolName: string,
+    now: number
+  ): void {
     // Record global request
     const requests = this.requests.get(sessionId) || [];
     requests.push(now);
-    this.requests.set(sessionId, requests.filter(t => now - t < this.config.windowMs));
+    this.requests.set(
+      sessionId,
+      requests.filter(t => now - t < this.config.windowMs)
+    );
 
     // Record script execution
     if (this.isScriptExecutionTool(toolName)) {
       const executions = this.scriptExecutions.get(sessionId) || [];
       executions.push(now);
-      this.scriptExecutions.set(sessionId, executions.filter(t => now - t < this.config.windowMs));
+      this.scriptExecutions.set(
+        sessionId,
+        executions.filter(t => now - t < this.config.windowMs)
+      );
     }
 
     // Record file write
     if (this.isFileWriteTool(toolName)) {
       const writes = this.fileWrites.get(sessionId) || [];
       writes.push(now);
-      this.fileWrites.set(sessionId, writes.filter(t => now - t < 10000));
+      this.fileWrites.set(
+        sessionId,
+        writes.filter(t => now - t < 10000)
+      );
     }
   }
 
@@ -296,11 +312,9 @@ export class RateLimiter {
    * Check if tool executes scripts
    */
   private isScriptExecutionTool(toolName: string): boolean {
-    return [
-      'AHK_Run',
-      'AHK_Debug_Agent',
-      'AHK_Test_Interactive'
-    ].includes(toolName);
+    return ['AHK_Run', 'AHK_Debug_Agent', 'AHK_Test_Interactive'].includes(
+      toolName
+    );
   }
 
   /**
@@ -312,7 +326,7 @@ export class RateLimiter {
       'AHK_File_Edit_Advanced',
       'AHK_File_Edit_Small',
       'AHK_File_Edit_Diff',
-      'AHK_File_Create'
+      'AHK_File_Create',
     ].includes(toolName);
   }
 
@@ -336,12 +350,15 @@ export class RateLimiter {
     const now = Date.now();
 
     return {
-      requests: (this.requests.get(sessionId) || [])
-        .filter(t => now - t < this.config.windowMs).length,
-      scriptExecutions: (this.scriptExecutions.get(sessionId) || [])
-        .filter(t => now - t < this.config.windowMs).length,
-      fileWrites: (this.fileWrites.get(sessionId) || [])
-        .filter(t => now - t < 10000).length
+      requests: (this.requests.get(sessionId) || []).filter(
+        t => now - t < this.config.windowMs
+      ).length,
+      scriptExecutions: (this.scriptExecutions.get(sessionId) || []).filter(
+        t => now - t < this.config.windowMs
+      ).length,
+      fileWrites: (this.fileWrites.get(sessionId) || []).filter(
+        t => now - t < 10000
+      ).length,
     };
   }
 }
@@ -358,7 +375,7 @@ export const rateLimiter = new RateLimiter();
 import { rateLimiter } from './core/rate-limiter.js';
 
 // In setupToolHandlers(), around line 245:
-this.server.setRequestHandler(CallToolRequestSchema, async (request) => {
+this.server.setRequestHandler(CallToolRequestSchema, async request => {
   const { name, arguments: args } = request.params;
   const startTime = Date.now();
 
@@ -370,11 +387,13 @@ this.server.setRequestHandler(CallToolRequestSchema, async (request) => {
   if (!rateLimitResult.allowed) {
     logger.warn(`Rate limit exceeded for ${name}: ${rateLimitResult.reason}`);
     return {
-      content: [{
-        type: 'text',
-        text: `⏱️ **Rate Limit Exceeded**\n\n${rateLimitResult.reason}\n\nPlease wait ${Math.ceil((rateLimitResult.retryAfter || 0) / 1000)}s before trying again.`
-      }],
-      isError: true
+      content: [
+        {
+          type: 'text',
+          text: `⏱️ **Rate Limit Exceeded**\n\n${rateLimitResult.reason}\n\nPlease wait ${Math.ceil((rateLimitResult.retryAfter || 0) / 1000)}s before trying again.`,
+        },
+      ],
+      isError: true,
     };
   }
 
@@ -383,6 +402,7 @@ this.server.setRequestHandler(CallToolRequestSchema, async (request) => {
 ```
 
 **Key Features:**
+
 1. ✅ Sliding window algorithm (more accurate than fixed windows)
 2. ✅ Different limits for different tool categories
 3. ✅ Retry-after calculation for clients
@@ -393,10 +413,9 @@ this.server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
 ## Priority 3: Add Tool Call Depth Limit
 
-**Risk:** Stack overflow from recursive tool calls
-**File:** `src/core/tool-registry.ts`
-**Effort:** 1 hour
-**Impact:** Medium (prevents infinite loops)
+**Risk:** Stack overflow from recursive tool calls **File:**
+`src/core/tool-registry.ts` **Effort:** 1 hour **Impact:** Medium (prevents
+infinite loops)
 
 ### Implementation
 
@@ -436,14 +455,18 @@ export class ToolRegistry {
 
     // Check depth limit
     if (stack.length >= this.maxDepth) {
-      const stackTrace = stack.map((tool, idx) => `  ${idx + 1}. ${tool}`).join('\n');
+      const stackTrace = stack
+        .map((tool, idx) => `  ${idx + 1}. ${tool}`)
+        .join('\n');
 
-      logger.error(`Tool call depth limit exceeded (${this.maxDepth}). Stack:\n${stackTrace}\n  ${stack.length + 1}. ${toolName} ⬅ BLOCKED`);
+      logger.error(
+        `Tool call depth limit exceeded (${this.maxDepth}). Stack:\n${stackTrace}\n  ${stack.length + 1}. ${toolName} ⬅ BLOCKED`
+      );
 
       throw new Error(
         `Tool call depth limit exceeded (max: ${this.maxDepth}).\n\n` +
-        `**Call Stack:**\n${stackTrace}\n  ${stack.length + 1}. ${toolName} ⬅ Blocked\n\n` +
-        `This usually indicates recursive tool calling. Check your tool logic.`
+          `**Call Stack:**\n${stackTrace}\n  ${stack.length + 1}. ${toolName} ⬅ Blocked\n\n` +
+          `This usually indicates recursive tool calling. Check your tool logic.`
       );
     }
 
@@ -459,7 +482,9 @@ export class ToolRegistry {
         throw new Error(`Unknown tool: ${toolName}`);
       }
 
-      logger.debug(`Tool call [depth: ${stack.length + 1}/${this.maxDepth}]: ${toolName}`);
+      logger.debug(
+        `Tool call [depth: ${stack.length + 1}/${this.maxDepth}]: ${toolName}`
+      );
 
       return await handler(args);
     });
@@ -485,6 +510,7 @@ export class ToolRegistry {
 ```
 
 **Key Features:**
+
 1. ✅ Uses `AsyncLocalStorage` to track stack per request
 2. ✅ Configurable depth limit via environment variable
 3. ✅ Detailed error messages with full stack trace
@@ -516,7 +542,7 @@ describe('RateLimiter', () => {
       requestsPerMinute: 5,
       scriptsPerMinute: 2,
       writesPerWindow: 1,
-      windowMs: 60000
+      windowMs: 60000,
     });
 
     // Should allow first 5 requests
@@ -536,7 +562,7 @@ describe('RateLimiter', () => {
       requestsPerMinute: 100,
       scriptsPerMinute: 2,
       writesPerWindow: 10,
-      windowMs: 60000
+      windowMs: 60000,
     });
 
     // Should allow first 2 script executions
@@ -562,15 +588,15 @@ describe('ToolRegistry Depth Limit', () => {
     const registry = new ToolRegistry(mockServerInstance);
 
     // Mock a recursive tool
-    registry.toolHandlers.set('RecursiveTool', async (args) => {
+    registry.toolHandlers.set('RecursiveTool', async args => {
       // Tool calls itself
       return await registry.executeTool('RecursiveTool', args);
     });
 
     // Should throw after max depth
-    await expect(
-      registry.executeTool('RecursiveTool', {})
-    ).rejects.toThrow('Tool call depth limit exceeded');
+    await expect(registry.executeTool('RecursiveTool', {})).rejects.toThrow(
+      'Tool call depth limit exceeded'
+    );
   });
 });
 ```
@@ -584,7 +610,7 @@ describe('PowerShell Spawn Security', () => {
     const tool = new AhkRunTool();
 
     // Try to inject command via malicious PID
-    const maliciousPid = '1234; rm -rf /';  // Should be number, not string
+    const maliciousPid = '1234; rm -rf /'; // Should be number, not string
 
     // Should throw validation error
     await expect(
@@ -599,24 +625,28 @@ describe('PowerShell Spawn Security', () => {
 ## Rollout Plan
 
 ### Phase 1: Local Testing (Days 1-2)
+
 1. ✅ Implement fixes in feature branch
 2. ✅ Run unit tests
 3. ✅ Manual testing with Claude Desktop
 4. ✅ Verify no breaking changes
 
 ### Phase 2: Docker Testing (Day 3)
+
 1. ✅ Build Docker image with fixes
 2. ✅ Run integration tests in container
 3. ✅ Test rate limiting under load
 4. ✅ Verify depth limits work across tools
 
 ### Phase 3: Documentation (Day 4)
+
 1. ✅ Update SECURITY.md
 2. ✅ Add rate limiting to OBSERVABILITY.md
 3. ✅ Document environment variables
 4. ✅ Update CHANGELOG.md
 
 ### Phase 4: Deployment (Day 5)
+
 1. ✅ Merge to main branch
 2. ✅ Tag release (v2.1.0)
 3. ✅ Update Docker Hub image
@@ -660,7 +690,8 @@ AHK_MCP_ENABLE_TRACING=true          # Enable distributed tracing
 
 If you encounter problems implementing these fixes:
 
-1. Check the [MCP_BEST_PRACTICES_REVIEW.md](./MCP_BEST_PRACTICES_REVIEW.md) for context
+1. Check the [MCP_BEST_PRACTICES_REVIEW.md](./MCP_BEST_PRACTICES_REVIEW.md) for
+   context
 2. Review existing security docs in `docs/SECURITY_INVESTIGATION_SUMMARY.md`
 3. Test incrementally (one fix at a time)
 4. Use the debug mode to inspect behavior
@@ -669,6 +700,5 @@ If you encounter problems implementing these fixes:
 
 ---
 
-**Document Version:** 1.0
-**Last Updated:** 2025-11-09
-**Next Review:** After implementation (target: 2025-11-16)
+**Document Version:** 1.0 **Last Updated:** 2025-11-09 **Next Review:** After
+implementation (target: 2025-11-16)

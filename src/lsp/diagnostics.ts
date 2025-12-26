@@ -17,13 +17,13 @@ export class AhkDiagnosticProvider {
    * Get diagnostics for the given code
    */
   async getDiagnostics(
-    code: string, 
+    code: string,
     enableClaudeStandards: boolean = true,
     severityFilter?: 'error' | 'warning' | 'info' | 'all'
   ): Promise<Diagnostic[]> {
     try {
       this.parser = new AhkParser(code);
-      
+
       const diagnostics: Diagnostic[] = [];
 
       // Syntax analysis
@@ -40,8 +40,10 @@ export class AhkDiagnosticProvider {
       // Filter by severity if specified
       const filteredDiagnostics = this.filterBySeverity(diagnostics, severityFilter);
 
-      logger.debug(`Generated ${filteredDiagnostics.length} diagnostics for code (${diagnostics.length} total before filtering)`);
-      
+      logger.debug(
+        `Generated ${filteredDiagnostics.length} diagnostics for code (${diagnostics.length} total before filtering)`
+      );
+
       return filteredDiagnostics;
     } catch (error) {
       logger.error('Error generating diagnostics:', error);
@@ -54,7 +56,7 @@ export class AhkDiagnosticProvider {
    */
   private checkSyntax(code: string): Diagnostic[] {
     const diagnostics: Diagnostic[] = [];
-    
+
     // Check overall bracket matching across the entire code
     const bracketErrors = this.checkGlobalBracketMatching(code);
     diagnostics.push(...bracketErrors);
@@ -72,66 +74,70 @@ export class AhkDiagnosticProvider {
   private checkGlobalBracketMatching(code: string): Diagnostic[] {
     const diagnostics: Diagnostic[] = [];
     const lines = code.split('\n');
-    
-    const braceStack: Array<{line: number, char: number}> = [];
-    const parenStack: Array<{line: number, char: number}> = [];
+
+    const braceStack: Array<{ line: number; char: number }> = [];
+    const parenStack: Array<{ line: number; char: number }> = [];
     let inString = false;
     let inComment = false;
-    
+
     for (let lineIndex = 0; lineIndex < lines.length; lineIndex++) {
       const line = lines[lineIndex];
       inComment = false; // Reset comment state for each line
-      
+
       for (let charIndex = 0; charIndex < line.length; charIndex++) {
         const char = line[charIndex];
         const prevChar = charIndex > 0 ? line[charIndex - 1] : '';
-        
+
         // Handle comments
         if (char === ';' && !inString) {
           inComment = true;
           continue;
         }
-        
+
         if (inComment) continue;
-        
+
         // Handle strings
         if (char === '"' && prevChar !== '\\') {
           inString = !inString;
           continue;
         }
-        
+
         if (inString) continue;
-        
+
         // Handle brackets and parentheses
         switch (char) {
           case '{':
-            braceStack.push({line: lineIndex, char: charIndex});
+            braceStack.push({ line: lineIndex, char: charIndex });
             break;
           case '}':
             if (braceStack.length === 0) {
-              diagnostics.push(this.createDiagnostic(
-                'Unmatched closing brace',
-                lineIndex,
-                charIndex,
-                charIndex + 1,
-                DiagnosticSeverity.Error
-              ));
+              diagnostics.push(
+                this.createDiagnostic(
+                  'Unmatched closing brace',
+                  lineIndex,
+                  charIndex,
+                  charIndex + 1,
+                  DiagnosticSeverity.Error
+                )
+              );
             } else {
               braceStack.pop();
             }
             break;
           case '(':
-            parenStack.push({line: lineIndex, char: charIndex});
+            parenStack.push({ line: lineIndex, char: charIndex });
             break;
           case ')':
             if (parenStack.length === 0) {
-              diagnostics.push(this.createDiagnostic(
-                'Unmatched closing parenthesis',
-                lineIndex,
-                charIndex,
-                charIndex + 1,
-                DiagnosticSeverity.Error
-              ));
+              diagnostics.push(
+                this.createDiagnostic(
+                  'Unmatched closing parenthesis',
+                  lineIndex,
+                  charIndex,
+                  charIndex + 1,
+                  DiagnosticSeverity.Error
+                )
+              );
             } else {
               parenStack.pop();
             }
@@ -139,28 +145,32 @@ export class AhkDiagnosticProvider {
         }
       }
     }
-    
+
     // Check for unclosed brackets
     braceStack.forEach(brace => {
-      diagnostics.push(this.createDiagnostic(
-        'Unclosed opening brace',
-        brace.line,
-        brace.char,
-        brace.char + 1,
-        DiagnosticSeverity.Error
-      ));
+      diagnostics.push(
+        this.createDiagnostic(
+          'Unclosed opening brace',
+          brace.line,
+          brace.char,
+          brace.char + 1,
+          DiagnosticSeverity.Error
+        )
+      );
     });
-    
+
     parenStack.forEach(paren => {
-      diagnostics.push(this.createDiagnostic(
-        'Unclosed opening parenthesis',
-        paren.line,
-        paren.char,
-        paren.char + 1,
-        DiagnosticSeverity.Error
-      ));
+      diagnostics.push(
+        this.createDiagnostic(
+          'Unclosed opening parenthesis',
+          paren.line,
+          paren.char,
+          paren.char + 1,
+          DiagnosticSeverity.Error
+        )
+      );
     });
-    
+
     return diagnostics;
   }
 
@@ -170,54 +180,60 @@ export class AhkDiagnosticProvider {
   private checkBasicSyntax(code: string): Diagnostic[] {
     const diagnostics: Diagnostic[] = [];
     const lines = code.split('\n');
-    
+
     for (let lineIndex = 0; lineIndex < lines.length; lineIndex++) {
       const line = lines[lineIndex];
       const trimmedLine = line.trim();
-      
+
       if (!trimmedLine || trimmedLine.startsWith(';')) {
         continue; // Skip empty lines and comments
       }
-      
+
       // Check for common AutoHotkey v2 issues
-      
+
       // Check for old v1 assignment syntax
-      if (trimmedLine.match(/^\w+\s*=\s*[^=]/) && !trimmedLine.includes('==') && !trimmedLine.includes('!=')) {
+      if (
+        trimmedLine.match(/^\w+\s*=\s*[^=]/) &&
+        !trimmedLine.includes('==') &&
+        !trimmedLine.includes('!=')
+      ) {
         const equalIndex = line.indexOf('=');
-        diagnostics.push(this.createDiagnostic(
-          'Use ":=" for assignment in AutoHotkey v2, "=" is for comparison',
-          lineIndex,
-          equalIndex,
-          equalIndex + 1,
-          DiagnosticSeverity.Warning
-        ));
+        diagnostics.push(
+          this.createDiagnostic(
+            'Use ":=" for assignment in AutoHotkey v2, "=" is for comparison',
+            lineIndex,
+            equalIndex,
+            equalIndex + 1,
+            DiagnosticSeverity.Warning
+          )
+        );
       }
-      
+
       // Check for missing #Requires directive (only warn once at top)
       if (lineIndex < 5 && !code.includes('#Requires AutoHotkey v2')) {
         if (lineIndex === 0) {
-          diagnostics.push(this.createDiagnostic(
-            'Consider adding "#Requires AutoHotkey v2" directive at the top of your script',
-            0,
-            0,
-            1,
-            DiagnosticSeverity.Information
-          ));
+          diagnostics.push(
+            this.createDiagnostic(
+              'Consider adding "#Requires AutoHotkey v2" directive at the top of your script',
+              0,
+              0,
+              1,
+              DiagnosticSeverity.Information
+            )
+          );
         }
       }
     }
-    
+
     return diagnostics;
   }
-
-
 
   /**
    * Validate against Claude coding standards
    */
   private validateClaudeStandards(code: string): Diagnostic[] {
     const violations = this.claudeStandards.validateCode(code);
-    
+
     return violations.map(violation => {
       let severity: DiagnosticSeverity;
       switch (violation.severity) {
@@ -259,9 +275,26 @@ export class AhkDiagnosticProvider {
     const lines = code.split('\n');
 
     const keywordSet = new Set<string>([
-      'if', 'else', 'for', 'while', 'switch', 'case', 'default', 'try', 'catch',
-      'finally', 'return', 'throw', 'break', 'continue', 'class', 'extends',
-      'global', 'local', 'static', 'until'
+      'if',
+      'else',
+      'for',
+      'while',
+      'switch',
+      'case',
+      'default',
+      'try',
+      'catch',
+      'finally',
+      'return',
+      'throw',
+      'break',
+      'continue',
+      'class',
+      'extends',
+      'global',
+      'local',
+      'static',
+      'until',
     ]);
 
     const functionDefs = new Map<string, { line: number; start: number; end: number }>();
@@ -324,14 +357,16 @@ export class AhkDiagnosticProvider {
           const endChar = startChar + fnMatch.groups!.name!.length;
 
           if (functionDefs.has(name)) {
-            diagnostics.push(this.createDiagnostic(
-              `Duplicate function definition: ${fnMatch.groups!.name!}`,
-              lineIndex,
-              startChar,
-              endChar,
-              DiagnosticSeverity.Error,
-              'semantic.duplicateFunction'
-            ));
+            diagnostics.push(
+              this.createDiagnostic(
+                `Duplicate function definition: ${fnMatch.groups!.name!}`,
+                lineIndex,
+                startChar,
+                endChar,
+                DiagnosticSeverity.Error,
+                'semantic.duplicateFunction'
+              )
+            );
           } else {
             functionDefs.set(name, { line: lineIndex, start: startChar, end: endChar });
           }
@@ -348,14 +383,16 @@ export class AhkDiagnosticProvider {
         const startChar = leadingSpaces + nameStartInTrimmed;
         const endChar = startChar + (clsMatch.groups?.cname?.length || 0);
         if (classDefs.has(cname)) {
-          diagnostics.push(this.createDiagnostic(
-            `Duplicate class definition: ${clsMatch.groups?.cname}`,
-            lineIndex,
-            startChar,
-            endChar,
-            DiagnosticSeverity.Error,
-            'semantic.duplicateClass'
-          ));
+          diagnostics.push(
+            this.createDiagnostic(
+              `Duplicate class definition: ${clsMatch.groups?.cname}`,
+              lineIndex,
+              startChar,
+              endChar,
+              DiagnosticSeverity.Error,
+              'semantic.duplicateClass'
+            )
+          );
         } else {
           classDefs.set(cname, { line: lineIndex, start: startChar, end: endChar });
         }
@@ -371,7 +408,9 @@ export class AhkDiagnosticProvider {
         if (!keywordSet.has(id)) {
           // If immediately followed by '(' then it's a proper function call
           // const afterIdent = trimmed.slice(leadingIdentMatch[0].length - (leadingIdentMatch.groups?.rest?.length || 0));
-          const hasParenCall = /^\(/.test(trimmed.slice(leadingIdentMatch.groups!.id!.length).trimStart());
+          const hasParenCall = /^\(/.test(
+            trimmed.slice(leadingIdentMatch.groups!.id!.length).trimStart()
+          );
           const hasAssign = trimmed.includes(':=');
           const looksLikeLabel = trimmed.endsWith(':');
           const looksLikeHotkey = trimmed.includes('::');
@@ -381,14 +420,16 @@ export class AhkDiagnosticProvider {
             const leadingSpaces = line.length - line.trimStart().length;
             const startChar = leadingSpaces + trimmed.indexOf(leadingIdentMatch.groups!.id!);
             const endChar = startChar + leadingIdentMatch.groups!.id!.length;
-            diagnostics.push(this.createDiagnostic(
-              `Use function-call syntax in v2: ${leadingIdentMatch.groups!.id!}(...)`,
-              lineIndex,
-              startChar,
-              endChar,
-              DiagnosticSeverity.Warning,
-              'semantic.v1CommandStyle'
-            ));
+            diagnostics.push(
+              this.createDiagnostic(
+                `Use function-call syntax in v2: ${leadingIdentMatch.groups!.id!}(...)`,
+                lineIndex,
+                startChar,
+                endChar,
+                DiagnosticSeverity.Warning,
+                'semantic.v1CommandStyle'
+              )
+            );
           }
         }
       }
@@ -396,8 +437,6 @@ export class AhkDiagnosticProvider {
 
     return diagnostics;
   }
-
-
 
   /**
    * Filter diagnostics by severity
@@ -447,7 +486,7 @@ export class AhkDiagnosticProvider {
   ): Diagnostic {
     const range: Range = {
       start: { line, character: startChar },
-      end: { line, character: endChar }
+      end: { line, character: endChar },
     };
 
     return {
@@ -455,7 +494,7 @@ export class AhkDiagnosticProvider {
       severity,
       message,
       code,
-      source: 'ahk-server'
+      source: 'ahk-server',
     };
   }
-} 
+}

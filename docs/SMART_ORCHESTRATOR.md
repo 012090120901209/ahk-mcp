@@ -1,16 +1,20 @@
 # Smart File Operation Orchestrator
 
-**Status**: ✅ Implemented
-**Version**: 1.0.0
-**MCP Tool**: `AHK_Smart_Orchestrator`
+**Status**: ✅ Implemented **Version**: 1.0.0 **MCP Tool**:
+`AHK_Smart_Orchestrator`
 
 ## Overview
 
-The Smart File Operation Orchestrator is an intelligent MCP tool that automatically chains file operations (detect → analyze → read → edit) to drastically reduce redundant tool calls from 7-10 down to 3-4. It maintains session-scoped context with cached analysis results and smart staleness detection.
+The Smart File Operation Orchestrator is an intelligent MCP tool that
+automatically chains file operations (detect → analyze → read → edit) to
+drastically reduce redundant tool calls from 7-10 down to 3-4. It maintains
+session-scoped context with cached analysis results and smart staleness
+detection.
 
 ## Problem Solved
 
 **Before**: Claude Code would make 7-10 separate tool calls:
+
 1. Detect file location
 2. Analyze file structure
 3. Read lines 1-100
@@ -21,6 +25,7 @@ The Smart File Operation Orchestrator is an intelligent MCP tool that automatica
 8. ...and so on
 
 **After**: Smart Orchestrator makes 3-4 tool calls:
+
 1. Detect file (or skip if path provided)
 2. Analyze structure (or use cache)
 3. Read targeted section in one call
@@ -29,23 +34,27 @@ The Smart File Operation Orchestrator is an intelligent MCP tool that automatica
 ## Features
 
 ### 🚀 Intelligent Orchestration
+
 - Automatically chains detect → analyze → read → edit workflow
 - Skips unnecessary steps when data is already available
 - Calculates precise line ranges based on analysis
 
 ### 💾 Session-Scoped Caching
+
 - In-memory Map-based cache for analysis results
 - Timestamp-based staleness detection (mtime comparison)
 - Automatic cache invalidation when files are modified
 - Session-scoped (cleared on server restart)
 
 ### 🎯 Targeted File Reading
+
 - Reads only requested entities (class, method, function)
 - Calculates line ranges from analysis
 - Single file read instead of multiple chunked reads
 - Supports `ClassName.MethodName` syntax
 
 ### 📊 Performance Metrics
+
 - Tracks tool calls made per operation
 - Reports cache hit/miss status
 - Logs operation history for debugging
@@ -102,29 +111,32 @@ The Smart File Operation Orchestrator is an intelligent MCP tool that automatica
 
 ## Parameters
 
-| Parameter | Type | Required | Default | Description |
-|-----------|------|----------|---------|-------------|
-| `intent` | string | ✅ | - | Natural language description of what you want to do |
-| `filePath` | string | ❌ | - | Direct path to AHK file (skips detection) |
-| `targetEntity` | string | ❌ | - | Specific class, method, or function name (e.g., `_Dark`, `_Dark.ColorCheckbox`) |
-| `operation` | enum | ❌ | `view` | Operation type: `view`, `edit`, or `analyze` |
-| `forceRefresh` | boolean | ❌ | `false` | Force re-analysis even if cached |
+| Parameter      | Type    | Required | Default | Description                                                                     |
+| -------------- | ------- | -------- | ------- | ------------------------------------------------------------------------------- |
+| `intent`       | string  | ✅       | -       | Natural language description of what you want to do                             |
+| `filePath`     | string  | ❌       | -       | Direct path to AHK file (skips detection)                                       |
+| `targetEntity` | string  | ❌       | -       | Specific class, method, or function name (e.g., `_Dark`, `_Dark.ColorCheckbox`) |
+| `operation`    | enum    | ❌       | `view`  | Operation type: `view`, `edit`, or `analyze`                                    |
+| `forceRefresh` | boolean | ❌       | `false` | Force re-analysis even if cached                                                |
 
 ## Operation Types
 
 ### `view` (default)
+
 - Read-only file viewing
 - Returns code snippet with context
 - Does not set active file
 - Fastest operation
 
 ### `edit`
+
 - Prepares file for editing
 - Sets active file context
 - Returns code snippet + editing guidance
 - Use before making modifications
 
 ### `analyze`
+
 - Structure analysis only
 - Shows classes, methods, functions
 - Does not read file content
@@ -132,12 +144,12 @@ The Smart File Operation Orchestrator is an intelligent MCP tool that automatica
 
 ## Performance Targets
 
-| Scenario | Tool Calls | Duration | Cache |
-|----------|-----------|----------|-------|
-| First view (cache miss) | ≤4 | <2 seconds | MISS |
-| Subsequent view (cache hit) | ≤2 | <200ms | HIT ✨ |
-| With direct path (cache hit) | ≤2 | <200ms | HIT ✨ |
-| Force refresh | ≤3 | <2 seconds | MISS |
+| Scenario                     | Tool Calls | Duration   | Cache  |
+| ---------------------------- | ---------- | ---------- | ------ |
+| First view (cache miss)      | ≤4         | <2 seconds | MISS   |
+| Subsequent view (cache hit)  | ≤2         | <200ms     | HIT ✨ |
+| With direct path (cache hit) | ≤2         | <200ms     | HIT ✨ |
+| Force refresh                | ≤3         | <2 seconds | MISS   |
 
 **Reduction**: 60% fewer tool calls on average, 80% for cached operations
 
@@ -180,8 +192,8 @@ Formatted Response
 
 ### Cache Management
 
-**Cache Key**: Absolute file path
-**Cache Value**: OrchestrationContext
+**Cache Key**: Absolute file path **Cache Value**: OrchestrationContext
+
 - File path
 - Analysis result (classes, methods, functions)
 - Analysis timestamp
@@ -189,8 +201,9 @@ Formatted Response
 - Operation history
 
 **Staleness Detection**:
+
 ```typescript
-isStale = file.mtime > ctx.fileModifiedTime
+isStale = file.mtime > ctx.fileModifiedTime;
 ```
 
 **Cache Eviction**: None (session-scoped, cleared on restart)
@@ -200,6 +213,7 @@ isStale = file.mtime > ctx.fileModifiedTime
 ### Example 1: First-Time File Operation
 
 **Input**:
+
 ```json
 {
   "intent": "view the _Dark class",
@@ -209,6 +223,7 @@ isStale = file.mtime > ctx.fileModifiedTime
 ```
 
 **Output**:
+
 ```
 🎯 Smart Orchestrator Results
 
@@ -228,6 +243,7 @@ isStale = file.mtime > ctx.fileModifiedTime
 ### Example 2: Cached Operation
 
 **Input**:
+
 ```json
 {
   "intent": "view ColorCheckbox method",
@@ -237,6 +253,7 @@ isStale = file.mtime > ctx.fileModifiedTime
 ```
 
 **Output**:
+
 ```
 🎯 Smart Orchestrator Results
 
@@ -256,6 +273,7 @@ isStale = file.mtime > ctx.fileModifiedTime
 ### Example 3: Error Handling
 
 **Input**:
+
 ```json
 {
   "intent": "view DarkMode class",
@@ -265,6 +283,7 @@ isStale = file.mtime > ctx.fileModifiedTime
 ```
 
 **Output**:
+
 ```
 ❌ Orchestration Failed
 
@@ -303,7 +322,8 @@ case 'AHK_Smart_Orchestrator':
 
 ### Claude Code Integration
 
-Claude Code automatically sees the orchestrator as the first tool and will prefer it for file operations. No special configuration needed.
+Claude Code automatically sees the orchestrator as the first tool and will
+prefer it for file operations. No special configuration needed.
 
 ## Testing
 
@@ -314,6 +334,7 @@ npm test tests/unit/orchestration-context.test.ts
 ```
 
 Tests cover:
+
 - Cache get/set operations
 - Staleness detection
 - Invalidation
@@ -322,11 +343,13 @@ Tests cover:
 ### Integration Tests
 
 Run quickstart scenarios:
+
 ```bash
 # Follow specs/001-smart-file-orchestrator/quickstart.md
 ```
 
 Tests cover:
+
 - First-time file operation (cache miss)
 - Subsequent operation (cache hit)
 - Direct file path (skip detection)
@@ -336,20 +359,24 @@ Tests cover:
 ## Troubleshooting
 
 ### Issue: "File not found"
-**Cause**: Auto-detection failed or path is incorrect
-**Solution**: Provide explicit `filePath` parameter
+
+**Cause**: Auto-detection failed or path is incorrect **Solution**: Provide
+explicit `filePath` parameter
 
 ### Issue: "Entity not found"
-**Cause**: Typo in `targetEntity` or entity doesn't exist
-**Solution**: Use `operation: "analyze"` to see available entities
+
+**Cause**: Typo in `targetEntity` or entity doesn't exist **Solution**: Use
+`operation: "analyze"` to see available entities
 
 ### Issue: Cache always misses
-**Cause**: File path normalization issue
-**Solution**: Use absolute paths consistently
+
+**Cause**: File path normalization issue **Solution**: Use absolute paths
+consistently
 
 ### Issue: Stale cache not detected
-**Cause**: File modified time not updated
-**Solution**: Use `forceRefresh: true` to bypass cache
+
+**Cause**: File modified time not updated **Solution**: Use `forceRefresh: true`
+to bypass cache
 
 ## Performance
 
@@ -357,31 +384,33 @@ Tests cover:
 
 From production usage:
 
-| Metric | Value |
-|--------|-------|
-| Average tool calls (new) | 3.2 |
-| Average tool calls (cached) | 1.8 |
-| Cache hit rate | 65% |
+| Metric                         | Value |
+| ------------------------------ | ----- |
+| Average tool calls (new)       | 3.2   |
+| Average tool calls (cached)    | 1.8   |
+| Cache hit rate                 | 65%   |
 | Average response time (cached) | 150ms |
-| Tool call reduction | 62% |
+| Tool call reduction            | 62%   |
 
 ### Comparison
 
-| Operation | Before | After | Improvement |
-|-----------|--------|-------|-------------|
-| View class | 7-10 calls | 3-4 calls | 60-70% |
-| View method (cached) | 7-10 calls | 1-2 calls | 80-85% |
-| Analyze structure | 3-5 calls | 1-2 calls | 50-60% |
+| Operation            | Before     | After     | Improvement |
+| -------------------- | ---------- | --------- | ----------- |
+| View class           | 7-10 calls | 3-4 calls | 60-70%      |
+| View method (cached) | 7-10 calls | 1-2 calls | 80-85%      |
+| Analyze structure    | 3-5 calls  | 1-2 calls | 50-60%      |
 
 ## Future Enhancements
 
 ### Planned (v1.1)
+
 - [ ] LRU cache eviction (for long-running sessions)
 - [ ] File watcher integration (real-time invalidation)
 - [ ] Parallel analysis for multiple files
 - [ ] Incremental analysis (only changed sections)
 
 ### Considered
+
 - Persistent cache (file system or Redis)
 - Content hashing for staleness detection
 - Cross-file dependency tracking
@@ -397,5 +426,4 @@ From production usage:
 
 ---
 
-**Last Updated**: 2025-10-02
-**Maintainer**: AHK MCP Development Team
+**Last Updated**: 2025-10-02 **Maintainer**: AHK MCP Development Team

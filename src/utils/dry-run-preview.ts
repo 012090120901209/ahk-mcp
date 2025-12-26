@@ -59,7 +59,9 @@ export class DryRunPreviewGenerator {
     let removedChars = 0;
 
     const searchPattern = options.regex
-      ? (typeof search === 'string' ? new RegExp(search, options.all ? 'g' : '') : search)
+      ? typeof search === 'string'
+        ? new RegExp(search, options.all ? 'g' : '')
+        : search
       : search;
 
     for (let i = 0; i < lines.length; i++) {
@@ -96,7 +98,7 @@ export class DryRunPreviewGenerator {
           samples.push({
             lineNumber: i + 1,
             before: line,
-            after: modifiedLine
+            after: modifiedLine,
           });
         }
 
@@ -114,22 +116,18 @@ export class DryRunPreviewGenerator {
         operationType: 'replace',
         characterDiff: {
           added: addedChars,
-          removed: removedChars
-        }
+          removed: removedChars,
+        },
       },
       samples,
-      warnings: []
+      warnings: [],
     };
   }
 
   /**
    * Generate preview for insert operation
    */
-  generateInsertPreview(
-    content: string,
-    lineNumber: number,
-    insertContent: string
-  ): DryRunPreview {
+  generateInsertPreview(content: string, lineNumber: number, insertContent: string): DryRunPreview {
     const lines = content.split('\n');
 
     if (lineNumber < 1 || lineNumber > lines.length + 1) {
@@ -137,10 +135,10 @@ export class DryRunPreviewGenerator {
         summary: {
           filesAffected: 1,
           totalChanges: 0,
-          operationType: 'insert'
+          operationType: 'insert',
         },
         samples: [],
-        warnings: [`Invalid line number ${lineNumber} (file has ${lines.length} lines)`]
+        warnings: [`Invalid line number ${lineNumber} (file has ${lines.length} lines)`],
       };
     }
 
@@ -151,26 +149,24 @@ export class DryRunPreviewGenerator {
         operationType: 'insert',
         characterDiff: {
           added: insertContent.length,
-          removed: 0
-        }
+          removed: 0,
+        },
       },
-      samples: [{
-        lineNumber,
-        before: lineNumber <= lines.length ? lines[lineNumber - 1] : '(end of file)',
-        after: `${insertContent}\n${lineNumber <= lines.length ? lines[lineNumber - 1] : ''}`
-      }],
-      warnings: []
+      samples: [
+        {
+          lineNumber,
+          before: lineNumber <= lines.length ? lines[lineNumber - 1] : '(end of file)',
+          after: `${insertContent}\n${lineNumber <= lines.length ? lines[lineNumber - 1] : ''}`,
+        },
+      ],
+      warnings: [],
     };
   }
 
   /**
    * Generate preview for delete operation
    */
-  generateDeletePreview(
-    content: string,
-    startLine: number,
-    endLine?: number
-  ): DryRunPreview {
+  generateDeletePreview(content: string, startLine: number, endLine?: number): DryRunPreview {
     const lines = content.split('\n');
     const actualEndLine = endLine || startLine;
 
@@ -179,10 +175,10 @@ export class DryRunPreviewGenerator {
         summary: {
           filesAffected: 1,
           totalChanges: 0,
-          operationType: 'delete'
+          operationType: 'delete',
         },
         samples: [],
-        warnings: [`Invalid start line ${startLine} (file has ${lines.length} lines)`]
+        warnings: [`Invalid start line ${startLine} (file has ${lines.length} lines)`],
       };
     }
 
@@ -196,15 +192,15 @@ export class DryRunPreviewGenerator {
         operationType: 'delete',
         characterDiff: {
           added: 0,
-          removed: totalCharsRemoved
-        }
+          removed: totalCharsRemoved,
+        },
       },
       samples: deletedLines.slice(0, this.maxSamples).map((line, idx) => ({
         lineNumber: startLine + idx,
         before: line,
-        after: '(deleted)'
+        after: '(deleted)',
       })),
-      warnings: []
+      warnings: [],
     };
   }
 
@@ -234,9 +230,10 @@ export class DryRunPreviewGenerator {
 
     // Show samples
     if (preview.samples.length > 0) {
-      const showingNote = totalChanges > preview.samples.length
-        ? ` (showing first ${preview.samples.length} of ${totalChanges})`
-        : '';
+      const showingNote =
+        totalChanges > preview.samples.length
+          ? ` (showing first ${preview.samples.length} of ${totalChanges})`
+          : '';
 
       output += `**Would change**${showingNote}:\n`;
 

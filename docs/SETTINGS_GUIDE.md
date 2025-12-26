@@ -2,11 +2,13 @@
 
 ## Overview
 
-You now have a comprehensive settings system that allows you to **enable or disable individual tools** and control various features of the MCP server.
+You now have a comprehensive settings system that allows you to **enable or
+disable individual tools** and control various features of the MCP server.
 
 ## 🎛️ The `AHK_Settings` Tool
 
 ### Get Current Settings
+
 ```json
 {
   "tool": "AHK_Settings",
@@ -17,6 +19,7 @@ You now have a comprehensive settings system that allows you to **enable or disa
 ```
 
 ### Disable File Editing Tools
+
 ```json
 {
   "tool": "AHK_Settings",
@@ -27,6 +30,7 @@ You now have a comprehensive settings system that allows you to **enable or disa
 ```
 
 ### Enable File Editing Tools
+
 ```json
 {
   "tool": "AHK_Settings",
@@ -37,6 +41,7 @@ You now have a comprehensive settings system that allows you to **enable or disa
 ```
 
 ### Enable Auto Run After Edits
+
 ```json
 {
   "tool": "AHK_Settings",
@@ -47,6 +52,7 @@ You now have a comprehensive settings system that allows you to **enable or disa
 ```
 
 ### Disable Auto Run After Edits
+
 ```json
 {
   "tool": "AHK_Settings",
@@ -57,6 +63,7 @@ You now have a comprehensive settings system that allows you to **enable or disa
 ```
 
 ### Disable a Specific Tool
+
 ```json
 {
   "tool": "AHK_Settings",
@@ -68,6 +75,7 @@ You now have a comprehensive settings system that allows you to **enable or disa
 ```
 
 ### Enable a Specific Tool
+
 ```json
 {
   "tool": "AHK_Settings",
@@ -80,23 +88,24 @@ You now have a comprehensive settings system that allows you to **enable or disa
 
 ## 🔧 Available Actions
 
-| Action | Description | Example |
-|--------|-------------|---------|
-| `get` | Show current settings | View all tool states |
-| `enable_tool` | Enable a specific tool | `"tool": "AHK_File_Edit"` |
-| `disable_tool` | Disable a specific tool | `"tool": "AHK_File_Active"` |
-| `enable_editing` | Enable ALL file editing tools | Enables 7 tools at once |
-| `disable_editing` | Disable ALL file editing tools | Disables 7 tools at once |
-| `enable_auto_run` | Enable automatic run after edits | Persists the `runAfter` preference |
+| Action             | Description                       | Example                                    |
+| ------------------ | --------------------------------- | ------------------------------------------ |
+| `get`              | Show current settings             | View all tool states                       |
+| `enable_tool`      | Enable a specific tool            | `"tool": "AHK_File_Edit"`                  |
+| `disable_tool`     | Disable a specific tool           | `"tool": "AHK_File_Active"`                |
+| `enable_editing`   | Enable ALL file editing tools     | Enables 7 tools at once                    |
+| `disable_editing`  | Disable ALL file editing tools    | Disables 7 tools at once                   |
+| `enable_auto_run`  | Enable automatic run after edits  | Persists the `runAfter` preference         |
 | `disable_auto_run` | Disable automatic run after edits | Keeps scripts from launching automatically |
-| `enable_all` | Enable all optional tools | Everything on |
-| `disable_all` | Disable all non-core tools | Minimal mode |
-| `reset` | Reset to default settings | Factory defaults |
-| `set` | Update specific settings | Custom configuration |
+| `enable_all`       | Enable all optional tools         | Everything on                              |
+| `disable_all`      | Disable all non-core tools        | Minimal mode                               |
+| `reset`            | Reset to default settings         | Factory defaults                           |
+| `set`              | Update specific settings          | Custom configuration                       |
 
 ## 📦 Tool Groups
 
 ### File Editing Tools (Can be disabled)
+
 - `AHK_File_Edit` - Text editing operations
 - `AHK_File_Edit_Diff` - Diff patch application
 - `AHK_File_Active` - Active file management
@@ -106,6 +115,7 @@ You now have a comprehensive settings system that allows you to **enable or disa
 - `AHK_File_Edit_Small` - Lightweight line/pattern edits
 
 ### Core Tools (Always enabled)
+
 - `AHK_Diagnostics` - Code validation
 - `AHK_Analyze` - Code analysis
 - `AHK_Run` - Script execution
@@ -115,6 +125,7 @@ You now have a comprehensive settings system that allows you to **enable or disa
 ## 🛡️ Global Settings
 
 ### Configure Global Options
+
 ```json
 {
   "tool": "AHK_Settings",
@@ -131,23 +142,26 @@ You now have a comprehensive settings system that allows you to **enable or disa
 ```
 
 ### Available Global Settings
-| Setting | Type | Description | Default |
-|---------|------|-------------|---------|
-| `allowFileEditing` | boolean | Allow file modification tools | true |
-| `allowFileDetection` | boolean | Auto-detect file paths in text | true |
-| `requireExplicitPaths` | boolean | Require full paths (no auto-detect) | false |
-| `alwaysBackup` | boolean | Force backups on all edits | true |
-| `restrictToAhkFiles` | boolean | Only allow .ahk file operations | true |
-| `maxFileSize` | number | Max file size in bytes | 10485760 (10MB) |
-| `autoRunAfterEdit` | boolean | Run scripts automatically after edits | false |
+
+| Setting                | Type    | Description                           | Default         |
+| ---------------------- | ------- | ------------------------------------- | --------------- |
+| `allowFileEditing`     | boolean | Allow file modification tools         | true            |
+| `allowFileDetection`   | boolean | Auto-detect file paths in text        | true            |
+| `requireExplicitPaths` | boolean | Require full paths (no auto-detect)   | false           |
+| `alwaysBackup`         | boolean | Force backups on all edits            | true            |
+| `restrictToAhkFiles`   | boolean | Only allow .ahk file operations       | true            |
+| `maxFileSize`          | number  | Max file size in bytes                | 10485760 (10MB) |
+| `autoRunAfterEdit`     | boolean | Run scripts automatically after edits | false           |
 
 ## 💾 Settings Storage
 
 Settings are persisted in:
+
 - **Windows**: `%APPDATA%\ahk-mcp\tool-settings.json`
 - **Linux/Mac**: `~/.config/ahk-mcp/tool-settings.json`
 
 ### Settings File Format
+
 ```json
 {
   "enabledTools": {
@@ -172,7 +186,9 @@ Settings are persisted in:
 ## 🚀 Use Cases
 
 ### 1. Read-Only Mode
+
 Disable all file editing but keep analysis:
+
 ```json
 {
   "tool": "AHK_Settings",
@@ -183,7 +199,9 @@ Disable all file editing but keep analysis:
 ```
 
 ### 2. Minimal Mode
+
 Only core tools, no file operations:
+
 ```json
 {
   "tool": "AHK_Settings",
@@ -194,7 +212,9 @@ Only core tools, no file operations:
 ```
 
 ### 3. No Auto-Detection
+
 Require explicit file paths:
+
 ```json
 {
   "tool": "AHK_Settings",
@@ -209,7 +229,9 @@ Require explicit file paths:
 ```
 
 ### 4. Maximum Safety
+
 Always backup, restrict to .ahk only:
+
 ```json
 {
   "tool": "AHK_Settings",
@@ -227,6 +249,7 @@ Always backup, restrict to .ahk only:
 ## ⚠️ What Happens When Tools Are Disabled
 
 When you try to use a disabled tool, you'll get:
+
 ```
 ⚠️ Tool 'AHK_File_Edit' is currently disabled.
 
@@ -243,6 +266,7 @@ To enable it, use the 'AHK_Settings' tool:
 ## 🔄 Environment Variables
 
 You can override the settings file location:
+
 ```bash
 export AHK_MCP_SETTINGS_PATH=/custom/path/settings.json
 ```
@@ -250,23 +274,27 @@ export AHK_MCP_SETTINGS_PATH=/custom/path/settings.json
 ## 📋 Quick Commands
 
 ### Check What's Enabled
+
 ```json
-{"tool": "AHK_Settings", "arguments": {"action": "get"}}
+{ "tool": "AHK_Settings", "arguments": { "action": "get" } }
 ```
 
 ### Turn Off File Editing
+
 ```json
-{"tool": "AHK_Settings", "arguments": {"action": "disable_editing"}}
+{ "tool": "AHK_Settings", "arguments": { "action": "disable_editing" } }
 ```
 
 ### Turn On File Editing
+
 ```json
-{"tool": "AHK_Settings", "arguments": {"action": "enable_editing"}}
+{ "tool": "AHK_Settings", "arguments": { "action": "enable_editing" } }
 ```
 
 ### Reset Everything
+
 ```json
-{"tool": "AHK_Settings", "arguments": {"action": "reset"}}
+{ "tool": "AHK_Settings", "arguments": { "action": "reset" } }
 ```
 
 ## 🎯 Benefits
@@ -279,7 +307,8 @@ export AHK_MCP_SETTINGS_PATH=/custom/path/settings.json
 
 ## Notes
 
-- Core tools (`AHK_Diagnostics`, `AHK_Analyze`, `AHK_Run`, `AHK_Summary`) **cannot be disabled**
+- Core tools (`AHK_Diagnostics`, `AHK_Analyze`, `AHK_Run`, `AHK_Summary`)
+  **cannot be disabled**
 - The `AHK_Settings` tool itself **cannot be disabled**
 - Settings are loaded on server start and saved immediately on change
 - Disabled tools return helpful messages explaining how to re-enable them

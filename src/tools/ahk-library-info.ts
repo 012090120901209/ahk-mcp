@@ -16,7 +16,11 @@ import { safeParse } from '../core/validation-middleware.js';
  */
 export const AHK_Library_Info_ArgsSchema = z.object({
   name: z.string().min(1).describe('Library name (without .ahk extension)'),
-  include_dependencies: z.boolean().optional().default(false).describe('Include dependency resolution details')
+  include_dependencies: z
+    .boolean()
+    .optional()
+    .default(false)
+    .describe('Include dependency resolution details'),
 });
 
 export type AHK_Library_Info_Args = z.infer<typeof AHK_Library_Info_ArgsSchema>;
@@ -26,24 +30,25 @@ export type AHK_Library_Info_Args = z.infer<typeof AHK_Library_Info_ArgsSchema>;
  */
 export const AHK_Library_Info_Definition = {
   name: 'AHK_Library_Info',
-  description: 'Get detailed information about a specific AutoHotkey library. ' +
-               'Returns metadata, documentation, classes, functions, and dependencies.',
+  description:
+    'Get detailed information about a specific AutoHotkey library. ' +
+    'Returns metadata, documentation, classes, functions, and dependencies.',
   inputSchema: {
     type: 'object',
     properties: {
       name: {
         type: 'string',
-        description: 'Library name (without .ahk extension)'
+        description: 'Library name (without .ahk extension)',
       },
       include_dependencies: {
         type: 'boolean',
         description: 'Include dependency resolution details',
-        default: false
-      }
+        default: false,
+      },
     },
     required: ['name'],
-    additionalProperties: false
-  }
+    additionalProperties: false,
+  },
 };
 
 /**
@@ -101,17 +106,16 @@ export async function handleAHK_Library_Info(
     if (!library) {
       // Provide "did you mean" suggestions
       const suggestions = catalog.findSimilar(name, 3);
-      const suggestionText = suggestions.length > 0
-        ? `\n\nDid you mean: ${suggestions.join(', ')}?`
-        : '';
+      const suggestionText =
+        suggestions.length > 0 ? `\n\nDid you mean: ${suggestions.join(', ')}?` : '';
 
       return {
         content: [
           {
             type: 'text',
-            text: `Library "${name}" not found.${suggestionText}\n\nUse AHK_Library_List to see all available libraries.`
-          }
-        ]
+            text: `Library "${name}" not found.${suggestionText}\n\nUse AHK_Library_List to see all available libraries.`,
+          },
+        ],
       };
     }
 
@@ -289,9 +293,9 @@ export async function handleAHK_Library_Info(
       content: [
         {
           type: 'text',
-          text: lines.join('\n')
-        }
-      ]
+          text: lines.join('\n'),
+        },
+      ],
     };
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
@@ -300,9 +304,9 @@ export async function handleAHK_Library_Info(
       content: [
         {
           type: 'text',
-          text: `Error retrieving library info: ${errorMessage}`
-        }
-      ]
+          text: `Error retrieving library info: ${errorMessage}`,
+        },
+      ],
     };
   }
 }

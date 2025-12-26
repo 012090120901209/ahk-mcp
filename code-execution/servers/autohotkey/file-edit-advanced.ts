@@ -9,7 +9,7 @@ export const metadata = {
   slug: 'file-edit-advanced',
   category: 'file',
   description: `Ahk file editor
-🎯 PRIMARY FILE EDITING TOOL - Use this IMMEDIATELY when user mentions a .ahk file path and wants to modify it. This tool automatically detects the file, sets it active, and helps determine the best editing approach. ALWAYS use this instead of generating code blocks when a file path is provided.`,
+PRIMARY FILE EDITING TOOL - Use this IMMEDIATELY when user mentions a .ahk file path and wants to modify it. This tool automatically detects the file, sets it active, and helps determine the best editing approach. ALWAYS use this instead of generating code blocks when a file path is provided.`,
   inputSchema: {
   "type": "object",
   "properties": {

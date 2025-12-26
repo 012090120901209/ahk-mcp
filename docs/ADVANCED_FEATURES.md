@@ -2,7 +2,8 @@
 
 ## Overview
 
-Advanced context management features that learn from usage patterns and provide intelligent suggestions.
+Advanced context management features that learn from usage patterns and provide
+intelligent suggestions.
 
 ## 1. Tool Usage Analytics
 
@@ -19,6 +20,7 @@ Advanced context management features that learn from usage patterns and provide 
 New tool: `AHK_Analytics`
 
 **Actions:**
+
 - `summary` - Overall statistics and top tools
 - `tool_stats` - Detailed stats for specific tool
 - `recent` - Recent tool call history
@@ -34,6 +36,7 @@ New tool: `AHK_Analytics`
 ```
 
 **Output:**
+
 - Total calls
 - Overall success rate
 - Average duration
@@ -45,6 +48,7 @@ New tool: `AHK_Analytics`
 **File:** `src/core/tool-analytics.ts`
 
 Tracks:
+
 - Tool name
 - Timestamp
 - Success/failure
@@ -79,6 +83,7 @@ toolAnalytics.recordCall(name, false, duration, error);
 **File:** `src/core/smart-context.ts`
 
 **Methods:**
+
 - `suggestContext()` - Get resource recommendations
 - `enhanceToolDescription()` - Add usage notes to descriptions
 - `detectWorkingDomain()` - Identify user's focus area
@@ -129,12 +134,14 @@ Popular tools show usage stats:
 **File:** `src/core/resource-subscriptions.ts`
 
 **Tracking:**
+
 - Resource URI
 - Subscription time
 - Last accessed time
 - Total access count
 
 **Methods:**
+
 - `subscribe(uri)` - Register resource access
 - `unsubscribe(uri)` - Remove subscription
 - `getMostAccessedResources()` - Get top N resources
@@ -308,9 +315,10 @@ resourceSubscriptions.cleanupStale(24 * 60 * 60 * 1000);
 
 ```typescript
 // In smart-context.ts
-if (fileToolCalls > 5) {  // Adjust threshold
+if (fileToolCalls > 5) {
+  // Adjust threshold
   suggestions.push({
-    priority: 90  // Adjust priority
+    priority: 90, // Adjust priority
   });
 }
 ```
@@ -330,25 +338,25 @@ if (fileToolCalls > 5) {  // Adjust threshold
 ### Extension Points
 
 **Custom analytics:**
+
 ```typescript
 toolAnalytics.recordCustomMetric({
   category: 'feature_usage',
   name: 'gui_layout_assist',
-  value: 1
+  value: 1,
 });
 ```
 
 **Custom context rules:**
+
 ```typescript
 smartContext.addContextRule({
-  condition: (stats) => stats.guiToolCalls > 10,
+  condition: stats => stats.guiToolCalls > 10,
   resource: 'ahk://module/gui-advanced',
-  priority: 95
+  priority: 95,
 });
 ```
 
 ---
 
-**Version:** 2.0.0
-**Date:** 2025-09-29
-**Status:** ✅ Implemented
+**Version:** 2.0.0 **Date:** 2025-09-29 **Status:** ✅ Implemented

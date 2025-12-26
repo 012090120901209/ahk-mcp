@@ -9,9 +9,12 @@ import { AhkCompiler } from '../compiler/ahk-compiler.js';
 export const AhkContextInjectorArgsSchema = z.object({
   userPrompt: z.string().min(1, 'User prompt is required'),
   llmThinking: z.string().optional(),
-  contextType: z.enum(['auto', 'functions', 'variables', 'classes', 'methods']).optional().default('auto'),
+  contextType: z
+    .enum(['auto', 'functions', 'variables', 'classes', 'methods'])
+    .optional()
+    .default('auto'),
   maxItems: z.number().min(1).max(10).optional().default(5),
-  includeModuleInstructions: z.boolean().optional().default(true)
+  includeModuleInstructions: z.boolean().optional().default(true),
 });
 
 export const ahkContextInjectorToolDefinition = {
@@ -23,33 +26,33 @@ Analyzes user prompts and LLM thinking to automatically inject relevant AutoHotk
     properties: {
       userPrompt: {
         type: 'string',
-        description: 'User prompt is required'
+        description: 'User prompt is required',
       },
       llmThinking: {
         type: 'string',
-        description: 'Optional LLM thinking content'
+        description: 'Optional LLM thinking content',
       },
       contextType: {
         type: 'string',
         enum: ['auto', 'functions', 'variables', 'classes', 'methods'],
         description: 'Type of context to inject',
-        default: 'auto'
+        default: 'auto',
       },
       maxItems: {
         type: 'number',
         minimum: 1,
         maximum: 10,
         description: 'Maximum number of context items to return',
-        default: 5
+        default: 5,
       },
       includeModuleInstructions: {
         type: 'boolean',
         description: 'Include relevant AHK v2 instruction modules',
-        default: true
-      }
+        default: true,
+      },
     },
-    required: ['userPrompt']
-  }
+    required: ['userPrompt'],
+  },
 };
 
 interface ContextMatch {
@@ -99,46 +102,120 @@ export class AhkContextInjectorTool {
   private initializeModuleKeywordMap(): void {
     // Map keywords to AHK instruction modules based on Module_Instructions.md
     this.moduleKeywordMap.set('Module_Arrays.md', [
-      'array', 'list', 'collection', 'filter', 'map', 'reduce', 'sort', 'unique',
-      'flatten', 'iterate', 'batch', 'for each item'
+      'array',
+      'list',
+      'collection',
+      'filter',
+      'map',
+      'reduce',
+      'sort',
+      'unique',
+      'flatten',
+      'iterate',
+      'batch',
+      'for each item',
     ]);
 
     this.moduleKeywordMap.set('Module_Classes.md', [
-      'class', 'inheritance', 'extends', 'super', '__New', '__Delete', 'static',
-      'nested class', 'factory', 'oop', 'object oriented'
+      'class',
+      'inheritance',
+      'extends',
+      'super',
+      '__New',
+      '__Delete',
+      'static',
+      'nested class',
+      'factory',
+      'oop',
+      'object oriented',
     ]);
 
     this.moduleKeywordMap.set('Module_Objects.md', [
-      'object', 'property', 'descriptor', 'DefineProp', 'HasProp', 'HasMethod',
-      'bound', 'bind', 'callback'
+      'object',
+      'property',
+      'descriptor',
+      'DefineProp',
+      'HasProp',
+      'HasMethod',
+      'bound',
+      'bind',
+      'callback',
     ]);
 
     this.moduleKeywordMap.set('Module_GUI.md', [
-      'gui', 'window', 'form', 'dialog', 'button', 'control', 'layout', 'position',
-      'xm', 'section', 'OnEvent', 'window with controls', 'handle events'
+      'gui',
+      'window',
+      'form',
+      'dialog',
+      'button',
+      'control',
+      'layout',
+      'position',
+      'xm',
+      'section',
+      'OnEvent',
+      'window with controls',
+      'handle events',
     ]);
 
     this.moduleKeywordMap.set('Module_TextProcessing.md', [
-      'string', 'text', 'escape', 'quote', 'regex', 'pattern', 'match', 'replace',
-      'split', 'join', '`n', 'validate input'
+      'string',
+      'text',
+      'escape',
+      'quote',
+      'regex',
+      'pattern',
+      'match',
+      'replace',
+      'split',
+      'join',
+      '`n',
+      'validate input',
     ]);
 
     this.moduleKeywordMap.set('Module_DynamicProperties.md', [
-      '=>', 'fat arrow', 'lambda', 'closure', 'dynamic property', '__Get', '__Set', '__Call'
+      '=>',
+      'fat arrow',
+      'lambda',
+      'closure',
+      'dynamic property',
+      '__Get',
+      '__Set',
+      '__Call',
     ]);
 
     this.moduleKeywordMap.set('Module_Errors.md', [
-      'error', 'wrong', 'broken', 'fail', 'syntax error', 'runtime error', 'undefined',
-      'not working', 'v1 to v2', 'debug', 'fix', 'troubleshoot'
+      'error',
+      'wrong',
+      'broken',
+      'fail',
+      'syntax error',
+      'runtime error',
+      'undefined',
+      'not working',
+      'v1 to v2',
+      'debug',
+      'fix',
+      'troubleshoot',
     ]);
 
     this.moduleKeywordMap.set('Module_ClassPrototyping.md', [
-      'prototyping', 'class generator', 'runtime class', 'property descriptor', 'CreateClass'
+      'prototyping',
+      'class generator',
+      'runtime class',
+      'property descriptor',
+      'CreateClass',
     ]);
 
     this.moduleKeywordMap.set('Module_DataStructures.md', [
-      'map', 'key-value', 'dictionary', 'storage', 'settings', 'configuration', 'cache',
-      'store multiple values'
+      'map',
+      'key-value',
+      'dictionary',
+      'storage',
+      'settings',
+      'configuration',
+      'cache',
+      'store multiple values',
     ]);
   }
 
@@ -195,8 +272,10 @@ export class AhkContextInjectorTool {
 
       for (const keyword of keywords) {
         for (const moduleKeyword of moduleKeywords) {
-          if (keyword.toLowerCase().includes(moduleKeyword.toLowerCase()) ||
-              moduleKeyword.toLowerCase().includes(keyword.toLowerCase())) {
+          if (
+            keyword.toLowerCase().includes(moduleKeyword.toLowerCase()) ||
+            moduleKeyword.toLowerCase().includes(keyword.toLowerCase())
+          ) {
             score += 1;
           }
         }
@@ -209,7 +288,7 @@ export class AhkContextInjectorTool {
 
     // Sort by relevance and return top modules
     return Array.from(relevantModules.entries())
-      .sort(([,a], [,b]) => b - a)
+      .sort(([, a], [, b]) => b - a)
       .slice(0, 3) // Limit to top 3 most relevant modules
       .map(([moduleFile]) => moduleFile);
   }
@@ -257,20 +336,21 @@ export class AhkContextInjectorTool {
       logger.info('Analyzing prompt for AutoHotkey context injection');
 
       const validatedArgs = parsed.data;
-      const { userPrompt, llmThinking, contextType, maxItems, includeModuleInstructions } = validatedArgs;
+      const { userPrompt, llmThinking, contextType, maxItems, includeModuleInstructions } =
+        validatedArgs;
 
       // Get both index and full documentation data
       const ahkIndex = getAhkIndex();
       const ahkFullDocs = getAhkDocumentationFull();
-      
+
       if (!ahkIndex && !ahkFullDocs) {
         return {
           content: [
             {
               type: 'text',
-              text: 'AutoHotkey documentation not available for context injection.'
-            }
-          ]
+              text: 'AutoHotkey documentation not available for context injection.',
+            },
+          ],
         };
       }
 
@@ -285,20 +365,28 @@ export class AhkContextInjectorTool {
       }
 
       // Search in both index and full documentation
-      const contextMatches = this.findRelevantContextEnhanced(keywords, ahkIndex, ahkFullDocs, contextType ?? 'auto', maxItems ?? 5);
+      const contextMatches = this.findRelevantContextEnhanced(
+        keywords,
+        ahkIndex,
+        ahkFullDocs,
+        contextType ?? 'auto',
+        maxItems ?? 5
+      );
 
       if (contextMatches.length === 0 && !moduleInstructions) {
         const hasFilePath = this.detectFilePath(combinedText);
         let generalContext = '## 🎯 AutoHotkey v2 General Context\n\n';
 
         if (hasFilePath) {
-          generalContext += '**🚨 FILE PATH DETECTED - USE FILE EDITING TOOLS!**\n\n' +
+          generalContext +=
+            '**🚨 FILE PATH DETECTED - USE FILE EDITING TOOLS!**\n\n' +
             '**Primary Action:** Use `AHK_File_Edit_Advanced` tool to set the file as active and get editing guidance\n' +
             '**Follow-up:** Use `AHK_File_Edit` for direct file modifications\n' +
             '**Important:** Always edit the actual file instead of generating code blocks\n\n';
         }
 
-        generalContext += 'Common AutoHotkey v2 patterns:\n\n' +
+        generalContext +=
+          'Common AutoHotkey v2 patterns:\n\n' +
           '**Basic Syntax:**\n' +
           '- Use `:=` for assignment, `=` for comparison\n' +
           '- Use `Map()` constructor instead of object literals\n' +
@@ -311,7 +399,8 @@ export class AhkContextInjectorTool {
           '- `A_ScreenWidth/A_ScreenHeight` - Screen dimensions';
 
         if (hasFilePath) {
-          generalContext += '\n\n**🔧 Available File Editing Tools:**\n' +
+          generalContext +=
+            '\n\n**🔧 Available File Editing Tools:**\n' +
             '- `AHK_File_Edit_Advanced` - Primary tool for file operations\n' +
             '- `AHK_File_Edit` - Direct text editing (replace, insert, delete)\n' +
             '- `AHK_File_Active` - Manage active file settings\n' +
@@ -322,9 +411,9 @@ export class AhkContextInjectorTool {
           content: [
             {
               type: 'text',
-              text: generalContext
-            }
-          ]
+              text: generalContext,
+            },
+          ],
         };
       }
 
@@ -333,14 +422,18 @@ export class AhkContextInjectorTool {
 
       // Check for file path detection
       const hasFilePath = this.detectFilePath(combinedText);
-      const hasEditingKeywords = keywords.some(k => ['edit', 'modify', 'change', 'update', 'fix'].includes(k));
+      const hasEditingKeywords = keywords.some(k =>
+        ['edit', 'modify', 'change', 'update', 'fix'].includes(k)
+      );
 
       // Add file editing guidance if detected
       if (hasFilePath || hasEditingKeywords) {
         finalText += '## 🎯 FILE EDITING DETECTED\n\n';
-        finalText += '**🚨 IMPORTANT: Use file editing tools instead of generating code blocks!**\n\n';
+        finalText +=
+          '**🚨 IMPORTANT: Use file editing tools instead of generating code blocks!**\n\n';
         finalText += '**Recommended Workflow:**\n';
-        finalText += '1. Use `AHK_File_Edit_Advanced` to set the target file and get editing guidance\n';
+        finalText +=
+          '1. Use `AHK_File_Edit_Advanced` to set the target file and get editing guidance\n';
         finalText += '2. Use `AHK_File_Edit` for specific text modifications\n';
         finalText += '3. Use `AHK_Run` to test the changes\n\n';
         finalText += '---\n\n';
@@ -358,7 +451,8 @@ export class AhkContextInjectorTool {
       }
 
       // Add debug information
-      const debugInfo = '**Debug Info:**\n' +
+      const debugInfo =
+        '**Debug Info:**\n' +
         `- Detected Keywords: ${keywords.join(', ')}\n` +
         `- File Path Detected: ${hasFilePath ? 'Yes' : 'No'}\n` +
         `- Editing Keywords: ${hasEditingKeywords ? 'Yes' : 'No'}\n` +
@@ -371,20 +465,19 @@ export class AhkContextInjectorTool {
         content: [
           {
             type: 'text',
-            text: finalText + debugInfo
-          }
-        ]
+            text: finalText + debugInfo,
+          },
+        ],
       };
-
     } catch (error) {
       logger.error('Error in context injector:', error);
       return {
         content: [
           {
             type: 'text',
-            text: `Error analyzing context: ${error instanceof Error ? error.message : 'Unknown error'}`
-          }
-        ]
+            text: `Error analyzing context: ${error instanceof Error ? error.message : 'Unknown error'}`,
+          },
+        ],
       };
     }
   }
@@ -404,8 +497,8 @@ export class AhkContextInjectorTool {
     // Extract AutoHotkey-specific terms using Regex
     const ahkPatterns = [
       /\b(msgbox|tooltip|send|click|hotkey|gui|window|file|array|map|loop)\b/gi,
-      /\b(a_\w+)\b/gi,  // Built-in variables
-      /\b(\w+(?:read|write|get|set|show|add|create))\b/gi  // Common function patterns
+      /\b(a_\w+)\b/gi, // Built-in variables
+      /\b(\w+(?:read|write|get|set|show|add|create))\b/gi, // Common function patterns
     ];
 
     for (const pattern of ahkPatterns) {
@@ -504,33 +597,41 @@ export class AhkContextInjectorTool {
     return filePathPatterns.some(pattern => pattern.test(text));
   }
 
-  private findRelevantContext(keywords: string[], ahkIndex: any, contextType: string, maxItems: number): ContextMatch[] {
+  private findRelevantContext(
+    keywords: string[],
+    ahkIndex: any,
+    contextType: string,
+    maxItems: number
+  ): ContextMatch[] {
     const matches: ContextMatch[] = [];
 
     // Search through different categories
     if (contextType === 'auto' || contextType === 'variables') {
       this.searchInCategory(keywords, ahkIndex.variables, 'variable', matches);
     }
-    
+
     if (contextType === 'auto' || contextType === 'functions') {
       this.searchInCategory(keywords, ahkIndex.functions, 'function', matches);
     }
-    
+
     if (contextType === 'auto' || contextType === 'classes') {
       this.searchInCategory(keywords, ahkIndex.classes, 'class', matches);
     }
-    
+
     if (contextType === 'auto' || contextType === 'methods') {
       this.searchInCategory(keywords, ahkIndex.methods, 'method', matches);
     }
 
     // Sort by relevance and limit results
-    return matches
-      .sort((a, b) => b.relevance - a.relevance)
-      .slice(0, maxItems);
+    return matches.sort((a, b) => b.relevance - a.relevance).slice(0, maxItems);
   }
 
-  private searchInCategory(keywords: string[], items: any[], category: string, matches: ContextMatch[]): void {
+  private searchInCategory(
+    keywords: string[],
+    items: any[],
+    category: string,
+    matches: ContextMatch[]
+  ): void {
     if (!items) return;
 
     for (const item of items) {
@@ -541,7 +642,7 @@ export class AhkContextInjectorTool {
           name: item.Name,
           description: item.Description || '',
           relevance,
-          data: item
+          data: item,
         });
       }
     }
@@ -587,36 +688,36 @@ export class AhkContextInjectorTool {
 
       for (const match of items) {
         contextText += `**${match.name}**: ${match.description}\n`;
-        
+
         // Add examples if available
         if (match.data.Examples && match.data.Examples.length > 0) {
           contextText += `\n*Example:*\n\`\`\`autohotkey\n${match.data.Examples[0].Code}\n\`\`\`\n`;
         }
-        
+
         // Add parameters if available
         if (match.data.Parameters && match.data.Parameters.length > 0) {
           contextText += `\n*Parameters:* ${match.data.Parameters.map((p: any) => p.Name).join(', ')}\n`;
         }
-        
+
         contextText += '\n';
       }
     }
 
     contextText += '\n*💡 Use this context to write more accurate AutoHotkey v2 code.*\n';
-    
+
     return contextText;
   }
 
   private groupMatchesByType(matches: ContextMatch[]): Record<string, ContextMatch[]> {
     const grouped: Record<string, ContextMatch[]> = {};
-    
+
     for (const match of matches) {
       if (!grouped[match.type]) {
         grouped[match.type] = [];
       }
       grouped[match.type].push(match);
     }
-    
+
     return grouped;
   }
 
@@ -627,7 +728,13 @@ export class AhkContextInjectorTool {
   /**
    * Enhanced search that uses both index and full documentation
    */
-  private findRelevantContextEnhanced(keywords: string[], ahkIndex: any, ahkFullDocs: any, contextType: string, maxItems: number): ContextMatch[] {
+  private findRelevantContextEnhanced(
+    keywords: string[],
+    ahkIndex: any,
+    ahkFullDocs: any,
+    contextType: string,
+    maxItems: number
+  ): ContextMatch[] {
     const matches: ContextMatch[] = [];
 
     // Search in full documentation first (more comprehensive)
@@ -641,17 +748,21 @@ export class AhkContextInjectorTool {
     }
 
     // Sort by relevance and limit results
-    return matches
-      .sort((a, b) => b.relevance - a.relevance)
-      .slice(0, maxItems);
+    return matches.sort((a, b) => b.relevance - a.relevance).slice(0, maxItems);
   }
 
   /**
    * Search through the comprehensive full documentation
    */
-  private searchInFullDocumentation(keywords: string[], fullDocsData: any, contextType: string, matches: ContextMatch[]): void {
+  private searchInFullDocumentation(
+    keywords: string[],
+    fullDocsData: any,
+    contextType: string,
+    matches: ContextMatch[]
+  ): void {
     logger.debug('Searching Full Docs. Keys:', Object.keys(fullDocsData));
-    if (fullDocsData.BuiltInVariables) logger.debug('Variables count:', fullDocsData.BuiltInVariables.length);
+    if (fullDocsData.BuiltInVariables)
+      logger.debug('Variables count:', fullDocsData.BuiltInVariables.length);
     if (fullDocsData.Classes) logger.debug('Classes count:', fullDocsData.Classes.length);
     if (fullDocsData.Functions) logger.debug('Functions count:', fullDocsData.Functions.length);
 
@@ -670,15 +781,18 @@ export class AhkContextInjectorTool {
               ...item,
               source: 'full_docs',
               returnType: item.ReturnType,
-              parameters: item.Parameters
-            }
+              parameters: item.Parameters,
+            },
           });
         }
       }
     }
 
     // Search Classes and Methods
-    if ((contextType === 'auto' || contextType === 'classes' || contextType === 'methods') && fullDocsData.Classes) {
+    if (
+      (contextType === 'auto' || contextType === 'classes' || contextType === 'methods') &&
+      fullDocsData.Classes
+    ) {
       for (const item of fullDocsData.Classes) {
         const relevance = this.calculateEnhancedRelevance(keywords, item);
         if (relevance > 0) {
@@ -694,8 +808,8 @@ export class AhkContextInjectorTool {
               source: 'full_docs',
               returnType: item.ReturnType,
               parameters: item.Parameters,
-              path: item.Path
-            }
+              path: item.Path,
+            },
           });
         }
       }
@@ -715,8 +829,8 @@ export class AhkContextInjectorTool {
               ...item,
               source: 'full_docs',
               returnType: item.ReturnType,
-              parameters: item.Parameters
-            }
+              parameters: item.Parameters,
+            },
           });
         }
       }
@@ -726,7 +840,12 @@ export class AhkContextInjectorTool {
   /**
    * Search through index data as fallback
    */
-  private searchInIndexData(keywords: string[], ahkIndex: any, contextType: string, matches: ContextMatch[]): void {
+  private searchInIndexData(
+    keywords: string[],
+    ahkIndex: any,
+    contextType: string,
+    matches: ContextMatch[]
+  ): void {
     logger.debug('Searching Index Data...');
     if (ahkIndex.methods) logger.debug('Index Methods count:', ahkIndex.methods.length);
 
@@ -734,17 +853,29 @@ export class AhkContextInjectorTool {
     const existingNames = new Set(matches.map(m => m.name.toLowerCase()));
 
     if (contextType === 'auto' || contextType === 'variables') {
-      this.searchInCategoryFiltered(keywords, ahkIndex.variables, 'variable', matches, existingNames);
+      this.searchInCategoryFiltered(
+        keywords,
+        ahkIndex.variables,
+        'variable',
+        matches,
+        existingNames
+      );
     }
-    
+
     if (contextType === 'auto' || contextType === 'functions') {
-      this.searchInCategoryFiltered(keywords, ahkIndex.functions, 'function', matches, existingNames);
+      this.searchInCategoryFiltered(
+        keywords,
+        ahkIndex.functions,
+        'function',
+        matches,
+        existingNames
+      );
     }
-    
+
     if (contextType === 'auto' || contextType === 'classes') {
       this.searchInCategoryFiltered(keywords, ahkIndex.classes, 'class', matches, existingNames);
     }
-    
+
     if (contextType === 'auto' || contextType === 'methods') {
       this.searchInCategoryFiltered(keywords, ahkIndex.methods, 'method', matches, existingNames);
     }
@@ -753,7 +884,13 @@ export class AhkContextInjectorTool {
   /**
    * Search in category while avoiding duplicates
    */
-  private searchInCategoryFiltered(keywords: string[], items: any[], category: string, matches: ContextMatch[], existingNames: Set<string>): void {
+  private searchInCategoryFiltered(
+    keywords: string[],
+    items: any[],
+    category: string,
+    matches: ContextMatch[],
+    existingNames: Set<string>
+  ): void {
     if (!items) return;
 
     for (const item of items) {
@@ -769,8 +906,8 @@ export class AhkContextInjectorTool {
           relevance,
           data: {
             ...item,
-            source: 'index'
-          }
+            source: 'index',
+          },
         });
         existingNames.add(itemName);
       }
@@ -782,7 +919,8 @@ export class AhkContextInjectorTool {
    */
   private calculateEnhancedRelevance(keywords: string[], item: any): number {
     let relevance = 0;
-    const itemText = `${item.Name} ${item.Description || ''} ${item.ReturnType || ''} ${item.Parameters || ''}`.toLowerCase();
+    const itemText =
+      `${item.Name} ${item.Description || ''} ${item.ReturnType || ''} ${item.Parameters || ''}`.toLowerCase();
 
     for (const keyword of keywords) {
       // Exact name match gets highest score
@@ -839,14 +977,14 @@ export class AhkContextInjectorTool {
 
       for (const match of items) {
         contextText += `**${match.name}**`;
-        
+
         // Add return type if available
         if (match.data.returnType || match.data.ReturnType) {
           contextText += ` → *${match.data.returnType || match.data.ReturnType}*`;
         }
-        
+
         contextText += `\n${match.description}\n`;
-        
+
         // Add parameters if available
         if (match.data.parameters || match.data.Parameters) {
           const params = match.data.parameters || match.data.Parameters;
@@ -858,17 +996,17 @@ export class AhkContextInjectorTool {
             }
           }
         }
-        
+
         // Add path for methods
         if (match.data.path || match.data.Path) {
           contextText += `\n*Class:* ${match.data.path || match.data.Path}\n`;
         }
-        
+
         // Add examples if available
         if (match.data.Examples && match.data.Examples.length > 0) {
           contextText += `\n*Example:*\n\`\`\`autohotkey\n${match.data.Examples[0].Code}\n\`\`\`\n`;
         }
-        
+
         // Add source indicator
         const source = match.data.source === 'full_docs' ? '📚 Full Docs' : '📋 Index';
         contextText += `\n*Source: ${source}*\n\n`;
@@ -876,7 +1014,7 @@ export class AhkContextInjectorTool {
     }
 
     contextText += '\n*💡 Use this context to write more accurate AutoHotkey v2 code.*\n';
-    
+
     return contextText;
   }
 }

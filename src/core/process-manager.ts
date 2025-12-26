@@ -41,7 +41,7 @@ export class ProcessManager {
     const processInfo: ProcessInfo = {
       pid,
       startTime: Date.now(),
-      filePath
+      filePath,
     };
     this.runningProcesses.set(pid, processInfo);
     logger.debug(`Process registered: PID ${pid} (${filePath})`);
@@ -191,7 +191,7 @@ export class ProcessManager {
     process.on('SIGTERM', () => handleShutdown('SIGTERM'));
 
     // Handle uncaught exceptions
-    process.on('uncaughtException', async (err) => {
+    process.on('uncaughtException', async err => {
       logger.error('Uncaught exception:', err);
       await this.performCleanup();
       process.exit(1);

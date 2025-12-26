@@ -139,7 +139,7 @@ export class SmartContextCache {
     return {
       size: this.cache.size,
       hitRate: total > 0 ? (this.hitCount / total) * 100 : 0,
-      missRate: total > 0 ? (this.missCount / total) * 100 : 0
+      missRate: total > 0 ? (this.missCount / total) * 100 : 0,
     };
   }
 

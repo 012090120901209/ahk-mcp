@@ -8,27 +8,27 @@ import logger from '../logger.js';
  */
 export class AlphaVersionManager {
   private static instance: AlphaVersionManager;
-  
+
   // Track version numbers for each base file
   private versionMap: Map<string, number> = new Map();
-  
+
   // Track failure counts for automatic alpha creation
   private failureMap: Map<string, number> = new Map();
-  
+
   // Configuration
   private readonly FAILURE_THRESHOLD = 3; // Create alpha after 3 failures
-  
+
   private constructor() {
     this.loadVersionState();
   }
-  
+
   static getInstance(): AlphaVersionManager {
     if (!AlphaVersionManager.instance) {
       AlphaVersionManager.instance = new AlphaVersionManager();
     }
     return AlphaVersionManager.instance;
   }
-  
+
   /**
    * Load version state from a persistent file
    */
@@ -44,7 +44,7 @@ export class AlphaVersionManager {
       logger.warn('Could not load alpha version state:', error);
     }
   }
-  
+
   /**
    * Save version state to persistent file
    */
@@ -52,32 +52,33 @@ export class AlphaVersionManager {
     try {
       const statePath = this.getStatePath();
       const stateDir = path.dirname(statePath);
-      
+
       if (!fs.existsSync(stateDir)) {
         fs.mkdirSync(stateDir, { recursive: true });
       }
-      
+
       const data = {
         versions: Object.fromEntries(this.versionMap),
         failures: Object.fromEntries(this.failureMap),
-        lastUpdated: new Date().toISOString()
+        lastUpdated: new Date().toISOString(),
       };
-      
+
       fs.writeFileSync(statePath, JSON.stringify(data, null, 2), 'utf-8');
     } catch (error) {
       logger.error('Could not save alpha version state:', error);
     }
   }
-  
+
   /**
    * Get the state file path
    */
   private getStatePath(): string {
     const appData = process.env.APPDATA || path.join(process.env.HOME || '', '.config');
-    const base = process.platform === 'win32' ? appData : path.join(process.env.HOME || '', '.config');
+    const base =
+      process.platform === 'win32' ? appData : path.join(process.env.HOME || '', '.config');
     return path.join(base, 'ahk-mcp', 'alpha-versions.json');
   }
-  
+
   /**
    * Generate the next alpha version filename
    */
@@ -85,18 +86,18 @@ export class AlphaVersionManager {
     const dir = path.dirname(originalPath);
     const ext = path.extname(originalPath);
     const basename = path.basename(originalPath, ext);
-    
+
     // Get current version number for this file
     const currentVersion = this.versionMap.get(originalPath) || 0;
     const nextVersion = currentVersion + 1;
-    
+
     // Create alpha filename: original_a1.ahk, original_a2.ahk, etc.
     const alphaName = `${basename}_a${nextVersion}${ext}`;
     const alphaPath = path.join(dir, alphaName);
-    
+
     return alphaPath;
   }
-  
+
   /**
    * Create an alpha version of a script
    */
@@ -106,7 +107,7 @@ export class AlphaVersionManager {
       if (!originalPath.toLowerCase().endsWith('.ahk')) {
         throw new Error('Can only create alpha versions of .ahk files');
       }
-      
+
       // Get or read content
       if (!content) {
         if (!fs.existsSync(originalPath)) {
@@ -114,41 +115,41 @@ export class AlphaVersionManager {
         }
         content = fs.readFileSync(originalPath, 'utf-8');
       }
-      
+
       // Generate alpha filename
       const alphaPath = this.getNextAlphaName(originalPath);
-      
+
       // Add header comment to indicate this is an alpha version
-      const header = `; Alpha Version ${this.getVersionNumber(originalPath) + 1}\n` +
-                    `; Created: ${new Date().toISOString()}\n` +
-                    `; Original: ${path.basename(originalPath)}\n` +
-                    `; Reason: ${this.getCreationReason(originalPath)}\n\n`;
-      
+      const header =
+        `; Alpha Version ${this.getVersionNumber(originalPath) + 1}\n` +
+        `; Created: ${new Date().toISOString()}\n` +
+        `; Original: ${path.basename(originalPath)}\n` +
+        `; Reason: ${this.getCreationReason(originalPath)}\n\n`;
+
       const alphaContent = header + content;
-      
+
       // Write the alpha file
       fs.writeFileSync(alphaPath, alphaContent, 'utf-8');
-      
+
       // Update version tracking
       this.versionMap.set(originalPath, (this.versionMap.get(originalPath) || 0) + 1);
       this.saveVersionState();
-      
+
       logger.info(`Created alpha version: ${alphaPath}`);
       return alphaPath;
-      
     } catch (error) {
       logger.error('Failed to create alpha version:', error);
       throw error;
     }
   }
-  
+
   /**
    * Get current version number for a file
    */
   getVersionNumber(originalPath: string): number {
     return this.versionMap.get(originalPath) || 0;
   }
-  
+
   /**
    * Track a failure for automatic alpha creation
    */
@@ -156,13 +157,13 @@ export class AlphaVersionManager {
     const failures = (this.failureMap.get(filePath) || 0) + 1;
     this.failureMap.set(filePath, failures);
     this.saveVersionState();
-    
+
     logger.info(`Failure ${failures} tracked for ${filePath}`);
-    
+
     // Return true if threshold reached
     return failures >= this.FAILURE_THRESHOLD;
   }
-  
+
   /**
    * Reset failure count
    */
@@ -170,7 +171,7 @@ export class AlphaVersionManager {
     this.failureMap.delete(filePath);
     this.saveVersionState();
   }
-  
+
   /**
    * Get the reason for creating this version
    */
@@ -181,7 +182,7 @@ export class AlphaVersionManager {
     }
     return 'Manual alpha version request';
   }
-  
+
   /**
    * List all alpha versions of a file
    */
@@ -189,13 +190,13 @@ export class AlphaVersionManager {
     const dir = path.dirname(originalPath);
     const ext = path.extname(originalPath);
     const basename = path.basename(originalPath, ext);
-    
+
     const versions: string[] = [];
-    
+
     try {
       const files = fs.readdirSync(dir);
       const pattern = new RegExp(`^${basename}_a(\\d+)${ext.replace('.', '\\.')}$`);
-      
+
       for (const file of files) {
         if (pattern.test(file)) {
           versions.push(path.join(dir, file));
@@ -204,10 +205,10 @@ export class AlphaVersionManager {
     } catch (error) {
       logger.error('Error listing alpha versions:', error);
     }
-    
+
     return versions.sort();
   }
-  
+
   /**
    * Get the latest alpha version of a file
    */
@@ -215,7 +216,7 @@ export class AlphaVersionManager {
     const versions = this.listAlphaVersions(originalPath);
     return versions.length > 0 ? versions[versions.length - 1] : null;
   }
-  
+
   /**
    * Check if we should automatically create an alpha version
    */
@@ -223,7 +224,7 @@ export class AlphaVersionManager {
     const failures = this.failureMap.get(filePath) || 0;
     return failures >= this.FAILURE_THRESHOLD;
   }
-  
+
   /**
    * Clear all version history for a file
    */
