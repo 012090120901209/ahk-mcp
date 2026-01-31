@@ -11,6 +11,7 @@ import { activeFile } from '../core/active-file.js';
 import { safeParse } from '../core/validation-middleware.js';
 import { codeQualityManager, LintLevel } from '../core/linting/code-quality-manager.js';
 import { structureAnalyzer } from '../core/linting/structure-analyzer.js';
+import { progressNotifier, getProgressTokenFromArgs } from '../core/progress-notifier.js';
 
 // ===== Schema Definition =====
 
@@ -97,6 +98,9 @@ export class AhkLintTool {
   async execute(args: unknown): Promise<any> {
     const startTime = Date.now();
 
+    // Extract progressToken for MCP 2025 progress notifications
+    const progressToken = getProgressTokenFromArgs(args);
+
     // Validate arguments
     const parsed = safeParse(args, AhkLintArgsSchema, 'AHK_Lint');
     if (!parsed.success) {
@@ -141,11 +145,23 @@ export class AhkLintTool {
         const isDryRun = validatedArgs.dryRun;
         logger.info(`${isDryRun ? 'Previewing' : 'Applying'} auto-fixes for ${filePath}`);
 
+        // Report progress: auto-fix starting
+        await progressNotifier.reportIndeterminate(
+          progressToken,
+          `${isDryRun ? 'Previewing' : 'Applying'} auto-fixes...`
+        );
+
         const fixResult = await codeQualityManager.applyAutoFix(filePath, {
           dryRun: isDryRun,
           createBackup: true,
           maxFixes: 100,
         });
+
+        // Report progress: complete
+        await progressNotifier.reportComplete(
+          progressToken,
+          `Auto-fix ${isDryRun ? 'preview' : 'applied'}: ${fixResult.appliedFixes.length} fixes`
+        );
 
         const totalDuration = Date.now() - startTime;
 
@@ -186,12 +202,25 @@ export class AhkLintTool {
         }
       }
 
+      // Report progress: analysis starting
+      await progressNotifier.reportIndeterminate(
+        progressToken,
+        `Analyzing (${validatedArgs.level} level)...`
+      );
+
       // Run code quality analysis
       const report = await codeQualityManager.analyzeFile(filePath, {
         level: validatedArgs.level as LintLevel,
         forceRefresh: validatedArgs.forceRefresh,
         includeStructure: validatedArgs.includeStructure,
       });
+
+      // Report progress: complete
+      const issueCount = report.errors.length + report.warnings.length;
+      await progressNotifier.reportComplete(
+        progressToken,
+        `Analysis complete: ${issueCount} issue${issueCount !== 1 ? 's' : ''} found`
+      );
 
       const totalDuration = Date.now() - startTime;
 

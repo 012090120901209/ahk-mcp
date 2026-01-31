@@ -14,6 +14,7 @@ import {
 } from '../utils/response-helpers.js';
 import { processManager } from '../core/process-manager.js';
 import { safeParse } from '../core/validation-middleware.js';
+import { getAhkPath } from '../core/config.js';
 
 const execAsync = promisify(exec);
 
@@ -117,13 +118,6 @@ interface WatchState {
 export class AhkRunTool {
   private static state: WatchState = {};
 
-  private static readonly AHK_COMMON_PATHS = [
-    'C:\\Program Files\\AutoHotkey\\v2\\AutoHotkey64.exe',
-    'C:\\Program Files (x86)\\AutoHotkey\\v2\\AutoHotkey64.exe',
-    'C:\\Program Files\\AutoHotkey\\v2\\AutoHotkey.exe',
-    'C:\\Program Files (x86)\\AutoHotkey\\v2\\AutoHotkey.exe',
-  ];
-
   private async detectWindow(
     pid: number,
     options: {
@@ -181,18 +175,14 @@ export class AhkRunTool {
   }
 
   private static async findAutoHotkeyPath(): Promise<string | undefined> {
-    // Check common installation paths
-    for (const ahkPath of AhkRunTool.AHK_COMMON_PATHS) {
-      try {
-        await fs.access(ahkPath);
-        logger.info(`Found AutoHotkey at: ${ahkPath}`);
-        return ahkPath;
-      } catch {
-        // Continue checking other paths
-      }
+    // Use config-based path detection (checks user config, env, then defaults)
+    const configPath = getAhkPath();
+    if (configPath) {
+      logger.info(`Found AutoHotkey at: ${configPath}`);
+      return configPath;
     }
 
-    // Try to find via registry or PATH
+    // Fallback: try to find via PATH on Windows
     if (os.platform() === 'win32') {
       try {
         const { stdout } = await execAsync('where AutoHotkey64.exe');
@@ -202,7 +192,7 @@ export class AhkRunTool {
           return foundPath;
         }
       } catch {
-        // Fall through to return null
+        // Fall through to return undefined
       }
     }
 

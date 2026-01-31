@@ -100,7 +100,12 @@ import { pathInterceptor } from './core/path-interceptor.js';
 import { observabilityServer } from './core/observability-server.js';
 import './core/opentelemetry.js'; // Initialize OpenTelemetry (if enabled)
 import { tracer } from './core/tracing.js';
-import { getStandardToolDefinitions, getToolMetadata } from './core/tool-metadata.js';
+import {
+  getStandardToolDefinitions,
+  getToolMetadata,
+  getToolDefinitionsWithAnnotations,
+} from './core/tool-metadata.js';
+import { progressNotifier, extractProgressToken } from './core/progress-notifier.js';
 
 export class AutoHotkeyMcpServer {
   private server: Server;
@@ -210,6 +215,9 @@ export class AutoHotkeyMcpServer {
     this.toolRegistry = new ToolRegistry(this);
     this.taskManager = new TaskManager();
 
+    // Initialize progress notifier with server instance
+    progressNotifier.setServer(this.server);
+
     // Initialize workflow tool with dependencies (must be after other tools are initialized)
     this.ahkWorkflowAnalyzeFixRunToolInstance = new AhkWorkflowAnalyzeFixRunTool(
       this.ahkAnalyzeToolInstance,
@@ -259,7 +267,8 @@ export class AutoHotkeyMcpServer {
         message: useSSE ? 'Including SSE-specific tools' : 'Standard tool listing',
       });
 
-      const standardTools = getStandardToolDefinitions();
+      // Get tools with MCP 2025 annotations included
+      const annotatedTools = getToolDefinitionsWithAnnotations();
       const metadataIndex = new Map(getToolMetadata().map(entry => [entry.definition.name, entry]));
       const activeFileAwareNames = new Set(
         getToolMetadata()
@@ -269,7 +278,7 @@ export class AutoHotkeyMcpServer {
       const activeFilePath = getActiveFilePath();
       const activeFileNote = `\n\n📎 Active File: ${activeFilePath ?? 'Not set. Use AHK_File_Active to select a target.'}`;
 
-      const contextualTools = standardTools.map(tool => {
+      const contextualTools = annotatedTools.map(tool => {
         if (!activeFileAwareNames.has(tool.name)) {
           return tool;
         }
@@ -336,6 +345,14 @@ export class AutoHotkeyMcpServer {
       const startTime = Date.now();
       const toolTimeoutMs = envConfig.getToolTimeoutMs();
 
+      // Extract progressToken from request _meta (MCP 2025)
+      const progressToken = extractProgressToken(request);
+
+      // Inject progressToken into args for tools to use (MCP 2025)
+      const enrichedArgs = progressToken
+        ? { ...(args as Record<string, unknown>), _progressToken: progressToken }
+        : args;
+
       // Unified logging: generate call ID and log start
       const callId = `${name}-${startTime}-${Math.random().toString(36).slice(2, 8)}`;
       const unifiedLog = getUnifiedLogger();
@@ -366,7 +383,7 @@ export class AutoHotkeyMcpServer {
             toolName: name,
             ttl,
             pollInterval,
-            execute: () => this.executeToolWithTimeout(name, args, taskTimeoutMs),
+            execute: () => this.executeToolWithTimeout(name, enrichedArgs, taskTimeoutMs),
           });
 
           // Unified logging: task queued (execution is async)
@@ -384,12 +401,12 @@ export class AutoHotkeyMcpServer {
             // Add tool metadata to span
             span.attributes.tool = name;
             span.attributes.argCount =
-              args && typeof args === 'object'
-                ? Object.keys(args as Record<string, unknown>).length
+              enrichedArgs && typeof enrichedArgs === 'object'
+                ? Object.keys(enrichedArgs as Record<string, unknown>).length
                 : 0;
 
             // Execute the tool
-            const toolResult = await this.executeToolWithTimeout(name, args, toolTimeoutMs);
+            const toolResult = await this.executeToolWithTimeout(name, enrichedArgs, toolTimeoutMs);
 
             // Add result metadata to span
             if (toolResult && toolResult.content) {
@@ -701,6 +718,12 @@ export class AutoHotkeyMcpServer {
           uri: 'ahk://system/info',
           name: 'System Information',
           description: 'Current system information and AutoHotkey environment',
+          mimeType: 'application/json',
+        },
+        {
+          uri: 'ahk://server/info',
+          name: 'MCP Server Discovery',
+          description: 'MCP 2025 server metadata for discovery (.well-known/mcp.json equivalent)',
           mimeType: 'application/json',
         },
       ];
@@ -1191,6 +1214,51 @@ F12::hkManager.ToggleHotkey("F1", (*) => MsgBox("F1 pressed!"), "Example hotkey"
               uri,
               mimeType: 'application/json',
               text: JSON.stringify(systemInfo, null, 2),
+            },
+          ],
+        };
+      }
+
+      // MCP 2025 Well-Known Server Discovery
+      if (normalizedUri === 'ahk://server/info') {
+        const toolMetadata = getToolMetadata();
+        const toolCategories = [...new Set(toolMetadata.map(t => t.category))];
+
+        const serverInfo = {
+          name: 'ahk-mcp-server',
+          version: '2.0.0',
+          protocol: '2024-11-05',
+          description: 'AutoHotkey v2 development tools, code analysis, and script execution',
+          capabilities: {
+            tools: {
+              count: toolMetadata.length,
+              categories: toolCategories,
+            },
+            prompts: true,
+            resources: true,
+            sampling: true,
+            logging: true,
+            tasks: true,
+          },
+          toolCategories,
+          annotations: {
+            supported: true,
+            types: ['readOnlyHint', 'destructiveHint', 'idempotentHint', 'openWorldHint'],
+          },
+          timestamp: new Date().toISOString(),
+        };
+
+        logDebugEvent('resources.read', {
+          status: 'success',
+          message: normalizedUri,
+          details: mergeDetails({ kind: 'server-discovery' }),
+        });
+        return {
+          contents: [
+            {
+              uri,
+              mimeType: 'application/json',
+              text: JSON.stringify(serverInfo, null, 2),
             },
           ],
         };
@@ -1750,6 +1818,37 @@ F12::hkManager.ToggleHotkey("F1", (*) => MsgBox("F1 pressed!"), "Example hotkey"
 
         // Ensure cleanup interval doesn't prevent process exit
         cleanupInterval.unref();
+
+        // MCP 2025 Well-Known Endpoint for server discovery
+        app.get('/.well-known/mcp.json', (_req, res) => {
+          const toolMetadata = getToolMetadata();
+          const toolCategories = [...new Set(toolMetadata.map(t => t.category))];
+
+          res.json({
+            name: 'ahk-mcp-server',
+            version: '2.0.0',
+            protocol: '2024-11-05',
+            description: 'AutoHotkey v2 development tools, code analysis, and script execution',
+            capabilities: {
+              tools: { count: toolMetadata.length, categories: toolCategories },
+              prompts: true,
+              resources: true,
+              sampling: true,
+              logging: true,
+              tasks: true,
+            },
+            toolCategories,
+            annotations: {
+              supported: true,
+              types: ['readOnlyHint', 'destructiveHint', 'idempotentHint', 'openWorldHint'],
+            },
+            endpoints: {
+              sse: '/sse',
+              message: '/message',
+            },
+            timestamp: new Date().toISOString(),
+          });
+        });
 
         // Set up SSE endpoint
         app.get('/sse', (req, res) => {

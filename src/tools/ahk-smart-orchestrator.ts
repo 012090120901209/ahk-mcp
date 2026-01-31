@@ -2,6 +2,7 @@ import { z } from 'zod';
 import logger from '../logger.js';
 import { OrchestrationEngine, OrchestrationRequest } from '../core/orchestration-engine.js';
 import { AhkCloudValidateTool } from './ahk-cloud-validate.js';
+import { progressNotifier, getProgressTokenFromArgs } from '../core/progress-notifier.js';
 
 export const AhkSmartOrchestratorArgsSchema = z.object({
   intent: z.string().min(1).describe('High-level description of what you want to do'),
@@ -73,6 +74,9 @@ export class AhkSmartOrchestratorTool {
   }
 
   async execute(args: z.infer<typeof AhkSmartOrchestratorArgsSchema>): Promise<any> {
+    // Extract progressToken for MCP 2025 progress notifications
+    const progressToken = getProgressTokenFromArgs(args);
+
     try {
       const validatedArgs = AhkSmartOrchestratorArgsSchema.parse(args);
 
@@ -84,6 +88,14 @@ export class AhkSmartOrchestratorTool {
         validate: validatedArgs.validate,
       });
 
+      // Report progress: starting orchestration
+      await progressNotifier.reportIteration(
+        progressToken,
+        1,
+        3,
+        `Detecting file for: ${validatedArgs.operation}`
+      );
+
       const request: OrchestrationRequest = {
         intent: validatedArgs.intent,
         filePath: validatedArgs.filePath,
@@ -92,10 +104,14 @@ export class AhkSmartOrchestratorTool {
         forceRefresh: validatedArgs.forceRefresh,
       };
 
+      // Report progress: orchestrating
+      await progressNotifier.reportIteration(progressToken, 2, 3, 'Analyzing and processing...');
+
       const result = await this.engine.orchestrate(request);
 
       // Validate file if requested and we have a file path
       if (validatedArgs.validate && result.success && result.metadata?.filePath) {
+        await progressNotifier.reportIteration(progressToken, 3, 4, 'Validating syntax...');
         logger.info(`Validating file: ${result.metadata.filePath}`);
         const fs = await import('fs/promises');
         try {
@@ -114,19 +130,24 @@ export class AhkSmartOrchestratorTool {
             // Ignore parse errors
           }
 
-          if (!validationData.success || (validationData.errors && validationData.errors.length > 0)) {
-            const errorList = validationData.errors?.map((e: any) =>
-              `- **${e.type}** (line ${e.line || '?'}): ${e.message}`
-            ).join('\n') || 'Unknown validation error';
+          if (
+            !validationData.success ||
+            (validationData.errors && validationData.errors.length > 0)
+          ) {
+            const errorList =
+              validationData.errors
+                ?.map((e: any) => `- **${e.type}** (line ${e.line || '?'}): ${e.message}`)
+                .join('\n') || 'Unknown validation error';
 
             return {
               content: [
                 {
                   type: 'text',
-                  text: `**Validation Failed**\n\n` +
-                        `File: ${result.metadata.filePath}\n\n` +
-                        `Errors found:\n${errorList}\n\n` +
-                        `Fix these errors before editing.`,
+                  text:
+                    `**Validation Failed**\n\n` +
+                    `File: ${result.metadata.filePath}\n\n` +
+                    `Errors found:\n${errorList}\n\n` +
+                    `Fix these errors before editing.`,
                 },
               ],
               isError: true,
@@ -141,6 +162,7 @@ export class AhkSmartOrchestratorTool {
       }
 
       if (!result.success) {
+        await progressNotifier.reportComplete(progressToken, 'Orchestration failed');
         return {
           content: [
             {
@@ -152,6 +174,10 @@ export class AhkSmartOrchestratorTool {
         };
       }
 
+      await progressNotifier.reportComplete(
+        progressToken,
+        `${validatedArgs.operation} operation complete`
+      );
       return {
         content: [
           {

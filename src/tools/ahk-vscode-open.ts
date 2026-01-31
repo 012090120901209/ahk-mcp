@@ -18,11 +18,15 @@ export const AhkVSCodeOpenArgsSchema = z.object({
   column: z.number().int().min(1).optional().describe('Column number to reveal (1-based)'),
   reuseWindow: z.boolean().optional().default(true).describe('Reuse the existing VS Code window'),
   wait: z.boolean().optional().default(false).describe('Wait for VS Code to exit'),
+  workspaceFolder: z
+    .string()
+    .optional()
+    .describe('Target VS Code workspace folder (opens file in that window)'),
 });
 
 export const ahkVSCodeOpenToolDefinition = {
   name: 'AHK_VSCode_Open',
-  description: `Open the most recently edited AutoHotkey file (or a specified file) in VS Code. Defaults to the last edited file recorded by MCP and falls back to the active file.`,
+  description: `Open the most recently edited AutoHotkey file (or a specified file) in VS Code. Defaults to the last edited file recorded by MCP and falls back to the active file. Supports WSL environments and can target a specific workspace window.`,
   inputSchema: {
     type: 'object',
     properties: {
@@ -48,6 +52,11 @@ export const ahkVSCodeOpenToolDefinition = {
         default: false,
         description: 'Wait for VS Code to exit',
       },
+      workspaceFolder: {
+        type: 'string',
+        description:
+          'Target VS Code workspace folder - opens file in the window with this folder open',
+      },
     },
   },
 };
@@ -58,7 +67,7 @@ export class AhkVSCodeOpenTool {
     if (!parsed.success) return parsed.error;
 
     try {
-      const { filePath, line, column, reuseWindow, wait } = parsed.data;
+      const { filePath, line, column, reuseWindow, wait, workspaceFolder } = parsed.data;
 
       const candidatePath = filePath || getLastEditedFile() || getActiveFilePath();
       if (!candidatePath) {
@@ -91,12 +100,19 @@ export class AhkVSCodeOpenTool {
         return createErrorResponse(`File not found: ${resolvedPath}`);
       }
 
-      const launch = await openFileInVSCode(resolvedPath, { line, column, reuseWindow, wait });
+      const launch = await openFileInVSCode(resolvedPath, {
+        line,
+        column,
+        reuseWindow,
+        wait,
+        workspaceFolder,
+      });
 
       return createSuccessResponse('VS Code opened the target file.', {
         filePath: resolvedPath,
         command: launch.command,
         args: launch.args,
+        isWsl: launch.isWsl,
       });
     } catch (error) {
       logger.error('Error in AHK_VSCode_Open tool:', error);

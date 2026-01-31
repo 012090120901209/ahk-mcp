@@ -55,62 +55,131 @@ export type ToolCategory =
   | 'system'
   | 'workflow';
 
+/**
+ * MCP 2025 Tool Annotations
+ * @see https://spec.modelcontextprotocol.io/2024-11-05/server/tools/#annotations
+ */
+export interface ToolAnnotations {
+  /** Tool does not modify any state */
+  readOnlyHint?: boolean;
+  /** Tool may cause irreversible changes (destructive) */
+  destructiveHint?: boolean;
+  /** Same arguments always produce same result */
+  idempotentHint?: boolean;
+  /** Tool interacts with external entities */
+  openWorldHint?: boolean;
+}
+
 export interface ToolMetadataEntry {
   definition: Tool;
   slug: string;
   category: ToolCategory;
+  annotations: ToolAnnotations;
 }
 
-function entry(definition: unknown, slug: string, category: ToolCategory): ToolMetadataEntry {
+/** Default annotations by category */
+const CATEGORY_DEFAULTS: Record<ToolCategory, ToolAnnotations> = {
+  analysis: { readOnlyHint: true, idempotentHint: true },
+  debug: { destructiveHint: true, openWorldHint: true },
+  docs: { readOnlyHint: true, idempotentHint: true },
+  discovery: { readOnlyHint: true, idempotentHint: true },
+  execution: { destructiveHint: true, openWorldHint: true },
+  file: { readOnlyHint: true }, // file reads default, writes override
+  library: { readOnlyHint: true, idempotentHint: true },
+  lsp: { readOnlyHint: true, idempotentHint: true },
+  observability: { readOnlyHint: true, idempotentHint: true },
+  system: { readOnlyHint: true },
+  workflow: { destructiveHint: true },
+};
+
+function entry(
+  definition: unknown,
+  slug: string,
+  category: ToolCategory,
+  overrides?: Partial<ToolAnnotations>
+): ToolMetadataEntry {
   return {
     definition: definition as Tool,
     slug,
     category,
+    annotations: { ...CATEGORY_DEFAULTS[category], ...overrides },
   };
 }
 
 const TOOL_METADATA: ToolMetadataEntry[] = [
+  // Discovery (readOnly, idempotent)
   entry(ahkToolsSearchToolDefinition, 'tools-search', 'discovery'),
+
+  // Workflow (destructive)
   entry(ahkWorkflowAnalyzeFixRunToolDefinition, 'workflow-analyze-fix-run', 'workflow'),
-  entry(ahkFileEditorToolDefinition, 'file-edit-advanced', 'file'),
-  entry(ahkEditToolDefinition, 'file-edit', 'file'),
+  entry(ahkProcessRequestToolDefinition, 'process-request', 'workflow'),
+  entry(ahkSmartOrchestratorToolDefinition, 'smart-orchestrator', 'workflow'),
+
+  // File - Read operations (readOnly)
   entry(ahkFileToolDefinition, 'file-active', 'file'),
-  entry(ahkFileCreateToolDefinition, 'file-create', 'file'),
-  // entry(ahkDiffEditToolDefinition, 'file-edit-diff', 'file'), // Hidden: use file-edit instead
-  // entry(ahkDiagnosticsToolDefinition, 'diagnostics', 'analysis'), // Hidden: use lint instead
-  // entry(ahkRunToolDefinition, 'run-script', 'execution'), // Hidden: use run-debug instead
-  entry(ahkAnalyzeToolDefinition, 'analyze-code', 'analysis'),
-  entry(ahkContextInjectorToolDefinition, 'context-injector', 'analysis'),
-  // entry(ahkSummaryToolDefinition, 'summary', 'docs'), // Hidden: low value
-  entry(ahkPromptsToolDefinition, 'prompts', 'docs'),
-  // entry(ahkSamplingEnhancerToolDefinition, 'sampling-enhancer', 'analysis'), // Hidden: unclear value
-  entry(ahkDebugAgentToolDefinition, 'run-debug', 'execution'),
-  entry(ahkDocSearchToolDefinition, 'doc-search', 'docs'),
-  entry(ahkVSCodeProblemsToolDefinition, 'vscode-problems', 'analysis'),
-  entry(ahkRecentToolDefinition, 'file-recent', 'file'),
-  entry(ahkConfigToolDefinition, 'config', 'system'),
-  entry(ahkVSCodeOpenToolDefinition, 'vscode-open', 'system'),
-  // entry(ahkActiveFileToolDefinition, 'active-file', 'file'), // Hidden: duplicate of file-active
-  entry(ahkLspToolDefinition, 'lsp', 'lsp'),
   entry(ahkFileViewToolDefinition, 'file-view', 'file'),
   entry(ahkFileListToolDefinition, 'file-list', 'file'),
   entry(ahkAutoFileToolDefinition, 'file-detect', 'file'),
-  entry(ahkProcessRequestToolDefinition, 'process-request', 'workflow'),
-  entry(ahkSettingsToolDefinition, 'settings', 'system'),
-  entry(ahkSmallEditToolDefinition, 'file-edit-small', 'file'),
-  // entry(ahkAlphaToolDefinition, 'alpha-channel', 'system'), // Hidden: experimental
-  entry(ahkSmartOrchestratorToolDefinition, 'smart-orchestrator', 'workflow'),
-  entry(ahkAnalyticsToolDefinition, 'analytics', 'observability'),
-  // entry(ahkTestInteractiveToolDefinition, 'test-interactive', 'execution'), // Hidden: dev-only
-  // entry(ahkTraceViewerToolDefinition, 'trace-viewer', 'observability'), // Hidden: debug-only
+  entry(ahkRecentToolDefinition, 'file-recent', 'file'),
+
+  // File - Write operations (destructive override)
+  entry(ahkFileEditorToolDefinition, 'file-edit-advanced', 'file', {
+    readOnlyHint: false,
+    destructiveHint: true,
+  }),
+  entry(ahkEditToolDefinition, 'file-edit', 'file', { readOnlyHint: false, destructiveHint: true }),
+  entry(ahkFileCreateToolDefinition, 'file-create', 'file', {
+    readOnlyHint: false,
+    destructiveHint: true,
+  }),
+  entry(ahkSmallEditToolDefinition, 'file-edit-small', 'file', {
+    readOnlyHint: false,
+    destructiveHint: true,
+  }),
+  // entry(ahkDiffEditToolDefinition, 'file-edit-diff', 'file'), // Hidden: use file-edit instead
+
+  // Analysis (readOnly, idempotent)
+  entry(ahkAnalyzeToolDefinition, 'analyze-code', 'analysis'),
+  entry(ahkContextInjectorToolDefinition, 'context-injector', 'analysis'),
+  entry(ahkVSCodeProblemsToolDefinition, 'vscode-problems', 'analysis'),
   entry(ahkLintToolDefinition, 'lint', 'analysis'),
   entry(ahkThqbyDocumentSymbolsToolDefinition, 'thqby-document-symbols', 'analysis'),
+  // entry(ahkDiagnosticsToolDefinition, 'diagnostics', 'analysis'), // Hidden: use lint instead
+
+  // Docs (readOnly, idempotent)
+  entry(ahkPromptsToolDefinition, 'prompts', 'docs'),
+  entry(ahkDocSearchToolDefinition, 'doc-search', 'docs'),
+  // entry(ahkSummaryToolDefinition, 'summary', 'docs'), // Hidden: low value
+  // entry(ahkSamplingEnhancerToolDefinition, 'sampling-enhancer', 'analysis'), // Hidden: unclear value
+
+  // Execution (destructive, openWorld)
+  entry(ahkDebugAgentToolDefinition, 'run-debug', 'execution'),
+  entry(ahkCloudValidateToolDefinition, 'cloud-validate', 'execution'),
+  // entry(ahkRunToolDefinition, 'run-script', 'execution'), // Hidden: use run-debug instead
+  // entry(ahkTestInteractiveToolDefinition, 'test-interactive', 'execution'), // Hidden: dev-only
+
+  // Debug (destructive, openWorld)
+  entry(ahkDebugDBGpToolDefinition, 'debug-dbgp', 'debug'),
+
+  // System (readOnly)
+  entry(ahkConfigToolDefinition, 'config', 'system'),
+  entry(ahkVSCodeOpenToolDefinition, 'vscode-open', 'system', { openWorldHint: true }),
+  entry(ahkSettingsToolDefinition, 'settings', 'system'),
+  // entry(ahkAlphaToolDefinition, 'alpha-channel', 'system'), // Hidden: experimental
+
+  // LSP (readOnly, idempotent)
+  entry(ahkLspToolDefinition, 'lsp', 'lsp'),
+
+  // Observability (readOnly, idempotent)
+  entry(ahkAnalyticsToolDefinition, 'analytics', 'observability'),
+  // entry(ahkTraceViewerToolDefinition, 'trace-viewer', 'observability'), // Hidden: debug-only
+
+  // Library (readOnly, idempotent)
   entry(AHK_Library_List_Definition, 'library-list', 'library'),
   entry(AHK_Library_Info_Definition, 'library-info', 'library'),
   entry(AHK_Library_Import_Definition, 'library-import', 'library'),
   entry(AHK_Library_Search_Definition, 'library-search', 'library'),
-  entry(ahkCloudValidateToolDefinition, 'cloud-validate', 'execution'),
-  entry(ahkDebugDBGpToolDefinition, 'debug-dbgp', 'debug'),
+  // entry(ahkActiveFileToolDefinition, 'active-file', 'file'), // Hidden: duplicate of file-active
 ];
 
 export function getToolMetadata(): ToolMetadataEntry[] {
@@ -123,4 +192,24 @@ export function getStandardToolDefinitions(): Tool[] {
 
 export function getToolMetadataByName(name: string): ToolMetadataEntry | undefined {
   return TOOL_METADATA.find(entry => entry.definition.name === name);
+}
+
+/**
+ * Get tool annotations by tool name
+ */
+export function getToolAnnotations(name: string): ToolAnnotations | undefined {
+  const metadata = getToolMetadataByName(name);
+  return metadata?.annotations;
+}
+
+/**
+ * Get all tool definitions with annotations included
+ */
+export function getToolDefinitionsWithAnnotations(): Array<
+  Tool & { annotations?: ToolAnnotations }
+> {
+  return TOOL_METADATA.map(entry => ({
+    ...entry.definition,
+    annotations: entry.annotations,
+  }));
 }

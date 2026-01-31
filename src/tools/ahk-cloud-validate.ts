@@ -15,6 +15,7 @@ import logger from '../logger.js';
 import { activeFile } from '../core/active-file.js';
 import { safeParse } from '../core/validation-middleware.js';
 import { createErrorResponse } from '../utils/response-helpers.js';
+import { getAhkPath } from '../core/config.js';
 
 // ===== Schema Definition =====
 
@@ -108,23 +109,11 @@ export const ahkCloudValidateToolDefinition = {
 
 // ===== AHK Path Detection =====
 
-const AHK_COMMON_PATHS = [
-  'C:\\Program Files\\AutoHotkey\\v2\\AutoHotkey64.exe',
-  'C:\\Program Files (x86)\\AutoHotkey\\v2\\AutoHotkey64.exe',
-  'C:\\Program Files\\AutoHotkey\\v2\\AutoHotkey.exe',
-  'C:\\Program Files (x86)\\AutoHotkey\\v2\\AutoHotkey.exe',
-];
-
-async function findAutoHotkeyPath(): Promise<string | undefined> {
-  for (const ahkPath of AHK_COMMON_PATHS) {
-    try {
-      await fs.access(ahkPath);
-      return ahkPath;
-    } catch {
-      // Continue checking
-    }
-  }
-  return undefined;
+/**
+ * Find AutoHotkey executable using config, then fallback to defaults
+ */
+function findAutoHotkeyPath(): string | undefined {
+  return getAhkPath();
 }
 
 // ===== Error Parsing =====

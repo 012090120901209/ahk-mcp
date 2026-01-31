@@ -1,100 +1,141 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import { spawn } from 'node:child_process';
+import { spawn, execSync } from 'node:child_process';
 import logger from '../logger.js';
+import { getVscodeWorkspace } from '../core/config.js';
 
 export interface VSCodeOpenOptions {
   line?: number;
   column?: number;
   reuseWindow?: boolean;
   wait?: boolean;
+  /** Workspace folder to target - opens file in the VS Code window with this folder */
+  workspaceFolder?: string;
 }
 
 export interface VSCodeLaunchResult {
   command: string;
   args: string[];
+  isWsl: boolean;
 }
 
-function isShellCommand(command: string): boolean {
-  const ext = path.extname(command).toLowerCase();
-  if (ext === '.cmd' || ext === '.bat') return true;
-  return command.toLowerCase() === 'code';
-}
+/**
+ * Detect if running in WSL environment
+ */
+function isWsl(): boolean {
+  // Check for WSL-specific indicators
+  if (process.platform !== 'linux') return false;
 
-function normalizeCommand(candidate: string): string {
-  const trimmed = candidate.trim();
-  if (!trimmed) return '';
-
-  const looksLikePath =
-    trimmed.includes(path.sep) || /^[a-zA-Z]:[\\/]/.test(trimmed) || trimmed.startsWith('\\\\');
-  return looksLikePath ? path.resolve(trimmed) : trimmed;
-}
-
-async function resolveVSCodeCommand(): Promise<string> {
-  const candidates: string[] = [];
-  const override = process.env.AHK_MCP_VSCODE_CMD;
-  if (override) candidates.push(normalizeCommand(override));
-
-  const localAppData = process.env.LOCALAPPDATA;
-  if (localAppData) {
-    candidates.push(path.join(localAppData, 'Programs', 'Microsoft VS Code', 'bin', 'code.cmd'));
-    candidates.push(path.join(localAppData, 'Programs', 'Microsoft VS Code', 'Code.exe'));
-  }
-
-  const programFiles = process.env['ProgramFiles'];
-  if (programFiles) {
-    candidates.push(path.join(programFiles, 'Microsoft VS Code', 'bin', 'code.cmd'));
-    candidates.push(path.join(programFiles, 'Microsoft VS Code', 'Code.exe'));
-  }
-
-  const programFilesX86 = process.env['ProgramFiles(x86)'];
-  if (programFilesX86) {
-    candidates.push(path.join(programFilesX86, 'Microsoft VS Code', 'bin', 'code.cmd'));
-    candidates.push(path.join(programFilesX86, 'Microsoft VS Code', 'Code.exe'));
-  }
-
-  candidates.push('code');
-
-  for (const candidate of candidates) {
-    if (!candidate) continue;
-    if (candidate.toLowerCase() === 'code') {
-      return candidate;
-    }
+  try {
+    const release = execSync('uname -r', { encoding: 'utf8' }).toLowerCase();
+    return release.includes('microsoft') || release.includes('wsl');
+  } catch {
+    // Fallback: check if /mnt/c exists (common WSL mount)
     try {
-      await fs.access(candidate);
-      return candidate;
+      require('fs').accessSync('/mnt/c');
+      return true;
     } catch {
-      continue;
+      return false;
     }
   }
+}
 
-  return 'code';
+/**
+ * Convert WSL path to Windows path
+ * /mnt/c/Users/... -> C:\Users\...
+ */
+function wslToWindowsPath(wslPath: string): string {
+  if (!wslPath.startsWith('/mnt/')) return wslPath;
+
+  const match = wslPath.match(/^\/mnt\/([a-z])\/(.*)$/i);
+  if (match) {
+    const drive = match[1].toUpperCase();
+    const rest = match[2].replace(/\//g, '\\');
+    return `${drive}:\\${rest}`;
+  }
+  return wslPath;
+}
+
+/**
+ * Convert Windows path to WSL path (for validation)
+ * C:\Users\... -> /mnt/c/Users/...
+ */
+function windowsToWslPath(winPath: string): string {
+  const match = winPath.match(/^([a-zA-Z]):\\(.*)$/);
+  if (match) {
+    const drive = match[1].toLowerCase();
+    const rest = match[2].replace(/\\/g, '/');
+    return `/mnt/${drive}/${rest}`;
+  }
+  return winPath;
 }
 
 export async function openFileInVSCode(
   filePath: string,
   options: VSCodeOpenOptions = {}
 ): Promise<VSCodeLaunchResult> {
+  const inWsl = isWsl();
   const resolvedPath = path.resolve(filePath);
+
+  // Validate file exists
   await fs.access(resolvedPath);
 
-  const command = await resolveVSCodeCommand();
-  const args: string[] = [];
+  // Get workspace folder (from options or config)
+  const workspaceFolder = options.workspaceFolder || getVscodeWorkspace();
 
-  if (options.reuseWindow !== false) {
-    args.push('--reuse-window');
-  }
+  let command: string;
+  let args: string[];
+  let useShell: boolean;
 
-  if (typeof options.line === 'number') {
-    const line = options.line;
-    const column = typeof options.column === 'number' ? options.column : 1;
-    args.push('--goto');
-    args.push(`${resolvedPath}:${line}:${column}`);
+  if (inWsl) {
+    // In WSL: use cmd.exe to run VS Code with Windows paths
+    command = 'cmd.exe';
+    args = ['/c', 'code'];
+    useShell = false;
+
+    // Convert paths to Windows format
+    const winFilePath = wslToWindowsPath(resolvedPath);
+    const winWorkspace = workspaceFolder; // Already Windows format
+
+    // Add workspace folder first to target that window
+    if (winWorkspace) {
+      args.push(winWorkspace);
+    }
+
+    if (options.reuseWindow !== false) {
+      args.push('--reuse-window');
+    }
+
+    if (typeof options.line === 'number') {
+      const line = options.line;
+      const column = typeof options.column === 'number' ? options.column : 1;
+      args.push('--goto', `${winFilePath}:${line}:${column}`);
+    } else {
+      args.push(winFilePath);
+    }
   } else {
-    args.push(resolvedPath);
-  }
+    // Native Windows or other: use code directly
+    command = 'code';
+    args = [];
+    useShell = true;
 
-  const useShell = isShellCommand(command);
+    // Add workspace folder first to target that window
+    if (workspaceFolder) {
+      args.push(workspaceFolder);
+    }
+
+    if (options.reuseWindow !== false) {
+      args.push('--reuse-window');
+    }
+
+    if (typeof options.line === 'number') {
+      const line = options.line;
+      const column = typeof options.column === 'number' ? options.column : 1;
+      args.push('--goto', `${resolvedPath}:${line}:${column}`);
+    } else {
+      args.push(resolvedPath);
+    }
+  }
 
   await new Promise<void>((resolve, reject) => {
     const child = spawn(command, args, {
@@ -117,11 +158,13 @@ export async function openFileInVSCode(
       });
     } else {
       child.unref();
-      resolve();
+      // Give it a moment to start
+      setTimeout(resolve, 100);
     }
   });
 
-  logger.info(`VS Code launch: ${command} ${args.join(' ')}`);
+  const logArgs = args.join(' ');
+  logger.info(`VS Code launch: ${command} ${logArgs}`);
 
-  return { command, args };
+  return { command, args, isWsl: inWsl };
 }

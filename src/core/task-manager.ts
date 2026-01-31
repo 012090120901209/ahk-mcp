@@ -5,6 +5,17 @@ import { ErrorCode, ErrorCategory, ErrorSeverity } from './error-types.js';
 
 export type TaskStatus = 'working' | 'completed' | 'failed' | 'canceled';
 
+export interface TaskProgress {
+  /** Current progress value */
+  current: number;
+  /** Total expected (optional) */
+  total?: number;
+  /** Human-readable status message */
+  message?: string;
+}
+
+export type ProgressCallback = (progress: TaskProgress) => void | Promise<void>;
+
 export interface TaskInfo {
   taskId: string;
   status: TaskStatus;
@@ -13,6 +24,8 @@ export interface TaskInfo {
   lastUpdatedAt: string;
   ttl?: number;
   pollInterval?: number;
+  /** Current progress (MCP 2025) */
+  progress?: TaskProgress;
 }
 
 interface TaskRecord extends TaskInfo {
@@ -20,13 +33,17 @@ interface TaskRecord extends TaskInfo {
   result?: ToolResponse;
   cancelRequested?: boolean;
   expiresAt?: number;
+  onProgress?: ProgressCallback;
 }
 
 export interface TaskCreateOptions {
   toolName: string;
   ttl?: number;
   pollInterval?: number;
-  execute: () => Promise<ToolResponse>;
+  /** Execution function - receives progress callback if provided */
+  execute: (onProgress?: ProgressCallback) => Promise<ToolResponse>;
+  /** Optional progress callback for long-running operations */
+  onProgress?: ProgressCallback;
 }
 
 export class TaskManager {
@@ -48,6 +65,7 @@ export class TaskManager {
       ttl,
       pollInterval: options.pollInterval,
       expiresAt: typeof ttl === 'number' ? Date.now() + ttl : undefined,
+      onProgress: options.onProgress,
     };
 
     this.tasks.set(taskId, record);
@@ -55,6 +73,22 @@ export class TaskManager {
 
     logger.info(`Task created: ${taskId} for ${options.toolName}`);
     return this.toTaskInfo(record);
+  }
+
+  /**
+   * Update task progress (MCP 2025)
+   */
+  updateProgress(taskId: string, progress: TaskProgress): void {
+    const record = this.tasks.get(taskId);
+    if (!record || record.status !== 'working') return;
+
+    record.progress = progress;
+    record.lastUpdatedAt = new Date().toISOString();
+
+    // Invoke progress callback if registered
+    if (record.onProgress) {
+      void record.onProgress(progress);
+    }
   }
 
   listTasks(status?: TaskStatus): TaskInfo[] {
@@ -111,13 +145,21 @@ export class TaskManager {
     return this.toTaskInfo(record);
   }
 
-  private runTask(record: TaskRecord, execute: () => Promise<ToolResponse>): void {
+  private runTask(
+    record: TaskRecord,
+    execute: (onProgress?: ProgressCallback) => Promise<ToolResponse>
+  ): void {
     const taskId = record.taskId;
     const toolName = record.toolName;
 
+    // Create a bound progress callback that updates the task record
+    const boundProgress: ProgressCallback = (progress: TaskProgress) => {
+      this.updateProgress(taskId, progress);
+    };
+
     void (async () => {
       try {
-        const result = await execute();
+        const result = await execute(boundProgress);
         if (record.status !== 'working') {
           return;
         }
@@ -125,6 +167,7 @@ export class TaskManager {
         record.result = result;
         record.status = 'completed';
         record.statusMessage = result.isError ? 'Task completed with errors' : 'Task completed';
+        record.progress = { current: 100, total: 100, message: 'Complete' };
         record.lastUpdatedAt = new Date().toISOString();
         logger.info(`Task completed: ${taskId} (${toolName})`);
       } catch (error) {
@@ -161,8 +204,9 @@ export class TaskManager {
   }
 
   private toTaskInfo(record: TaskRecord): TaskInfo {
-    const { taskId, status, statusMessage, createdAt, lastUpdatedAt, ttl, pollInterval } = record;
-    return { taskId, status, statusMessage, createdAt, lastUpdatedAt, ttl, pollInterval };
+    const { taskId, status, statusMessage, createdAt, lastUpdatedAt, ttl, pollInterval, progress } =
+      record;
+    return { taskId, status, statusMessage, createdAt, lastUpdatedAt, ttl, pollInterval, progress };
   }
 
   private createErrorResult(message: string, taskId?: string): ToolResponse {

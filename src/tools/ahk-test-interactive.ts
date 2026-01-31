@@ -5,6 +5,7 @@ import * as path from 'path';
 import * as os from 'os';
 import logger from '../logger.js';
 import { McpToolResponse, createTextResponse, createErrorResponse } from '../types/mcp-types.js';
+import { getAhkPath } from '../core/config.js';
 
 export const TestInteractiveArgsSchema = z.object({
   scriptContent: z.string().describe('AHK v2 script code to test'),
@@ -48,26 +49,15 @@ export const ahkTestInteractiveToolDefinition = {
 };
 
 export class AhkTestInteractiveTool {
-  private static readonly AHK_COMMON_PATHS = [
-    'C:\\Program Files\\AutoHotkey\\v2\\AutoHotkey64.exe',
-    'C:\\Program Files (x86)\\AutoHotkey\\v2\\AutoHotkey64.exe',
-    'C:\\Program Files\\AutoHotkey\\v2\\AutoHotkey.exe',
-    'C:\\Program Files (x86)\\AutoHotkey\\v2\\AutoHotkey.exe',
-  ];
-
   private static async findAutoHotkeyPath(): Promise<string | undefined> {
-    // Check common installation paths
-    for (const ahkPath of AhkTestInteractiveTool.AHK_COMMON_PATHS) {
-      try {
-        await fs.access(ahkPath);
-        logger.info(`Found AutoHotkey at: ${ahkPath}`);
-        return ahkPath;
-      } catch {
-        // Continue checking other paths
-      }
+    // Use config-based path detection (checks user config, env, then defaults)
+    const configPath = getAhkPath();
+    if (configPath) {
+      logger.info(`Found AutoHotkey at: ${configPath}`);
+      return configPath;
     }
 
-    // Try to find via PATH
+    // Fallback: try to find via PATH on Windows
     if (os.platform() === 'win32') {
       try {
         const { execSync } = await import('child_process');

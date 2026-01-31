@@ -14,6 +14,11 @@ import { pathInterceptor } from '../core/path-interceptor.js';
 import { safeParse } from '../core/validation-middleware.js';
 import { setLastEditedFile } from '../core/config.js';
 import { openFileInVSCode } from '../utils/vscode-open.js';
+import {
+  hasElicitationConfirmation,
+  createFileEditElicitation,
+  buildElicitationResponse,
+} from '../core/elicitation.js';
 
 export const AhkEditArgsSchema = z.object({
   action: z.enum(['replace', 'insert', 'delete', 'append', 'prepend', 'create']).default('replace'),
@@ -69,6 +74,12 @@ export const AhkEditArgsSchema = z.object({
     .default(false)
     .describe(
       'Validate AHK code before writing. When true, runs the resulting code through AHK_Cloud_Validate and blocks the edit if errors are found.'
+    ),
+  confirmDestructive: z
+    .boolean()
+    .optional()
+    .describe(
+      'Confirm destructive operations (delete, batch replace). Required when deleting >10 lines or replacing many matches.'
     ),
 });
 
@@ -180,8 +191,7 @@ Shows a DRY RUN report instead of touching the file.
       validate: {
         type: 'boolean',
         default: false,
-        description:
-          'Validate AHK code before writing. Blocks edit if syntax errors are found.',
+        description: 'Validate AHK code before writing. Blocks edit if syntax errors are found.',
       },
     },
   },
@@ -484,6 +494,31 @@ export class AhkEditTool {
         return result;
       }
 
+      // MCP 2025: Elicitation check for destructive operations
+      if (action === 'delete' && !hasElicitationConfirmation(args)) {
+        // Calculate lines affected
+        let linesAffected = 0;
+        if (line || startLine) {
+          const start = line || startLine!;
+          const end = endLine || start;
+          linesAffected = end - start + 1;
+        } else if (search) {
+          // Count matches
+          const searchRegex = regex
+            ? new RegExp(search, all ? 'g' : '')
+            : new RegExp(search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), all ? 'g' : '');
+          const matches = currentContent.match(searchRegex);
+          linesAffected = matches ? matches.length : 0;
+        }
+
+        // Require confirmation for deleting >10 lines
+        if (linesAffected > 10) {
+          const elicitation = createFileEditElicitation(targetFile, linesAffected, 'delete');
+          const preview = `**Delete Preview**\nFile: ${targetFile}\nLines affected: ${linesAffected}`;
+          return buildElicitationResponse(elicitation, preview);
+        }
+      }
+
       // Perform the edit operation
       let newContent: string;
       let operationSummary: string;
@@ -628,18 +663,23 @@ export class AhkEditTool {
           // Fallback: check for errors in first content block
         }
 
-        if (!validationData.success || (validationData.errors && validationData.errors.length > 0)) {
-          const errorList = validationData.errors?.map((e: any) =>
-            `- **${e.type}** (line ${e.line || '?'}): ${e.message}`
-          ).join('\n') || 'Unknown validation error';
+        if (
+          !validationData.success ||
+          (validationData.errors && validationData.errors.length > 0)
+        ) {
+          const errorList =
+            validationData.errors
+              ?.map((e: any) => `- **${e.type}** (line ${e.line || '?'}): ${e.message}`)
+              .join('\n') || 'Unknown validation error';
 
           return {
             content: [
               {
                 type: 'text',
-                text: `**Edit Blocked - Validation Failed**\n\n` +
-                      `The edit would introduce syntax errors:\n\n${errorList}\n\n` +
-                      `**File not modified.** Fix the code and try again, or set \`validate: false\` to skip validation.`,
+                text:
+                  `**Edit Blocked - Validation Failed**\n\n` +
+                  `The edit would introduce syntax errors:\n\n${errorList}\n\n` +
+                  `**File not modified.** Fix the code and try again, or set \`validate: false\` to skip validation.`,
               },
             ],
             isError: true,

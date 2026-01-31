@@ -11,6 +11,10 @@ export interface AhkMcpConfig {
   autoDetectedPaths?: string[];
   lastEditedFile?: string;
   lastEditedAt?: string;
+  /** Path to AutoHotkey v2 executable */
+  ahkPath?: string;
+  /** VS Code workspace folder for opening files */
+  vscodeWorkspace?: string;
 }
 
 function getConfigDir(): string {
@@ -277,6 +281,65 @@ export function getAllLibraryPaths(): string[] {
   }
 
   return allPaths;
+}
+
+/**
+ * Default paths to check for AutoHotkey v2 executable
+ */
+const AHK_DEFAULT_PATHS = [
+  'C:\\Program Files\\AutoHotkey\\v2\\AutoHotkey64.exe',
+  'C:\\Program Files (x86)\\AutoHotkey\\v2\\AutoHotkey64.exe',
+  'C:\\Program Files\\AutoHotkey\\v2\\AutoHotkey.exe',
+  'C:\\Program Files (x86)\\AutoHotkey\\v2\\AutoHotkey.exe',
+];
+
+/**
+ * Get the configured or detected AutoHotkey executable path
+ * Priority: config.ahkPath > env AHK_PATH > default paths
+ */
+export function getAhkPath(): string | undefined {
+  const cfg = loadConfig();
+
+  // 1. User configured path
+  if (cfg.ahkPath && fs.existsSync(cfg.ahkPath)) {
+    return cfg.ahkPath;
+  }
+
+  // 2. Environment variable
+  const envPath = process.env.AHK_PATH || process.env.AHK_MCP_AHK_PATH;
+  if (envPath && fs.existsSync(envPath)) {
+    return envPath;
+  }
+
+  // 3. Default installation paths
+  for (const p of AHK_DEFAULT_PATHS) {
+    if (fs.existsSync(p)) {
+      return p;
+    }
+  }
+
+  return undefined;
+}
+
+/**
+ * Get the configured VS Code workspace folder
+ * Priority: config.vscodeWorkspace > env AHK_MCP_VSCODE_WORKSPACE > undefined
+ */
+export function getVscodeWorkspace(): string | undefined {
+  const cfg = loadConfig();
+
+  // 1. User configured workspace
+  if (cfg.vscodeWorkspace) {
+    return cfg.vscodeWorkspace;
+  }
+
+  // 2. Environment variable
+  const envWorkspace = process.env.AHK_MCP_VSCODE_WORKSPACE;
+  if (envWorkspace) {
+    return envWorkspace;
+  }
+
+  return undefined;
 }
 
 export function resolveFilePath(pathOrName: string): string | undefined {

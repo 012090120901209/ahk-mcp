@@ -7,12 +7,14 @@ export const AhkConfigArgsSchema = z.object({
   action: z.enum(['get', 'set']).default('get'),
   scriptDir: z.string().optional(),
   searchDirs: z.array(z.string()).optional(),
+  ahkPath: z.string().optional().describe('Path to AutoHotkey v2 executable'),
+  vscodeWorkspace: z.string().optional().describe('VS Code workspace folder for opening files'),
 });
 
 export const ahkConfigToolDefinition = {
   name: 'AHK_Config',
   description: `Ahk config
-Get/Set MCP configuration for A_ScriptDir and additional search directories.`,
+Get/Set MCP configuration for script directories, AutoHotkey executable path, and VS Code workspace.`,
   inputSchema: {
     type: 'object',
     properties: {
@@ -22,6 +24,14 @@ Get/Set MCP configuration for A_ScriptDir and additional search directories.`,
         type: 'array',
         items: { type: 'string' },
         description: 'Additional directories to scan',
+      },
+      ahkPath: {
+        type: 'string',
+        description: 'Path to AutoHotkey v2 executable (e.g., C:\\Path\\AutoHotkey64.exe)',
+      },
+      vscodeWorkspace: {
+        type: 'string',
+        description: 'VS Code workspace folder - files open in this window',
       },
     },
   },
@@ -33,18 +43,21 @@ export class AhkConfigTool {
     const parsed = safeParse(args, AhkConfigArgsSchema, 'AHK_Config');
     if (!parsed.success) return parsed.error;
 
-    const { action, scriptDir, searchDirs } = parsed.data;
+    const { action, scriptDir, searchDirs, ahkPath, vscodeWorkspace } = parsed.data;
 
     try {
       if (action === 'get') {
         const cfg = loadConfig();
+        const summary = [
+          `scriptDir: ${cfg.scriptDir || '(unset)'}`,
+          `searchDirs: ${(cfg.searchDirs || []).join('; ') || '(none)'}`,
+          `ahkPath: ${cfg.ahkPath || '(auto-detect)'}`,
+          `vscodeWorkspace: ${cfg.vscodeWorkspace || '(none)'}`,
+        ].join('\n');
         return {
           content: [
             { type: 'text', text: JSON.stringify({ config: cfg }, null, 2) },
-            {
-              type: 'text',
-              text: `scriptDir: ${cfg.scriptDir || '(unset)'}\nsearchDirs: ${(cfg.searchDirs || []).join('; ')}`,
-            },
+            { type: 'text', text: summary },
           ],
         };
       }
@@ -56,6 +69,12 @@ export class AhkConfigTool {
       }
       if (Array.isArray(searchDirs)) {
         cfg.searchDirs = (searchDirs || []).map(d => normalizeDir(d)!).filter(Boolean) as string[];
+      }
+      if (typeof ahkPath === 'string') {
+        cfg.ahkPath = ahkPath;
+      }
+      if (typeof vscodeWorkspace === 'string') {
+        cfg.vscodeWorkspace = vscodeWorkspace;
       }
       saveConfig(cfg);
 
