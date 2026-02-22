@@ -13,6 +13,8 @@ import type {
 import logger from '../logger.js';
 import { safeParse } from '../core/validation-middleware.js';
 import { createToolDefinition } from '../utils/schema-generator.js';
+import { ErrorResponseBuilder, ErrorCode } from '../core/error-response-builder.js';
+import type { ErrorCodeType } from '../core/error-types.js';
 
 type FileViewArgs = z.infer<typeof AhkFileViewArgsSchema>;
 
@@ -23,6 +25,10 @@ type HotkeyStatementNode = Statement & {
 
 export const AhkFileViewArgsSchema = z.object({
   file: z.string().optional().describe('Path to AutoHotkey file to view (defaults to active file)'),
+  filePath: z
+    .string()
+    .optional()
+    .describe('Deprecated alias for `file`. Still accepted for backward compatibility.'),
   mode: z
     .enum(['structured', 'raw', 'summary', 'outline'])
     .default('structured')
@@ -36,11 +42,25 @@ export const AhkFileViewArgsSchema = z.object({
   showStructure: z.boolean().default(true).describe('Show code structure info'),
 });
 
+const AhkFileViewOutputSchema: Record<string, unknown> = {
+  type: 'object',
+  properties: {
+    file: { type: 'string' },
+    mode: { type: 'string' },
+    metadata: { type: 'object' },
+    structure: { type: 'object' },
+    content: { type: 'string' },
+    displayInfo: { type: 'object' },
+  },
+  required: ['file', 'mode', 'metadata', 'content', 'displayInfo'],
+};
+
 // Auto-generate inputSchema from Zod schema - no manual duplication!
 export const ahkFileViewToolDefinition = createToolDefinition(
   'AHK_File_View',
   'View AHK files with structure analysis. Modes: structured (default), raw, summary, outline. Supports line ranges and syntax highlighting.',
-  AhkFileViewArgsSchema
+  AhkFileViewArgsSchema,
+  { outputSchema: AhkFileViewOutputSchema }
 );
 
 interface FileMetadata {
@@ -80,17 +100,19 @@ interface ViewResult {
 export class AhkFileViewTool {
   async execute(args: unknown) {
     const parsed = safeParse(args, AhkFileViewArgsSchema, 'AHK_File_View');
-    if (!parsed.success) return parsed.error;
+    if (parsed.success === false) return parsed.error;
 
+    let validatedArgs: FileViewArgs | undefined;
     try {
       // Ensure schema defaults are applied (and the inferred output type matches)
-      const validatedArgs = AhkFileViewArgsSchema.parse(parsed.data);
-      const { file, mode } = validatedArgs;
+      validatedArgs = AhkFileViewArgsSchema.parse(parsed.data);
+      const requestedFile = this.resolveRequestedFile(validatedArgs);
+      const { mode } = validatedArgs;
 
       logger.info(`Viewing AutoHotkey file in ${mode} mode`);
 
       // Resolve file path
-      const filePath = await this.resolveTargetFile(file);
+      const filePath = await this.resolveTargetFile(requestedFile);
 
       // Ensure the resolved file becomes the active file for follow-up edit tools
       if (!activeFile.setActiveFile(filePath)) {
@@ -102,23 +124,91 @@ export class AhkFileViewTool {
 
       // Format output based on mode
       const output = this.formatOutput(result, validatedArgs);
+      const structuredMetadata = {
+        ...result.metadata,
+        modified: result.metadata.modified.toISOString(),
+      };
 
       return {
         content: [{ type: 'text', text: output }],
+        structuredContent: {
+          file: result.metadata.path,
+          mode: validatedArgs.mode,
+          metadata: structuredMetadata,
+          structure: result.structure,
+          content: result.content,
+          displayInfo: result.displayInfo,
+        },
       };
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
       logger.error('AHK file view failed:', error);
-
-      return {
-        content: [
-          {
-            type: 'text',
-            text: `**File View Error**\n\n${errorMessage}`,
-          },
-        ],
-      };
+      return this.buildVerboseError(error, validatedArgs);
     }
+  }
+
+  private resolveRequestedFile(args: FileViewArgs): string | undefined {
+    if (args.file && args.filePath && args.file !== args.filePath) {
+      logger.warn(
+        `AHK_File_View received both file and filePath with different values; using file. file="${args.file}", filePath="${args.filePath}"`
+      );
+      return args.file;
+    }
+
+    if (!args.file && args.filePath) {
+      logger.warn(
+        'AHK_File_View received deprecated argument "filePath". Use "file" instead for forward compatibility.'
+      );
+      return args.filePath;
+    }
+
+    return args.file;
+  }
+
+  private classifyViewError(error: unknown): ErrorCodeType {
+    const nodeError = error as NodeJS.ErrnoException;
+    const message = (nodeError?.message || String(error)).toLowerCase();
+
+    if (nodeError?.code === 'ENOENT' || message.includes('not found')) {
+      return ErrorCode.FILE_NOT_FOUND;
+    }
+
+    if (nodeError?.code === 'EACCES' || nodeError?.code === 'EPERM') {
+      return ErrorCode.FILE_PERMISSION_DENIED;
+    }
+
+    if (nodeError?.code === 'EISDIR') {
+      return ErrorCode.INVALID_FILE_TYPE;
+    }
+
+    return ErrorCode.FILE_READ_ERROR;
+  }
+
+  private buildVerboseError(error: unknown, args?: FileViewArgs) {
+    const requestedFile = args ? this.resolveRequestedFile(args) : undefined;
+    const errorCode = this.classifyViewError(error);
+
+    const builder = ErrorResponseBuilder.fromError(error, errorCode)
+      .tool('AHK_File_View')
+      .operation('view file')
+      .details({
+        requestedFile: requestedFile || null,
+        mode: args?.mode || null,
+        lineStart: args?.lineStart ?? null,
+        lineEnd: args?.lineEnd ?? null,
+        maxLines: args?.maxLines ?? null,
+      })
+      .suggest('Use AHK_File_List to find candidate files before viewing')
+      .suggest('Set an active file with AHK_File_Active, then call AHK_File_View without `file`');
+
+    if (args?.filePath && !args.file) {
+      builder.suggest('Update callers to use `file` instead of deprecated `filePath`');
+    }
+
+    if (requestedFile) {
+      builder.file(requestedFile);
+    }
+
+    return builder.build();
   }
 
   private async resolveTargetFile(file?: string): Promise<string> {

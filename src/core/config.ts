@@ -11,11 +11,28 @@ export interface AhkMcpConfig {
   autoDetectedPaths?: string[];
   lastEditedFile?: string;
   lastEditedAt?: string;
-  /** Path to AutoHotkey v2 executable */
-  ahkPath?: string;
-  /** VS Code workspace folder for opening files */
-  vscodeWorkspace?: string;
 }
+
+export interface PrioritizedFileSearchOptions {
+  scriptDir?: string;
+  extraDirs?: string[];
+  projectHint?: string;
+}
+
+const NOISY_PROJECT_DIRECTORIES = new Set([
+  'node_modules',
+  '.git',
+  '.history',
+  'dist',
+  'build',
+  'coverage',
+  'logs',
+  'tmp',
+  'temp',
+]);
+
+const MIN_HINT_TOKEN_LENGTH = 3;
+const PROJECT_MATCH_LIMIT = 6;
 
 function getConfigDir(): string {
   const override = process.env.AHK_MCP_CONFIG_DIR;
@@ -91,6 +108,215 @@ export function resolveSearchDirs(argsScriptDir?: string, argsExtraDirs?: string
     add(process.cwd());
   }
   return dirs;
+}
+
+function isExistingDirectory(candidate?: string): candidate is string {
+  const normalized = normalizeDir(candidate);
+  if (!normalized || !fs.existsSync(normalized)) {
+    return false;
+  }
+
+  try {
+    return fs.statSync(normalized).isDirectory();
+  } catch {
+    return false;
+  }
+}
+
+function isExistingFile(candidate?: string): candidate is string {
+  const normalized = normalizeDir(candidate);
+  if (!normalized || !fs.existsSync(normalized)) {
+    return false;
+  }
+
+  try {
+    return fs.statSync(normalized).isFile();
+  } catch {
+    return false;
+  }
+}
+
+function pushUniqueDirectory(directories: string[], candidate?: string): void {
+  if (!isExistingDirectory(candidate)) {
+    return;
+  }
+
+  const normalized = path.resolve(candidate);
+  if (!directories.includes(normalized)) {
+    directories.push(normalized);
+  }
+}
+
+function sanitizeFileHint(pathOrName: string): string {
+  return pathOrName.trim().replace(/^['"]+|['"]+$/g, '');
+}
+
+function normalizeSearchKey(value: string): string {
+  return value.toLowerCase().replace(/[^a-z0-9]/g, '');
+}
+
+function tokenizeSearchHint(value: string): string[] {
+  const withoutWildcards = value.replace(/[*?]/g, ' ');
+  const baseName = path.parse(withoutWildcards).name || withoutWildcards;
+  const withCamelSpacing = baseName.replace(/([a-z0-9])([A-Z])/g, '$1 $2');
+  const tokens = withCamelSpacing
+    .toLowerCase()
+    .split(/[^a-z0-9]+/)
+    .map(token => token.trim())
+    .filter(token => token.length >= MIN_HINT_TOKEN_LENGTH);
+
+  return [...new Set(tokens)];
+}
+
+function scoreProjectDirectoryName(
+  directoryName: string,
+  normalizedHint: string,
+  hintTokens: string[]
+): number {
+  const normalizedDirectoryName = normalizeSearchKey(directoryName);
+  if (!normalizedDirectoryName) {
+    return 0;
+  }
+
+  if (normalizedHint.length >= 4 && normalizedDirectoryName.includes(normalizedHint)) {
+    return 1;
+  }
+
+  if (hintTokens.length === 0) {
+    return 0;
+  }
+
+  const tokenMatches = hintTokens.filter(token => normalizedDirectoryName.includes(token)).length;
+  if (tokenMatches === 0) {
+    return 0;
+  }
+
+  return tokenMatches / hintTokens.length;
+}
+
+function findProjectLikeDirectories(baseDir: string, projectHint: string): string[] {
+  if (!isExistingDirectory(baseDir)) {
+    return [];
+  }
+
+  const normalizedHintSource = path.parse(projectHint.replace(/[*?]/g, '')).name || projectHint;
+  const normalizedHint = normalizeSearchKey(normalizedHintSource);
+  const hintTokens = tokenizeSearchHint(projectHint);
+  if (!normalizedHint && hintTokens.length === 0) {
+    return [];
+  }
+
+  let entries: fs.Dirent[];
+  try {
+    entries = fs.readdirSync(baseDir, { withFileTypes: true });
+  } catch {
+    return [];
+  }
+
+  const scored: Array<{ dir: string; score: number }> = [];
+  for (const entry of entries) {
+    if (!entry.isDirectory()) {
+      continue;
+    }
+
+    if (entry.name.startsWith('.')) {
+      continue;
+    }
+
+    const lowerName = entry.name.toLowerCase();
+    if (lowerName === 'lib' || NOISY_PROJECT_DIRECTORIES.has(lowerName)) {
+      continue;
+    }
+
+    const score = scoreProjectDirectoryName(entry.name, normalizedHint, hintTokens);
+    if (score < 0.5) {
+      continue;
+    }
+
+    scored.push({
+      dir: path.join(baseDir, entry.name),
+      score,
+    });
+  }
+
+  scored.sort((a, b) => {
+    if (b.score !== a.score) {
+      return b.score - a.score;
+    }
+    if (a.dir.length !== b.dir.length) {
+      return a.dir.length - b.dir.length;
+    }
+    return a.dir.localeCompare(b.dir);
+  });
+
+  return scored.slice(0, PROJECT_MATCH_LIMIT).map(match => match.dir);
+}
+
+function getPrimaryScriptDirectories(overrideScriptDir?: string): string[] {
+  const cfg = loadConfig();
+  const envDir = process.env.AHK_MCP_SCRIPT_DIR;
+  const activeFile = getActiveFile();
+  const activeDir = activeFile ? path.dirname(activeFile) : undefined;
+
+  const directories: string[] = [];
+  pushUniqueDirectory(directories, overrideScriptDir);
+  pushUniqueDirectory(directories, cfg.scriptDir);
+  pushUniqueDirectory(directories, envDir);
+  pushUniqueDirectory(directories, activeDir);
+
+  if (directories.length === 0) {
+    pushUniqueDirectory(directories, process.cwd());
+  }
+
+  return directories;
+}
+
+export function getPrioritizedFileSearchDirs(
+  options: PrioritizedFileSearchOptions = {}
+): string[] {
+  const cfg = loadConfig();
+  const prioritized: string[] = [];
+  const primaryDirs = getPrimaryScriptDirectories(options.scriptDir);
+
+  // Priority 1: script directories
+  primaryDirs.forEach(dir => pushUniqueDirectory(prioritized, dir));
+
+  // Priority 2: Lib folders for each script directory
+  primaryDirs.forEach(dir => pushUniqueDirectory(prioritized, path.join(dir, 'Lib')));
+
+  // Priority 3: directories with names similar to the target project/script hint
+  if (options.projectHint && options.projectHint.trim().length > 0) {
+    const projectSearchBases: string[] = [];
+    primaryDirs.forEach(dir => {
+      pushUniqueDirectory(projectSearchBases, dir);
+      pushUniqueDirectory(projectSearchBases, path.dirname(dir));
+    });
+    pushUniqueDirectory(projectSearchBases, process.cwd());
+
+    for (const base of projectSearchBases) {
+      const candidates = findProjectLikeDirectories(base, options.projectHint);
+      candidates.forEach(dir => pushUniqueDirectory(prioritized, dir));
+      candidates.forEach(dir => pushUniqueDirectory(prioritized, path.join(dir, 'Lib')));
+    }
+  }
+
+  // Final fallback: explicitly configured extra directories
+  (options.extraDirs || []).forEach(dir => pushUniqueDirectory(prioritized, dir));
+  (cfg.searchDirs || []).forEach(dir => pushUniqueDirectory(prioritized, dir));
+
+  pushUniqueDirectory(prioritized, process.cwd());
+  return prioritized;
+}
+
+function buildPathCandidates(pathOrName: string): string[] {
+  const candidates = [pathOrName];
+
+  const hasExtension = path.extname(pathOrName).length > 0;
+  if (!hasExtension && !pathOrName.endsWith(path.sep)) {
+    candidates.push(`${pathOrName}.ahk`);
+  }
+
+  return [...new Set(candidates)];
 }
 
 /**
@@ -283,92 +509,26 @@ export function getAllLibraryPaths(): string[] {
   return allPaths;
 }
 
-/**
- * Default paths to check for AutoHotkey v2 executable
- */
-const AHK_DEFAULT_PATHS = [
-  'C:\\Program Files\\AutoHotkey\\v2\\AutoHotkey64.exe',
-  'C:\\Program Files (x86)\\AutoHotkey\\v2\\AutoHotkey64.exe',
-  'C:\\Program Files\\AutoHotkey\\v2\\AutoHotkey.exe',
-  'C:\\Program Files (x86)\\AutoHotkey\\v2\\AutoHotkey.exe',
-];
-
-/**
- * Get the configured or detected AutoHotkey executable path
- * Priority: config.ahkPath > env AHK_PATH > default paths
- */
-export function getAhkPath(): string | undefined {
-  const cfg = loadConfig();
-
-  // 1. User configured path
-  if (cfg.ahkPath && fs.existsSync(cfg.ahkPath)) {
-    return cfg.ahkPath;
-  }
-
-  // 2. Environment variable
-  const envPath = process.env.AHK_PATH || process.env.AHK_MCP_AHK_PATH;
-  if (envPath && fs.existsSync(envPath)) {
-    return envPath;
-  }
-
-  // 3. Default installation paths
-  for (const p of AHK_DEFAULT_PATHS) {
-    if (fs.existsSync(p)) {
-      return p;
-    }
-  }
-
-  return undefined;
-}
-
-/**
- * Get the configured VS Code workspace folder
- * Priority: config.vscodeWorkspace > env AHK_MCP_VSCODE_WORKSPACE > undefined
- */
-export function getVscodeWorkspace(): string | undefined {
-  const cfg = loadConfig();
-
-  // 1. User configured workspace
-  if (cfg.vscodeWorkspace) {
-    return cfg.vscodeWorkspace;
-  }
-
-  // 2. Environment variable
-  const envWorkspace = process.env.AHK_MCP_VSCODE_WORKSPACE;
-  if (envWorkspace) {
-    return envWorkspace;
-  }
-
-  return undefined;
-}
-
 export function resolveFilePath(pathOrName: string): string | undefined {
-  // If it's already an absolute path that exists, return it
-  if (path.isAbsolute(pathOrName) && fs.existsSync(pathOrName)) {
-    return path.resolve(pathOrName);
+  const requested = sanitizeFileHint(pathOrName);
+  if (!requested) {
+    return undefined;
   }
 
-  // Check if it exists relative to current directory
-  const fromCwd = path.resolve(process.cwd(), pathOrName);
-  if (fs.existsSync(fromCwd)) {
-    return fromCwd;
+  // If it's already an absolute path that exists, return it immediately.
+  if (path.isAbsolute(requested) && isExistingFile(requested)) {
+    return path.resolve(requested);
   }
 
-  // Check in configured directories
-  const searchDirs = resolveSearchDirs();
+  const candidatePaths = buildPathCandidates(requested);
+  const searchDirs = getPrioritizedFileSearchDirs({ projectHint: requested });
+
   for (const dir of searchDirs) {
-    const fullPath = path.resolve(dir, pathOrName);
-    if (fs.existsSync(fullPath)) {
-      return fullPath;
-    }
-  }
-
-  // Check if there's a script directory set
-  const cfg = loadConfig();
-  if (cfg.scriptDir) {
-    const fromScriptDir = path.resolve(cfg.scriptDir, pathOrName);
-    if (fs.existsSync(fromScriptDir)) {
-      return fromScriptDir;
+    for (const candidate of candidatePaths) {
+      const fullPath = path.resolve(dir, candidate);
+      if (isExistingFile(fullPath)) {
+        return fullPath;
+      }
     }
   }
 

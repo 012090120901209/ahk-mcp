@@ -1,15 +1,21 @@
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { SSEServerTransport } from '@modelcontextprotocol/sdk/server/sse.js';
+import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
+import { randomUUID } from 'node:crypto';
+import type { Express, NextFunction, Request, Response } from 'express';
 import { z } from 'zod';
 import {
+  CancelledNotificationSchema,
   CallToolRequestSchema,
+  CompleteRequestSchema,
   ListToolsRequestSchema,
   ListPromptsRequestSchema,
   GetPromptRequestSchema,
   ListResourcesRequestSchema,
   ReadResourceRequestSchema,
   SetLevelRequestSchema,
+  isInitializeRequest,
 } from '@modelcontextprotocol/sdk/types.js';
 import { initializeDataLoader, getAhkIndex } from './core/loader.js';
 import logger from './logger.js';
@@ -21,77 +27,43 @@ import { TaskManager } from './core/task-manager.js';
 import { logDebugEvent, logDebugError } from './debug-journal.js';
 import { getUnifiedLogger } from './core/unified-logger.js';
 // Import tool classes and definitions
-import {
-  AhkDiagnosticsTool,
-  ahkDiagnosticsToolDefinition,
-} from './tools/ahk-analyze-diagnostics.js';
-import { AhkSummaryTool, ahkSummaryToolDefinition } from './tools/ahk-analyze-summary.js';
-import {
-  AhkPromptsTool,
-  ahkPromptsToolDefinition,
-  getPromptCatalog,
-} from './tools/ahk-docs-prompts.js';
-import { AhkAnalyzeTool, ahkAnalyzeToolDefinition } from './tools/ahk-analyze-code.js';
-import {
-  AhkContextInjectorTool,
-  ahkContextInjectorToolDefinition,
-} from './tools/ahk-docs-context.js';
-import {
-  AhkSamplingEnhancer,
-  ahkSamplingEnhancerToolDefinition,
-} from './tools/ahk-docs-samples.js';
-import { AhkDebugAgentTool, ahkDebugAgentToolDefinition } from './tools/ahk-run-debug.js';
-import { AhkDocSearchTool, ahkDocSearchToolDefinition } from './tools/ahk-docs-search.js';
-import {
-  AhkVSCodeProblemsTool,
-  ahkVSCodeProblemsToolDefinition,
-} from './tools/ahk-analyze-vscode.js';
-import { AhkRunTool, ahkRunToolDefinition } from './tools/ahk-run-script.js';
-import { AhkRecentTool, ahkRecentToolDefinition } from './tools/ahk-file-recent.js';
-import { AhkConfigTool, ahkConfigToolDefinition } from './tools/ahk-system-config.js';
-import { AhkActiveFileTool, ahkActiveFileToolDefinition } from './tools/ahk-active-file.js';
-import { AhkLspTool, ahkLspToolDefinition } from './tools/ahk-analyze-lsp.js';
-import { AhkFileViewTool, ahkFileViewToolDefinition } from './tools/ahk-file-view.js';
-import { AhkFileListTool, ahkFileListToolDefinition } from './tools/ahk-file-list.js';
-import { AhkAutoFileTool, ahkAutoFileToolDefinition } from './tools/ahk-file-detect.js';
-import { AhkProcessRequestTool, ahkProcessRequestToolDefinition } from './tools/ahk-run-process.js';
-import { AhkFileTool, ahkFileToolDefinition } from './tools/ahk-file-active.js';
-import { AhkEditTool, ahkEditToolDefinition } from './tools/ahk-file-edit.js';
-import { AhkDiffEditTool, ahkDiffEditToolDefinition } from './tools/ahk-file-edit-diff.js';
-import { AhkSettingsTool, ahkSettingsToolDefinition } from './tools/ahk-system-settings.js';
-import { AhkVSCodeOpenTool, ahkVSCodeOpenToolDefinition } from './tools/ahk-vscode-open.js';
-import { AhkAlphaTool, ahkAlphaToolDefinition } from './tools/ahk-system-alpha.js';
-import { AhkFileEditorTool, ahkFileEditorToolDefinition } from './tools/ahk-file-edit-advanced.js';
-import { AhkSmallEditTool, ahkSmallEditToolDefinition } from './tools/ahk-file-edit-small.js';
-import {
-  AhkSmartOrchestratorTool,
-  ahkSmartOrchestratorToolDefinition,
-} from './tools/ahk-smart-orchestrator.js';
-import { AhkFileCreateTool, ahkFileCreateToolDefinition } from './tools/ahk-file-create.js';
-import { AhkAnalyticsTool, ahkAnalyticsToolDefinition } from './tools/ahk-system-analytics.js';
-import {
-  AhkTestInteractiveTool,
-  ahkTestInteractiveToolDefinition,
-} from './tools/ahk-test-interactive.js';
-import { AhkTraceViewerTool, ahkTraceViewerToolDefinition } from './tools/ahk-trace-viewer.js';
-import { AhkLintTool, ahkLintToolDefinition } from './tools/ahk-lint.js';
-import { AhkToolsSearchTool, ahkToolsSearchToolDefinition } from './tools/ahk-tools-search.js';
-import {
-  AhkWorkflowAnalyzeFixRunTool,
-  ahkWorkflowAnalyzeFixRunToolDefinition,
-} from './tools/ahk-workflow-analyze-fix-run.js';
-import {
-  AhkThqbyDocumentSymbolsTool,
-  ahkThqbyDocumentSymbolsToolDefinition,
-} from './tools/ahk-thqby-document-symbols.js';
-import {
-  AhkCloudValidateTool,
-  ahkCloudValidateToolDefinition,
-} from './tools/ahk-cloud-validate.js';
-import { AhkDebugDBGpTool, ahkDebugDBGpToolDefinition } from './tools/ahk-debug-dbgp.js';
-import { AHK_Library_List_Definition } from './tools/ahk-library-list.js';
-import { AHK_Library_Info_Definition } from './tools/ahk-library-info.js';
-import { AHK_Library_Import_Definition } from './tools/ahk-library-import.js';
+import { AhkDiagnosticsTool } from './tools/ahk-analyze-diagnostics.js';
+import { AhkSummaryTool } from './tools/ahk-analyze-summary.js';
+import { AhkPromptsTool, getPromptCatalog } from './tools/ahk-docs-prompts.js';
+import { AhkAnalyzeTool } from './tools/ahk-analyze-code.js';
+import { AhkContextInjectorTool } from './tools/ahk-docs-context.js';
+import { AhkSamplingEnhancer } from './tools/ahk-docs-samples.js';
+import { AhkDebugAgentTool } from './tools/ahk-run-debug.js';
+import { AhkDocSearchTool } from './tools/ahk-docs-search.js';
+import { AhkVSCodeProblemsTool } from './tools/ahk-analyze-vscode.js';
+import { AhkRunTool } from './tools/ahk-run-script.js';
+import { AhkRecentTool } from './tools/ahk-file-recent.js';
+import { AhkConfigTool } from './tools/ahk-system-config.js';
+import { AhkActiveFileTool } from './tools/ahk-active-file.js';
+import { AhkLspTool } from './tools/ahk-analyze-lsp.js';
+import { AhkFileViewTool } from './tools/ahk-file-view.js';
+import { AhkFileListTool } from './tools/ahk-file-list.js';
+import { AhkAutoFileTool } from './tools/ahk-file-detect.js';
+import { AhkProcessRequestTool } from './tools/ahk-run-process.js';
+import { AhkFileTool } from './tools/ahk-file-active.js';
+import { AhkEditTool } from './tools/ahk-file-edit.js';
+import { AhkDiffEditTool } from './tools/ahk-file-edit-diff.js';
+import { AhkSettingsTool } from './tools/ahk-system-settings.js';
+import { AhkVSCodeOpenTool } from './tools/ahk-vscode-open.js';
+import { AhkAlphaTool } from './tools/ahk-system-alpha.js';
+import { AhkFileEditorTool } from './tools/ahk-file-edit-advanced.js';
+import { AhkSmallEditTool } from './tools/ahk-file-edit-small.js';
+import { AhkSmartOrchestratorTool } from './tools/ahk-smart-orchestrator.js';
+import { AhkFileCreateTool } from './tools/ahk-file-create.js';
+import { AhkAnalyticsTool } from './tools/ahk-system-analytics.js';
+import { AhkTestInteractiveTool } from './tools/ahk-test-interactive.js';
+import { AhkTraceViewerTool } from './tools/ahk-trace-viewer.js';
+import { AhkLintTool } from './tools/ahk-lint.js';
+import { AhkToolsSearchTool } from './tools/ahk-tools-search.js';
+import { AhkWorkflowAnalyzeFixRunTool } from './tools/ahk-workflow-analyze-fix-run.js';
+import { AhkThqbyDocumentSymbolsTool } from './tools/ahk-thqby-document-symbols.js';
+import { AhkCloudValidateTool } from './tools/ahk-cloud-validate.js';
+import { AhkDebugDBGpTool } from './tools/ahk-debug-dbgp.js';
 import { autoDetect, getActiveFilePath } from './core/active-file.js';
 import { toolSettings } from './core/tool-settings.js';
 import { configManager } from './core/path-converter-config.js';
@@ -100,12 +72,26 @@ import { pathInterceptor } from './core/path-interceptor.js';
 import { observabilityServer } from './core/observability-server.js';
 import './core/opentelemetry.js'; // Initialize OpenTelemetry (if enabled)
 import { tracer } from './core/tracing.js';
-import {
-  getStandardToolDefinitions,
-  getToolMetadata,
-  getToolDefinitionsWithAnnotations,
-} from './core/tool-metadata.js';
-import { progressNotifier, extractProgressToken } from './core/progress-notifier.js';
+import { getStandardToolDefinitions, getToolMetadata } from './core/tool-metadata.js';
+import { InMemoryEventStore } from './core/in-memory-event-store.js';
+
+type StreamableSessionEntry = {
+  protocol: 'streamable';
+  server: Server;
+  transport: StreamableHTTPServerTransport;
+  createdAt: number;
+  lastActivity: number;
+};
+
+type SseSessionEntry = {
+  protocol: 'sse';
+  server: Server;
+  transport: SSEServerTransport;
+  createdAt: number;
+  lastActivity: number;
+};
+
+type SessionEntry = StreamableSessionEntry | SseSessionEntry;
 
 export class AutoHotkeyMcpServer {
   private server: Server;
@@ -150,31 +136,6 @@ export class AutoHotkeyMcpServer {
   public ahkDebugDBGpToolInstance: AhkDebugDBGpTool;
 
   constructor() {
-    this.server = new Server(
-      {
-        name: 'ahk-mcp-server',
-        version: '2.0.0',
-      },
-      {
-        capabilities: {
-          tools: {},
-          prompts: {},
-          resources: {},
-          sampling: {},
-          logging: {},
-          tasks: {
-            list: {},
-            cancel: {},
-            requests: {
-              tools: {
-                call: {},
-              },
-            },
-          },
-        },
-      }
-    );
-
     // Initialize tool instances
     this.ahkDiagnosticsToolInstance = new AhkDiagnosticsTool();
     this.ahkSummaryToolInstance = new AhkSummaryTool();
@@ -215,9 +176,6 @@ export class AutoHotkeyMcpServer {
     this.toolRegistry = new ToolRegistry(this);
     this.taskManager = new TaskManager();
 
-    // Initialize progress notifier with server instance
-    progressNotifier.setServer(this.server);
-
     // Initialize workflow tool with dependencies (must be after other tools are initialized)
     this.ahkWorkflowAnalyzeFixRunToolInstance = new AhkWorkflowAnalyzeFixRunTool(
       this.ahkAnalyzeToolInstance,
@@ -232,32 +190,71 @@ export class AutoHotkeyMcpServer {
     // Initialize path conversion system
     this.initializePathConversion();
 
-    this.setupToolHandlers();
-    this.setupTaskHandlers();
-    this.setupPromptHandlers();
-    this.setupResourceHandlers();
-    this.setupLoggingHandlers();
+    // Single server instance for stdio mode; HTTP mode creates one server per session.
+    this.server = this.createServer();
+  }
+
+  private createServer(): Server {
+    const server = new Server(
+      {
+        name: 'ahk-mcp-server',
+        version: '2.0.0',
+      },
+      {
+        capabilities: {
+          tools: {},
+          prompts: {},
+          resources: {},
+          completions: {},
+          logging: {},
+          tasks: {
+            list: {},
+            cancel: {},
+            requests: {
+              tools: {
+                call: {},
+              },
+            },
+          },
+        },
+      }
+    );
+
+    this.setupToolHandlers(server);
+    this.setupTaskHandlers(server);
+    this.setupPromptHandlers(server);
+    this.setupResourceHandlers(server);
+    this.setupCompletionHandlers(server);
+    this.setupLoggingHandlers(server);
+
+    return server;
   }
 
   /**
    * Setup logging handlers to prevent "Method not found" errors
    */
-  private setupLoggingHandlers(): void {
+  private setupLoggingHandlers(server: Server): void {
     // Handle logging/setLevel requests (sent by some clients during initialization)
     // We acknowledge the request but use our own server-side logging
-    this.server.setRequestHandler(SetLevelRequestSchema, async request => {
+    server.setRequestHandler(SetLevelRequestSchema, async request => {
       const level = request.params.level;
       logger.debug(`Client requested log level: ${level} (using server-side logging)`);
       return {};
+    });
+
+    server.setNotificationHandler(CancelledNotificationSchema, async notification => {
+      logger.info(
+        `Client cancelled request ${notification.params.requestId ?? 'unknown'}: ${notification.params.reason ?? 'no reason provided'}`
+      );
     });
   }
 
   /**
    * Setup MCP tool handlers
    */
-  private setupToolHandlers(): void {
+  private setupToolHandlers(server: Server): void {
     // List tools handler
-    this.server.setRequestHandler(ListToolsRequestSchema, async () => {
+    server.setRequestHandler(ListToolsRequestSchema, async () => {
       logger.debug('Listing available AutoHotkey tools');
 
       // Check if we're in SSE mode (for ChatGPT compatibility)
@@ -267,8 +264,7 @@ export class AutoHotkeyMcpServer {
         message: useSSE ? 'Including SSE-specific tools' : 'Standard tool listing',
       });
 
-      // Get tools with MCP 2025 annotations included
-      const annotatedTools = getToolDefinitionsWithAnnotations();
+      const standardTools = getStandardToolDefinitions();
       const metadataIndex = new Map(getToolMetadata().map(entry => [entry.definition.name, entry]));
       const activeFileAwareNames = new Set(
         getToolMetadata()
@@ -278,7 +274,7 @@ export class AutoHotkeyMcpServer {
       const activeFilePath = getActiveFilePath();
       const activeFileNote = `\n\n📎 Active File: ${activeFilePath ?? 'Not set. Use AHK_File_Active to select a target.'}`;
 
-      const contextualTools = annotatedTools.map(tool => {
+      const contextualTools = standardTools.map(tool => {
         if (!activeFileAwareNames.has(tool.name)) {
           return tool;
         }
@@ -338,20 +334,12 @@ export class AutoHotkeyMcpServer {
     });
 
     // Call tool handler
-    this.server.setRequestHandler(CallToolRequestSchema, async request => {
+    server.setRequestHandler(CallToolRequestSchema, async request => {
       const params = request.params as typeof request.params & { task?: { ttl?: number } };
       const { name, arguments: args } = params;
       const taskRequest = params.task;
       const startTime = Date.now();
       const toolTimeoutMs = envConfig.getToolTimeoutMs();
-
-      // Extract progressToken from request _meta (MCP 2025)
-      const progressToken = extractProgressToken(request);
-
-      // Inject progressToken into args for tools to use (MCP 2025)
-      const enrichedArgs = progressToken
-        ? { ...(args as Record<string, unknown>), _progressToken: progressToken }
-        : args;
 
       // Unified logging: generate call ID and log start
       const callId = `${name}-${startTime}-${Math.random().toString(36).slice(2, 8)}`;
@@ -383,7 +371,7 @@ export class AutoHotkeyMcpServer {
             toolName: name,
             ttl,
             pollInterval,
-            execute: () => this.executeToolWithTimeout(name, enrichedArgs, taskTimeoutMs),
+            execute: () => this.executeToolWithTimeout(name, args, taskTimeoutMs),
           });
 
           // Unified logging: task queued (execution is async)
@@ -401,12 +389,12 @@ export class AutoHotkeyMcpServer {
             // Add tool metadata to span
             span.attributes.tool = name;
             span.attributes.argCount =
-              enrichedArgs && typeof enrichedArgs === 'object'
-                ? Object.keys(enrichedArgs as Record<string, unknown>).length
+              args && typeof args === 'object'
+                ? Object.keys(args as Record<string, unknown>).length
                 : 0;
 
             // Execute the tool
-            const toolResult = await this.executeToolWithTimeout(name, enrichedArgs, toolTimeoutMs);
+            const toolResult = await this.executeToolWithTimeout(name, args, toolTimeoutMs);
 
             // Add result metadata to span
             if (toolResult && toolResult.content) {
@@ -442,7 +430,7 @@ export class AutoHotkeyMcpServer {
   /**
    * Setup MCP task handlers
    */
-  private setupTaskHandlers(): void {
+  private setupTaskHandlers(server: Server): void {
     const taskStatusValues = ['working', 'completed', 'failed', 'canceled'] as const;
     const TaskStatusSchema = z.enum(taskStatusValues);
 
@@ -476,13 +464,13 @@ export class AutoHotkeyMcpServer {
       }),
     });
 
-    this.server.setRequestHandler(TaskListRequestSchema, async request => {
+    server.setRequestHandler(TaskListRequestSchema, async request => {
       const status = request.params?.status;
       const tasks = this.taskManager.listTasks(status);
       return { tasks };
     });
 
-    this.server.setRequestHandler(TaskGetRequestSchema, async request => {
+    server.setRequestHandler(TaskGetRequestSchema, async request => {
       const { taskId } = request.params;
       const task = this.taskManager.getTask(taskId);
       if (!task) {
@@ -491,7 +479,7 @@ export class AutoHotkeyMcpServer {
       return { task };
     });
 
-    this.server.setRequestHandler(TaskCancelRequestSchema, async request => {
+    server.setRequestHandler(TaskCancelRequestSchema, async request => {
       const { taskId } = request.params;
       const task = this.taskManager.cancelTask(taskId);
       if (!task) {
@@ -500,7 +488,7 @@ export class AutoHotkeyMcpServer {
       return { task };
     });
 
-    this.server.setRequestHandler(TaskResultRequestSchema, async request => {
+    server.setRequestHandler(TaskResultRequestSchema, async request => {
       const { taskId } = request.params;
       const outcome = this.taskManager.getTaskResult(taskId);
       if (!outcome) {
@@ -549,9 +537,9 @@ export class AutoHotkeyMcpServer {
   /**
    * Setup MCP prompt handlers
    */
-  private setupPromptHandlers(): void {
+  private setupPromptHandlers(server: Server): void {
     // List prompts handler
-    this.server.setRequestHandler(ListPromptsRequestSchema, async () => {
+    server.setRequestHandler(ListPromptsRequestSchema, async () => {
       logger.debug('Listing available AutoHotkey prompts');
       logDebugEvent('prompts.list', { status: 'start', message: 'Gathering prompt catalog' });
       const prompts = await getPromptCatalog();
@@ -580,7 +568,7 @@ export class AutoHotkeyMcpServer {
     });
 
     // Get prompt handler
-    this.server.setRequestHandler(GetPromptRequestSchema, async request => {
+    server.setRequestHandler(GetPromptRequestSchema, async request => {
       const { name } = request.params;
 
       logger.info(`Getting prompt: ${name}`);
@@ -640,93 +628,96 @@ export class AutoHotkeyMcpServer {
     return uri;
   }
 
+  private getResourceDefinitions(): Array<{
+    uri: string;
+    name: string;
+    description: string;
+    mimeType: string;
+  }> {
+    return [
+      {
+        uri: 'ahk://context/auto',
+        name: 'AutoHotkey Auto-Context',
+        description:
+          'Automatically provides relevant AutoHotkey documentation based on detected keywords',
+        mimeType: 'text/markdown',
+      },
+      {
+        uri: 'ahk://docs/functions',
+        name: 'AutoHotkey Functions Reference',
+        description: 'Complete reference of AutoHotkey v2 built-in functions',
+        mimeType: 'application/json',
+      },
+      {
+        uri: 'ahk://docs/variables',
+        name: 'AutoHotkey Variables Reference',
+        description: 'Complete reference of AutoHotkey v2 built-in variables',
+        mimeType: 'application/json',
+      },
+      {
+        uri: 'ahk://docs/classes',
+        name: 'AutoHotkey Classes Reference',
+        description: 'Complete reference of AutoHotkey v2 built-in classes',
+        mimeType: 'application/json',
+      },
+      {
+        uri: 'ahk://docs/methods',
+        name: 'AutoHotkey Methods Reference',
+        description: 'Complete reference of AutoHotkey v2 built-in methods',
+        mimeType: 'application/json',
+      },
+      {
+        uri: 'ahk://templates/file-system-watcher',
+        name: 'File System Watcher Template',
+        description: 'AutoHotkey v2 script template for monitoring file system changes',
+        mimeType: 'text/plain',
+      },
+      {
+        uri: 'ahk://templates/clipboard-manager',
+        name: 'Clipboard Manager Template',
+        description: 'AutoHotkey v2 script template for clipboard management',
+        mimeType: 'text/plain',
+      },
+      {
+        uri: 'ahk://templates/cpu-monitor',
+        name: 'CPU Monitor Template',
+        description: 'AutoHotkey v2 script template for system monitoring',
+        mimeType: 'text/plain',
+      },
+      {
+        uri: 'ahk://templates/hotkey-toggle',
+        name: 'Hotkey Toggle Template',
+        description: 'AutoHotkey v2 script template for hotkey management',
+        mimeType: 'text/plain',
+      },
+      {
+        uri: 'ahk://system/clipboard',
+        name: 'Live Clipboard Content',
+        description: 'Real-time clipboard content (read-only)',
+        mimeType: 'text/plain',
+      },
+      {
+        uri: 'ahk://system/info',
+        name: 'System Information',
+        description: 'Current system information and AutoHotkey environment',
+        mimeType: 'application/json',
+      },
+    ];
+  }
+
   /**
    * Setup MCP resource handlers for automatic context injection
    */
-  private setupResourceHandlers(): void {
+  private setupResourceHandlers(server: Server): void {
     // List resources handler
-    this.server.setRequestHandler(ListResourcesRequestSchema, async () => {
+    server.setRequestHandler(ListResourcesRequestSchema, async () => {
       logger.debug('Listing available AutoHotkey resources');
       logDebugEvent('resources.list', {
         status: 'start',
         message: 'Enumerating exposed resources',
       });
 
-      const resources = [
-        {
-          uri: 'ahk://context/auto',
-          name: 'AutoHotkey Auto-Context',
-          description:
-            'Automatically provides relevant AutoHotkey documentation based on detected keywords',
-          mimeType: 'text/markdown',
-        },
-        {
-          uri: 'ahk://docs/functions',
-          name: 'AutoHotkey Functions Reference',
-          description: 'Complete reference of AutoHotkey v2 built-in functions',
-          mimeType: 'application/json',
-        },
-        {
-          uri: 'ahk://docs/variables',
-          name: 'AutoHotkey Variables Reference',
-          description: 'Complete reference of AutoHotkey v2 built-in variables',
-          mimeType: 'application/json',
-        },
-        {
-          uri: 'ahk://docs/classes',
-          name: 'AutoHotkey Classes Reference',
-          description: 'Complete reference of AutoHotkey v2 built-in classes',
-          mimeType: 'application/json',
-        },
-        {
-          uri: 'ahk://docs/methods',
-          name: 'AutoHotkey Methods Reference',
-          description: 'Complete reference of AutoHotkey v2 built-in methods',
-          mimeType: 'application/json',
-        },
-        {
-          uri: 'ahk://templates/file-system-watcher',
-          name: 'File System Watcher Template',
-          description: 'AutoHotkey v2 script template for monitoring file system changes',
-          mimeType: 'text/plain',
-        },
-        {
-          uri: 'ahk://templates/clipboard-manager',
-          name: 'Clipboard Manager Template',
-          description: 'AutoHotkey v2 script template for clipboard management',
-          mimeType: 'text/plain',
-        },
-        {
-          uri: 'ahk://templates/cpu-monitor',
-          name: 'CPU Monitor Template',
-          description: 'AutoHotkey v2 script template for system monitoring',
-          mimeType: 'text/plain',
-        },
-        {
-          uri: 'ahk://templates/hotkey-toggle',
-          name: 'Hotkey Toggle Template',
-          description: 'AutoHotkey v2 script template for hotkey management',
-          mimeType: 'text/plain',
-        },
-        {
-          uri: 'ahk://system/clipboard',
-          name: 'Live Clipboard Content',
-          description: 'Real-time clipboard content (read-only)',
-          mimeType: 'text/plain',
-        },
-        {
-          uri: 'ahk://system/info',
-          name: 'System Information',
-          description: 'Current system information and AutoHotkey environment',
-          mimeType: 'application/json',
-        },
-        {
-          uri: 'ahk://server/info',
-          name: 'MCP Server Discovery',
-          description: 'MCP 2025 server metadata for discovery (.well-known/mcp.json equivalent)',
-          mimeType: 'application/json',
-        },
-      ];
+      const resources = this.getResourceDefinitions();
 
       logDebugEvent('resources.list', {
         status: 'success',
@@ -739,7 +730,7 @@ export class AutoHotkeyMcpServer {
     });
 
     // Read resource handler
-    this.server.setRequestHandler(ReadResourceRequestSchema, async request => {
+    server.setRequestHandler(ReadResourceRequestSchema, async request => {
       const { uri } = request.params;
       const normalizedUri = this.normalizeResourceUri(uri);
       const baseDetails =
@@ -1219,53 +1210,114 @@ F12::hkManager.ToggleHotkey("F1", (*) => MsgBox("F1 pressed!"), "Example hotkey"
         };
       }
 
-      // MCP 2025 Well-Known Server Discovery
-      if (normalizedUri === 'ahk://server/info') {
-        const toolMetadata = getToolMetadata();
-        const toolCategories = [...new Set(toolMetadata.map(t => t.category))];
-
-        const serverInfo = {
-          name: 'ahk-mcp-server',
-          version: '2.0.0',
-          protocol: '2024-11-05',
-          description: 'AutoHotkey v2 development tools, code analysis, and script execution',
-          capabilities: {
-            tools: {
-              count: toolMetadata.length,
-              categories: toolCategories,
-            },
-            prompts: true,
-            resources: true,
-            sampling: true,
-            logging: true,
-            tasks: true,
-          },
-          toolCategories,
-          annotations: {
-            supported: true,
-            types: ['readOnlyHint', 'destructiveHint', 'idempotentHint', 'openWorldHint'],
-          },
-          timestamp: new Date().toISOString(),
-        };
-
-        logDebugEvent('resources.read', {
-          status: 'success',
-          message: normalizedUri,
-          details: mergeDetails({ kind: 'server-discovery' }),
-        });
-        return {
-          contents: [
-            {
-              uri,
-              mimeType: 'application/json',
-              text: JSON.stringify(serverInfo, null, 2),
-            },
-          ],
-        };
-      }
-
       logDebugEvent('resources.read', { status: 'error', message: `Resource not found: ${uri}` });
       throw new Error(`Resource not found: ${uri}`);
+    });
+  }
+
+  private setupCompletionHandlers(server: Server): void {
+    server.setRequestHandler(CompleteRequestSchema, async request => {
+      const { ref, argument, context } = request.params;
+      const prefix = argument.value || '';
+
+      let candidates: string[] = [];
+
+      if (ref.type === 'ref/resource') {
+        candidates = this.getResourceCompletionCandidates(argument.name, context?.arguments);
+      } else {
+        candidates = await this.getPromptCompletionCandidates(argument.name, context?.arguments);
+      }
+
+      const ranked = this.rankCompletionCandidates(candidates, prefix);
+      const values = ranked.slice(0, 100);
+
+      return {
+        completion: {
+          values,
+          total: ranked.length,
+          hasMore: ranked.length > values.length,
+        },
+      };
+    });
+  }
+
+  private async getPromptCompletionCandidates(
+    argumentName: string,
+    contextArguments?: Record<string, string>
+  ): Promise<string[]> {
+    const promptCatalog = await getPromptCatalog();
+    const promptNames = promptCatalog.map(prompt =>
+      this.createPromptName(prompt.slug ?? prompt.title)
+    );
+    const contextValues = Object.values(contextArguments || {});
+    const activeFilePath = getActiveFilePath();
+
+    if (argumentName.toLowerCase().includes('name')) {
+      return promptNames;
+    }
+
+    if (argumentName.toLowerCase().includes('file')) {
+      return [activeFilePath || '', ...contextValues].filter(Boolean);
+    }
+
+    return [
+      ...promptNames,
+      ...contextValues,
+      activeFilePath || '',
+      'functions',
+      'classes',
+      'hotkeys',
+      'gui',
+      'arrays',
+      'objects',
+      'windows',
+    ].filter(Boolean);
+  }
+
+  private getResourceCompletionCandidates(
+    argumentName: string,
+    contextArguments?: Record<string, string>
+  ): string[] {
+    const resources = this.getResourceDefinitions();
+    const uris = resources.map(resource => resource.uri);
+    const names = resources.map(resource => resource.name);
+    const contextValues = Object.values(contextArguments || {});
+
+    if (argumentName.toLowerCase().includes('uri')) {
+      return [...uris, ...contextValues];
+    }
+
+    if (argumentName.toLowerCase().includes('template')) {
+      return uris.filter(uri => uri.startsWith('ahk://templates/'));
+    }
+
+    if (argumentName.toLowerCase().includes('path')) {
+      const activePath = getActiveFilePath();
+      return [activePath || '', ...contextValues].filter(Boolean);
+    }
+
+    return [...uris, ...names, ...contextValues];
+  }
+
+  private rankCompletionCandidates(candidates: string[], prefix: string): string[] {
+    const normalizedPrefix = prefix.trim().toLowerCase();
+    const uniqueCandidates = Array.from(new Set(candidates.map(value => value.trim()).filter(Boolean)));
+
+    if (!normalizedPrefix) {
+      return uniqueCandidates.sort((a, b) => a.localeCompare(b));
+    }
+
+    const filtered = uniqueCandidates.filter(candidate =>
+      candidate.toLowerCase().includes(normalizedPrefix)
+    );
+
+    return filtered.sort((a, b) => {
+      const aStarts = a.toLowerCase().startsWith(normalizedPrefix) ? 0 : 1;
+      const bStarts = b.toLowerCase().startsWith(normalizedPrefix) ? 0 : 1;
+      if (aStarts !== bStarts) {
+        return aStarts - bStarts;
+      }
+      return a.localeCompare(b);
     });
   }
 
@@ -1769,210 +1821,10 @@ F12::hkManager.ToggleHotkey("F1", (*) => MsgBox("F1 pressed!"), "Example hotkey"
 
       // Check if we should use SSE transport for ChatGPT (via --sse flag or PORT env var)
       const useSSE = envConfig.useSSEMode();
+      let shutdownHook: (() => Promise<void>) | undefined;
 
       if (useSSE) {
-        const port = envConfig.getPort();
-
-        logDebugEvent('server.start', {
-          status: 'start',
-          message: `Launching SSE transport on port ${port}`,
-        });
-
-        // Import express for SSE transport
-        const express = await import('express');
-        const app = express.default();
-
-        app.use(express.default.json());
-
-        // Store active transports by session with metadata for cleanup
-        interface TransportEntry {
-          transport: InstanceType<typeof SSEServerTransport>;
-          createdAt: number;
-          lastActivity: number;
-        }
-        const activeTransports = new Map<string, TransportEntry>();
-
-        // Configuration for transport management
-        const MAX_TRANSPORTS = 100;
-        const SESSION_TIMEOUT_MS = 30 * 60 * 1000; // 30 minutes
-        const CLEANUP_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
-
-        // Periodic cleanup of stale transports
-        const cleanupInterval = setInterval(() => {
-          const now = Date.now();
-          let cleaned = 0;
-          for (const [sessionId, entry] of activeTransports.entries()) {
-            if (now - entry.lastActivity > SESSION_TIMEOUT_MS) {
-              activeTransports.delete(sessionId);
-              cleaned++;
-              logger.info(`Cleaned up stale SSE session: ${sessionId}`);
-            }
-          }
-          if (cleaned > 0) {
-            logDebugEvent('transport.sse', {
-              status: 'info',
-              message: `Cleaned up ${cleaned} stale sessions, ${activeTransports.size} active`,
-            });
-          }
-        }, CLEANUP_INTERVAL_MS);
-
-        // Ensure cleanup interval doesn't prevent process exit
-        cleanupInterval.unref();
-
-        // MCP 2025 Well-Known Endpoint for server discovery
-        app.get('/.well-known/mcp.json', (_req, res) => {
-          const toolMetadata = getToolMetadata();
-          const toolCategories = [...new Set(toolMetadata.map(t => t.category))];
-
-          res.json({
-            name: 'ahk-mcp-server',
-            version: '2.0.0',
-            protocol: '2024-11-05',
-            description: 'AutoHotkey v2 development tools, code analysis, and script execution',
-            capabilities: {
-              tools: { count: toolMetadata.length, categories: toolCategories },
-              prompts: true,
-              resources: true,
-              sampling: true,
-              logging: true,
-              tasks: true,
-            },
-            toolCategories,
-            annotations: {
-              supported: true,
-              types: ['readOnlyHint', 'destructiveHint', 'idempotentHint', 'openWorldHint'],
-            },
-            endpoints: {
-              sse: '/sse',
-              message: '/message',
-            },
-            timestamp: new Date().toISOString(),
-          });
-        });
-
-        // Set up SSE endpoint
-        app.get('/sse', (req, res) => {
-          try {
-            // Enforce maximum transport limit
-            if (activeTransports.size >= MAX_TRANSPORTS) {
-              logger.warn(
-                `Maximum SSE transports (${MAX_TRANSPORTS}) reached, rejecting new connection`
-              );
-              res.status(503).json({ error: 'Server at capacity, try again later' });
-              return;
-            }
-
-            // Create SSE transport for this specific response
-            const transport = new SSEServerTransport('/message', res);
-
-            // Store the transport with metadata for timeout handling
-            const sessionId = transport.sessionId;
-            const now = Date.now();
-            activeTransports.set(sessionId, {
-              transport,
-              createdAt: now,
-              lastActivity: now,
-            });
-            logDebugEvent('transport.sse', {
-              status: 'start',
-              message: `Session ${sessionId} connected (${activeTransports.size} active)`,
-            });
-
-            // Connect MCP server to this transport
-            this.server
-              .connect(transport)
-              .then(() => {
-                logger.info(`SSE transport connected with session ID: ${sessionId}`);
-                logDebugEvent('transport.sse', {
-                  status: 'info',
-                  message: `Session ${sessionId} handshake established`,
-                });
-              })
-              .catch(error => {
-                logger.error('Failed to connect SSE transport:', error);
-                logDebugError('transport.sse', error, { details: { sessionId, phase: 'connect' } });
-                res.status(500).end();
-              });
-
-            // Start the SSE connection
-            transport
-              .start()
-              .then(() => {
-                logger.info('SSE transport started successfully');
-                logDebugEvent('transport.sse', {
-                  status: 'success',
-                  message: `Session ${sessionId} streaming`,
-                });
-              })
-              .catch(error => {
-                logger.error('Failed to start SSE transport:', error);
-                logDebugError('transport.sse', error, { details: { sessionId, phase: 'start' } });
-                res.status(500).end();
-              });
-
-            // Clean up on close
-            req.on('close', () => {
-              activeTransports.delete(sessionId);
-              logger.info(`SSE connection closed for session: ${sessionId}`);
-              logDebugEvent('transport.sse', {
-                status: 'info',
-                message: `Session ${sessionId} closed`,
-              });
-            });
-          } catch (error) {
-            logger.error('Error setting up SSE endpoint:', error);
-            logDebugError('transport.sse', error, { details: { phase: 'setup' } });
-            res.status(500).end();
-          }
-        });
-
-        // Handle POST messages to /message endpoint
-        app.post('/message', async (req, res) => {
-          try {
-            logger.debug('Received POST message:', req.body);
-
-            // Try to find the appropriate transport and let it handle the message
-            for (const [sessionId, entry] of activeTransports.entries()) {
-              try {
-                await entry.transport.handlePostMessage(req, res);
-                // Update last activity on successful message
-                entry.lastActivity = Date.now();
-                return; // Message handled successfully
-              } catch (error) {
-                logger.debug(`Transport ${sessionId} couldn't handle message:`, error);
-                continue; // Try next transport
-              }
-            }
-
-            // If no transport handled it, return an error
-            logger.error('No active transport could handle the POST message');
-            logDebugEvent('transport.sse', {
-              status: 'error',
-              message: 'POST message received without an active transport',
-            });
-            res.status(500).json({
-              jsonrpc: '2.0',
-              error: { code: -32603, message: 'No active transport available' },
-            });
-          } catch (error) {
-            logger.error('Error handling POST message:', error);
-            logDebugError('transport.sse', error, { details: { phase: 'post' } });
-            res.status(500).json({
-              jsonrpc: '2.0',
-              error: { code: -32603, message: 'Internal server error' },
-            });
-          }
-        });
-
-        // Start express server
-        app.listen(port, () => {
-          logger.info(`AutoHotkey MCP Server started with SSE transport on port ${port}`);
-          logger.info(`ChatGPT URL: http://localhost:${port}/sse`);
-          logDebugEvent('server.start', {
-            status: 'success',
-            message: `SSE transport listening on port ${port}`,
-          });
-        });
+        shutdownHook = await this.startHttpMode();
       } else {
         logDebugEvent('server.start', {
           status: 'start',
@@ -1990,19 +1842,509 @@ F12::hkManager.ToggleHotkey("F1", (*) => MsgBox("F1 pressed!"), "Example hotkey"
       }
 
       // Handle process termination gracefully
-      process.on('SIGINT', () => {
-        logger.info('Received SIGINT, shutting down gracefully...');
-        process.exit(0);
+      process.once('SIGINT', () => {
+        void this.handleShutdownSignal('SIGINT', shutdownHook);
       });
 
-      process.on('SIGTERM', () => {
-        logger.info('Received SIGTERM, shutting down gracefully...');
-        process.exit(0);
+      process.once('SIGTERM', () => {
+        void this.handleShutdownSignal('SIGTERM', shutdownHook);
       });
     } catch (error) {
       logger.error('Failed to start AutoHotkey MCP Server:', error);
       process.exit(1);
     }
+  }
+
+  private async startHttpMode(): Promise<() => Promise<void>> {
+    const port = envConfig.getPort();
+
+    logDebugEvent('server.start', {
+      status: 'start',
+      message: `Launching Streamable HTTP transport on port ${port}`,
+    });
+
+    const express = await import('express');
+    const app = express.default();
+    app.use(express.default.json({ limit: '10mb' }));
+    app.use(express.default.urlencoded({ extended: true }));
+    this.configureOriginValidation(app);
+
+    const activeSessions = new Map<string, SessionEntry>();
+    const maxSessions = this.getPositiveIntEnv('AHK_MCP_MAX_SESSIONS', 100);
+    const sessionTimeoutMs = this.getPositiveIntEnv(
+      'AHK_MCP_SESSION_TIMEOUT_MS',
+      30 * 60 * 1000
+    );
+    const cleanupIntervalMs = this.getPositiveIntEnv(
+      'AHK_MCP_SESSION_CLEANUP_INTERVAL_MS',
+      5 * 60 * 1000
+    );
+
+    const cleanupInterval = setInterval(() => {
+      void this.cleanupIdleSessions(activeSessions, sessionTimeoutMs);
+    }, cleanupIntervalMs);
+    cleanupInterval.unref();
+
+    app.all('/mcp', async (req, res) => {
+      await this.handleStreamableRequest(req, res, activeSessions, maxSessions);
+    });
+
+    app.get('/sse', async (req, res) => {
+      await this.handleLegacySseConnect(req, res, activeSessions, maxSessions);
+    });
+
+    app.post('/message', async (req, res) => {
+      await this.handleLegacySsePost(req, res, activeSessions);
+    });
+
+    app.post('/messages', async (req, res) => {
+      await this.handleLegacySsePost(req, res, activeSessions);
+    });
+
+    const httpServer = await new Promise<ReturnType<Express['listen']>>((resolve, reject) => {
+      const serverInstance = app.listen(port, () => resolve(serverInstance));
+      serverInstance.once('error', reject);
+    });
+
+    logger.info(`AutoHotkey MCP Server started with Streamable HTTP transport on port ${port}`);
+    logger.info(`Primary MCP endpoint: http://localhost:${port}/mcp`);
+    logger.info(`Legacy SSE endpoint: http://localhost:${port}/sse`);
+    logDebugEvent('server.start', {
+      status: 'success',
+      message: `Transport endpoints ready on port ${port}`,
+      details: {
+        streamableHttp: '/mcp',
+        legacySse: '/sse',
+        legacyMessage: '/message',
+      },
+    });
+
+    return async () => {
+      clearInterval(cleanupInterval);
+      await this.closeAllSessions(activeSessions, 'server shutdown');
+      await new Promise<void>(resolve => {
+        httpServer.close(() => resolve());
+      });
+    };
+  }
+
+  private configureOriginValidation(app: Express): void {
+    const allowedOrigins = (process.env.AHK_MCP_ALLOWED_ORIGINS || '')
+      .split(',')
+      .map(origin => origin.trim())
+      .filter(Boolean);
+
+    if (allowedOrigins.length === 0) {
+      return;
+    }
+
+    app.use((req: Request, res: Response, next: NextFunction) => {
+      const requestOrigin = req.headers.origin;
+      if (!requestOrigin) {
+        next();
+        return;
+      }
+
+      if (allowedOrigins.includes(requestOrigin)) {
+        next();
+        return;
+      }
+
+      this.sendTransportError(res, 403, -32097, 'Origin not allowed', {
+        phase: 'origin-validation',
+        method: req.method,
+        path: req.path,
+        origin: requestOrigin,
+        allowedOrigins,
+      });
+    });
+  }
+
+  private async handleStreamableRequest(
+    req: Request,
+    res: Response,
+    activeSessions: Map<string, SessionEntry>,
+    maxSessions: number
+  ): Promise<void> {
+    try {
+      const sessionId = this.getHeaderValue(req.headers['mcp-session-id']);
+      const session = sessionId ? activeSessions.get(sessionId) : undefined;
+
+      if (session && session.protocol !== 'streamable') {
+        this.sendTransportError(res, 400, -32000, 'Session transport mismatch', {
+          phase: 'streamable',
+          sessionId,
+          expectedProtocol: 'streamable',
+          actualProtocol: session.protocol,
+          method: req.method,
+        });
+        return;
+      }
+
+      let streamableTransport: StreamableHTTPServerTransport;
+      if (session) {
+        streamableTransport = session.transport;
+        session.lastActivity = Date.now();
+      } else {
+        if (activeSessions.size >= maxSessions) {
+          this.sendTransportError(res, 503, -32001, 'Server is at session capacity', {
+            phase: 'streamable',
+            maxSessions,
+            activeSessions: activeSessions.size,
+          });
+          return;
+        }
+
+        const isInitialization = req.method === 'POST' && isInitializeRequest(req.body);
+        if (!isInitialization) {
+          this.sendTransportError(res, 400, -32000, 'Invalid or missing session for /mcp request', {
+            phase: 'streamable',
+            method: req.method,
+            hasSessionHeader: Boolean(sessionId),
+            sessionId: sessionId || null,
+            bodyMethod:
+              req.body && typeof req.body === 'object' && 'method' in req.body
+                ? String((req.body as { method?: unknown }).method)
+                : null,
+            hint: 'Send initialize via POST /mcp without mcp-session-id first',
+          });
+          return;
+        }
+
+        const server = this.createServer();
+        streamableTransport = new StreamableHTTPServerTransport({
+          sessionIdGenerator: () => randomUUID(),
+          enableJsonResponse: true,
+          eventStore: new InMemoryEventStore(),
+          onsessioninitialized: initializedSessionId => {
+            const now = Date.now();
+            activeSessions.set(initializedSessionId, {
+              protocol: 'streamable',
+              server,
+              transport: streamableTransport,
+              createdAt: now,
+              lastActivity: now,
+            });
+            logDebugEvent('transport.streamable', {
+              status: 'start',
+              message: `Session ${initializedSessionId} initialized`,
+              details: {
+                activeSessions: activeSessions.size,
+              },
+            });
+          },
+          onsessionclosed: async closedSessionId => {
+            await this.closeSessionById(activeSessions, closedSessionId, 'session closed by client');
+          },
+        });
+
+        streamableTransport.onerror = error => {
+          logDebugError('transport.streamable', error, {
+            details: {
+              phase: 'runtime',
+              sessionId: streamableTransport.sessionId ?? 'pending',
+            },
+          });
+        };
+
+        streamableTransport.onclose = () => {
+          const closedSessionId = streamableTransport.sessionId;
+          if (closedSessionId) {
+            void this.closeSessionById(activeSessions, closedSessionId, 'transport closed');
+          }
+        };
+
+        await server.connect(streamableTransport);
+      }
+
+      await streamableTransport.handleRequest(req, res, req.body);
+
+      if (sessionId) {
+        const trackedSession = activeSessions.get(sessionId);
+        if (trackedSession) {
+          trackedSession.lastActivity = Date.now();
+        }
+      }
+    } catch (error) {
+      logDebugError('transport.streamable', error, {
+        details: {
+          phase: 'request-handler',
+          method: req.method,
+          path: req.path,
+        },
+      });
+
+      const message = error instanceof Error ? error.message : String(error);
+      this.sendTransportError(res, 500, -32603, 'Failed to handle Streamable HTTP request', {
+        phase: 'streamable',
+        method: req.method,
+        path: req.path,
+        error: message,
+      });
+    }
+  }
+
+  private async handleLegacySseConnect(
+    req: Request,
+    res: Response,
+    activeSessions: Map<string, SessionEntry>,
+    maxSessions: number
+  ): Promise<void> {
+    try {
+      if (activeSessions.size >= maxSessions) {
+        this.sendTransportError(res, 503, -32001, 'Server is at session capacity', {
+          phase: 'legacy-sse',
+          maxSessions,
+          activeSessions: activeSessions.size,
+        });
+        return;
+      }
+
+      const server = this.createServer();
+      const transport = new SSEServerTransport('/message', res);
+      const sessionId = transport.sessionId;
+      const now = Date.now();
+      activeSessions.set(sessionId, {
+        protocol: 'sse',
+        server,
+        transport,
+        createdAt: now,
+        lastActivity: now,
+      });
+
+      transport.onerror = error => {
+        logDebugError('transport.sse', error, {
+          details: { sessionId, phase: 'runtime' },
+        });
+      };
+
+      transport.onclose = () => {
+        void this.closeSessionById(activeSessions, sessionId, 'legacy SSE transport closed');
+      };
+
+      req.on('close', () => {
+        void this.closeSessionById(activeSessions, sessionId, 'legacy SSE client disconnected');
+      });
+
+      await server.connect(transport);
+      logDebugEvent('transport.sse', {
+        status: 'start',
+        message: `Legacy SSE session ${sessionId} connected`,
+        details: {
+          activeSessions: activeSessions.size,
+        },
+      });
+    } catch (error) {
+      logDebugError('transport.sse', error, { details: { phase: 'connect' } });
+      const message = error instanceof Error ? error.message : String(error);
+      this.sendTransportError(res, 500, -32603, 'Failed to establish legacy SSE session', {
+        phase: 'legacy-sse',
+        error: message,
+      });
+    }
+  }
+
+  private async handleLegacySsePost(
+    req: Request,
+    res: Response,
+    activeSessions: Map<string, SessionEntry>
+  ): Promise<void> {
+    try {
+      const sessionIdFromQuery = this.getQuerySessionId(req.query.sessionId);
+
+      if (sessionIdFromQuery) {
+        const session = activeSessions.get(sessionIdFromQuery);
+        if (!session) {
+          this.sendTransportError(res, 404, -32004, 'Legacy SSE session not found', {
+            phase: 'legacy-sse-post',
+            sessionId: sessionIdFromQuery,
+          });
+          return;
+        }
+
+        if (session.protocol !== 'sse') {
+          this.sendTransportError(res, 400, -32000, 'Session transport mismatch', {
+            phase: 'legacy-sse-post',
+            sessionId: sessionIdFromQuery,
+            expectedProtocol: 'sse',
+            actualProtocol: session.protocol,
+          });
+          return;
+        }
+
+        session.lastActivity = Date.now();
+        await session.transport.handlePostMessage(req, res, req.body);
+        return;
+      }
+
+      for (const [sessionId, session] of activeSessions.entries()) {
+        if (session.protocol !== 'sse') {
+          continue;
+        }
+
+        try {
+          await session.transport.handlePostMessage(req, res, req.body);
+          session.lastActivity = Date.now();
+          return;
+        } catch (error) {
+          logger.debug(`Legacy SSE session ${sessionId} skipped for message routing`, error);
+        }
+      }
+
+      this.sendTransportError(res, 400, -32000, 'No matching legacy SSE session for POST /message', {
+        phase: 'legacy-sse-post',
+        hint: 'Use /message?sessionId=<id> after opening /sse',
+      });
+    } catch (error) {
+      logDebugError('transport.sse', error, { details: { phase: 'post' } });
+      const message = error instanceof Error ? error.message : String(error);
+      this.sendTransportError(res, 500, -32603, 'Failed to handle legacy SSE message', {
+        phase: 'legacy-sse-post',
+        error: message,
+      });
+    }
+  }
+
+  private async cleanupIdleSessions(
+    activeSessions: Map<string, SessionEntry>,
+    sessionTimeoutMs: number
+  ): Promise<void> {
+    const now = Date.now();
+    const staleSessions = [...activeSessions.entries()].filter(
+      ([, session]) => now - session.lastActivity > sessionTimeoutMs
+    );
+
+    for (const [sessionId] of staleSessions) {
+      await this.closeSessionById(activeSessions, sessionId, 'idle timeout exceeded');
+    }
+
+    if (staleSessions.length > 0) {
+      logDebugEvent('transport.cleanup', {
+        status: 'info',
+        message: `Closed ${staleSessions.length} stale sessions`,
+        details: {
+          remainingSessions: activeSessions.size,
+        },
+      });
+    }
+  }
+
+  private async closeAllSessions(
+    activeSessions: Map<string, SessionEntry>,
+    reason: string
+  ): Promise<void> {
+    for (const [sessionId] of activeSessions.entries()) {
+      await this.closeSessionById(activeSessions, sessionId, reason);
+    }
+  }
+
+  private async closeSessionById(
+    activeSessions: Map<string, SessionEntry>,
+    sessionId: string,
+    reason: string
+  ): Promise<void> {
+    const session = activeSessions.get(sessionId);
+    if (!session) {
+      return;
+    }
+
+    activeSessions.delete(sessionId);
+
+    try {
+      await session.transport.close();
+    } catch (error) {
+      logDebugError('transport.cleanup', error, {
+        details: {
+          sessionId,
+          protocol: session.protocol,
+          reason,
+        },
+      });
+    }
+
+    logDebugEvent('transport.cleanup', {
+      status: 'info',
+      message: `Closed ${session.protocol} session ${sessionId}`,
+      details: {
+        reason,
+      },
+    });
+  }
+
+  private getPositiveIntEnv(name: string, fallback: number): number {
+    const raw = process.env[name];
+    if (!raw) {
+      return fallback;
+    }
+
+    const parsed = parseInt(raw, 10);
+    if (!Number.isFinite(parsed) || parsed <= 0) {
+      return fallback;
+    }
+
+    return parsed;
+  }
+
+  private getHeaderValue(value: string | string[] | undefined): string | undefined {
+    if (Array.isArray(value)) {
+      return value[0];
+    }
+
+    return value;
+  }
+
+  private getQuerySessionId(value: unknown): string | undefined {
+    if (typeof value === 'string' && value.length > 0) {
+      return value;
+    }
+
+    if (Array.isArray(value) && typeof value[0] === 'string' && value[0].length > 0) {
+      return value[0];
+    }
+
+    return undefined;
+  }
+
+  private sendTransportError(
+    res: Response,
+    httpStatus: number,
+    code: number,
+    message: string,
+    data: Record<string, unknown>
+  ): void {
+    if (res.headersSent) {
+      return;
+    }
+
+    res.status(httpStatus).json({
+      jsonrpc: '2.0',
+      id: null,
+      error: {
+        code,
+        message,
+        data: {
+          timestamp: new Date().toISOString(),
+          ...data,
+        },
+      },
+    });
+  }
+
+  private async handleShutdownSignal(
+    signal: 'SIGINT' | 'SIGTERM',
+    shutdownHook?: () => Promise<void>
+  ): Promise<void> {
+    logger.info(`Received ${signal}, shutting down gracefully...`);
+
+    if (shutdownHook) {
+      try {
+        await shutdownHook();
+      } catch (error) {
+        logger.error('Shutdown hook failed:', error);
+      }
+    }
+
+    process.exit(0);
   }
 
   /**

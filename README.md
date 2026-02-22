@@ -401,6 +401,7 @@ the available AutoHotkey prompts.
 - `docs/README.md` - Documentation index
 - `docs/QUICK_START.md` - Quick start setup
 - `docs/QUICKREFERENCE.md` - One-page overview
+- `docs/MCP_TRANSPORT_COMPATIBILITY.md` - MCP HTTP headers/session flow and error diagnostics
 - `docs/PLAINLANGUAGE_SUMMARY.md` - Plain-language walkthrough
 - `docs/ARCHITECTURE_DIAGRAMS.md` - System diagrams
 - `docs/DOCKER.md` - Docker deployment
