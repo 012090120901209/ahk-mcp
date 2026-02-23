@@ -3,6 +3,11 @@
 A TypeScript MCP server for AutoHotkey v2 development.
 It provides script analysis, file operations, documentation search, and script execution tools for MCP clients such as Claude Desktop.
 
+[![Features](https://img.shields.io/badge/Features-blue?style=for-the-badge)](#highlights)
+[![Install](https://img.shields.io/badge/Install-green?style=for-the-badge)](#installation)
+[![Run](https://img.shields.io/badge/Run-purple?style=for-the-badge)](#run)
+[![Development](https://img.shields.io/badge/Development-orange?style=for-the-badge)](#development-commands)
+
 ## Architecture
 
 ![AHK v2 MCP Agent Workflow](Diagram.png)
