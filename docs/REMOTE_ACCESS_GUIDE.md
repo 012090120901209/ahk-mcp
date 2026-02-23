@@ -22,7 +22,7 @@ access via SSE/HTTPS
 Your Claude Desktop is **already configured** at:
 
 ```
-C:\Users\uphol\AppData\Roaming\Claude\claude_desktop_config.json
+C:\\Users\\YourUsername\AppData\Roaming\Claude\claude_desktop_config.json
 ```
 
 **Configuration:**
@@ -33,7 +33,7 @@ C:\Users\uphol\AppData\Roaming\Claude\claude_desktop_config.json
     "ahk-server": {
       "command": "C:\\Program Files\\nodejs\\node.exe",
       "args": [
-        "C:\\Users\\uphol\\Documents\\Design\\Coding\\ahk-mcp\\dist\\index.js"
+        "C:\\Users\\YourUsername\\Documents\\Design\\Coding\\ahk-mcp\\dist\\index.js"
       ],
       "env": {
         "NODE_ENV": "production",
@@ -63,7 +63,7 @@ When you make changes to the server:
 
 ```bash
 # 1. Rebuild TypeScript
-cd C:\Users\uphol\Documents\Design\Coding\ahk-mcp
+cd C:\\Users\\YourUsername\Documents\Design\Coding\ahk-mcp
 npm run build
 
 # 2. Restart Claude Desktop
@@ -89,7 +89,7 @@ If successful, you'll see server details and available tools.
 Check logs:
 
 ```
-C:\Users\uphol\AppData\Roaming\Claude\logs\mcp*.log
+C:\\Users\\YourUsername\AppData\Roaming\Claude\logs\mcp*.log
 ```
 
 Common fixes:
@@ -700,3 +700,5 @@ https://ahk-mcp.yourdomain.com/sse
 
 _Last Updated: October 20, 2025_ _Status: Both local and remote access
 configured_
+
+

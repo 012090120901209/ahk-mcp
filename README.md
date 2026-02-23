@@ -82,7 +82,7 @@ Use `AHK_Config` to set the executable path and non-blocking startup behavior:
 ```json
 {
   "action": "set",
-  "ahkPath": "C:\\Users\\uphol\\Documents\\Design\\Coding\\AutoHotkey\\bin\\AutoHotkey64.exe",
+  "ahkPath": "C:\\Users\\YourUsername\\Documents\\Design\\Coding\\AutoHotkey\\bin\\AutoHotkey64.exe",
   "waitForStdoutLine": true,
   "stdoutLineTimeoutMs": 300
 }
@@ -127,3 +127,5 @@ See `CONTRIBUTING.md` and `AGENTS.md`.
 ## License
 
 MIT. See `LICENSE`.
+
+

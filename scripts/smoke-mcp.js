@@ -9,7 +9,10 @@ const __dirname = path.dirname(__filename);
 const repoRoot = path.resolve(__dirname, '..');
 const serverPath = path.join(repoRoot, 'dist', 'index.js');
 
-const defaultListDirectory = 'C:\\Users\\uphol\\Documents\\AHK';
+const defaultListDirectory = (() => {
+  const homeDir = process.env.USERPROFILE || process.env.HOME;
+  return homeDir ? path.join(homeDir, 'Documents', 'AHK') : '';
+})();
 const missingFilePath = 'C:\\__mcp_test_should_not_exist__.ahk';
 const requestTimeoutMs = 20000;
 
