@@ -1,3 +1,5 @@
+<div align="center">
+
 # AutoHotkey v2 MCP Server
 
 A TypeScript MCP server for AutoHotkey v2 development.
@@ -7,6 +9,8 @@ It provides script analysis, file operations, documentation search, and script e
 [![Install](https://img.shields.io/badge/Install-green?style=for-the-badge)](#installation)
 [![Run](https://img.shields.io/badge/Run-purple?style=for-the-badge)](#run)
 [![Development](https://img.shields.io/badge/Development-orange?style=for-the-badge)](#development-commands)
+
+</div>
 
 ## Architecture
 
