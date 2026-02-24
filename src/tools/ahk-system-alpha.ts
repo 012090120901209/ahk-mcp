@@ -11,6 +11,7 @@ import {
   resetFailures,
 } from '../core/alpha-version.js';
 import { checkToolAvailability } from '../core/tool-settings.js';
+import type { McpToolResponse } from '../types/mcp-types.js';
 
 export const AhkAlphaArgsSchema = z.object({
   action: z.enum(['create', 'list', 'latest', 'track_failure', 'reset', 'auto']).default('create'),
@@ -62,7 +63,7 @@ export class AhkAlphaTool {
   /**
    * Execute the alpha version tool
    */
-  async execute(args: unknown): Promise<any> {
+  async execute(args: unknown): Promise<McpToolResponse> {
     const parsed = safeParse(args, AhkAlphaArgsSchema, 'AHK_Alpha');
     if (!parsed.success) return parsed.error;
 

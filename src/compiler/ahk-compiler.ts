@@ -64,16 +64,18 @@ export class AhkCompiler {
         errors: [],
       };
     } catch (error) {
-      const parseError = error as any;
+      const message = error instanceof Error ? error.message : 'Parse error';
+      const line =
+        error instanceof Error && 'line' in error && typeof error.line === 'number'
+          ? error.line
+          : 1;
+      const column =
+        error instanceof Error && 'column' in error && typeof error.column === 'number'
+          ? error.column
+          : 1;
       return {
         success: false,
-        errors: [
-          {
-            message: parseError.message || 'Parse error',
-            line: parseError.line || 1,
-            column: parseError.column || 1,
-          },
-        ],
+        errors: [{ message, line, column }],
       };
     }
   }
@@ -240,8 +242,20 @@ export class AhkCompiler {
     if (parseResult.data) {
       const ast = parseResult.data;
 
+      // Structural type for AST nodes as traversed here — the parser's Statement
+      // union does not cover every node variant (e.g. SwitchStatement, TryStatement)
+      // so we describe the shape accessed during traversal rather than casting to any.
+      interface TraversalNode {
+        type: string;
+        body?: TraversalNode[];
+        consequent?: TraversalNode[];
+        alternate?: TraversalNode[];
+        methods?: TraversalNode[];
+        cases?: Array<{ body?: TraversalNode[] }>;
+      }
+
       // Count functions and classes
-      const countNodes = (statements: any[]) => {
+      const countNodes = (statements: TraversalNode[]) => {
         for (const stmt of statements) {
           if (stmt.type === 'FunctionDeclaration') {
             functions++;
@@ -278,14 +292,14 @@ export class AhkCompiler {
           }
           if (stmt.cases && Array.isArray(stmt.cases)) {
             // Handle switch cases if they have bodies
-            stmt.cases.forEach((c: any) => {
+            stmt.cases.forEach(c => {
               if (c.body) countNodes(c.body);
             });
           }
         }
       };
 
-      countNodes(ast.body);
+      countNodes(ast.body as TraversalNode[]);
     }
 
     return {

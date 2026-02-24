@@ -6,15 +6,20 @@
  */
 
 import { z } from 'zod';
-import { spawn } from 'child_process';
+import { spawn, exec } from 'child_process';
 import fs from 'fs/promises';
+import type { McpToolResponse } from '../types/mcp-types.js';
 import fsSync from 'fs';
 import path from 'path';
 import os from 'os';
+import { promisify } from 'util';
 import logger from '../logger.js';
 import { activeFile } from '../core/active-file.js';
+import { resolveAutoHotkeyPath } from '../core/config.js';
 import { safeParse } from '../core/validation-middleware.js';
 import { createErrorResponse } from '../utils/response-helpers.js';
+
+const execAsync = promisify(exec);
 
 // ===== Schema Definition =====
 
@@ -108,20 +113,26 @@ export const ahkCloudValidateToolDefinition = {
 
 // ===== AHK Path Detection =====
 
-const AHK_COMMON_PATHS = [
-  'C:\\Program Files\\AutoHotkey\\v2\\AutoHotkey64.exe',
-  'C:\\Program Files (x86)\\AutoHotkey\\v2\\AutoHotkey64.exe',
-  'C:\\Program Files\\AutoHotkey\\v2\\AutoHotkey.exe',
-  'C:\\Program Files (x86)\\AutoHotkey\\v2\\AutoHotkey.exe',
-];
-
 async function findAutoHotkeyPath(): Promise<string | undefined> {
-  for (const ahkPath of AHK_COMMON_PATHS) {
-    try {
-      await fs.access(ahkPath);
-      return ahkPath;
-    } catch {
-      // Continue checking
+  const configuredOrLocalPath = resolveAutoHotkeyPath();
+  if (configuredOrLocalPath) {
+    return configuredOrLocalPath;
+  }
+
+  if (os.platform() === 'win32') {
+    for (const exeName of ['AutoHotkey64.exe', 'AutoHotkey.exe']) {
+      try {
+        const { stdout } = await execAsync(`where ${exeName}`);
+        const foundPath = stdout
+          .split(/\r?\n/)
+          .map(line => line.trim())
+          .find(Boolean);
+        if (foundPath) {
+          return foundPath;
+        }
+      } catch {
+        // Continue checking
+      }
     }
   }
   return undefined;
@@ -526,7 +537,7 @@ export class AhkCloudValidateTool {
     return textOutput;
   }
 
-  async execute(args: unknown): Promise<any> {
+  async execute(args: unknown): Promise<McpToolResponse> {
     // Validate arguments
     const parsed = safeParse(args, AhkCloudValidateArgsSchema, 'AHK_Cloud_Validate');
     if (!parsed.success) {

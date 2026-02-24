@@ -18,8 +18,8 @@ export interface ToolPathConfig {
  */
 export interface InterceptionResult {
   success: boolean;
-  originalData: any;
-  modifiedData: any;
+  originalData: unknown;
+  modifiedData: unknown;
   conversions: PathConversionResult[];
   error?: string;
 }
@@ -148,7 +148,7 @@ export class PathInterceptor {
    * @param arguments The tool arguments
    * @returns The interception result
    */
-  public interceptInput(toolName: string, args: Record<string, any>): InterceptionResult {
+  public interceptInput(toolName: string, args: Record<string, unknown>): InterceptionResult {
     if (!this.enabled) {
       return {
         success: true,
@@ -219,7 +219,7 @@ export class PathInterceptor {
    * @param result The tool result
    * @returns The interception result
    */
-  public interceptOutput(toolName: string, result: any): InterceptionResult {
+  public interceptOutput(toolName: string, result: unknown): InterceptionResult {
     if (!this.enabled) {
       return {
         success: true,
@@ -271,7 +271,7 @@ export class PathInterceptor {
    * @returns The conversion result
    */
   private processPathValue(
-    value: any,
+    value: unknown,
     targetFormat: PathFormat,
     context: string
   ): PathConversionResult {
@@ -296,19 +296,20 @@ export class PathInterceptor {
    * @param conversions Array to collect conversion results
    */
   private processNestedPaths(
-    data: any,
+    data: Record<string, unknown> | unknown[],
     config: ToolPathConfig,
     conversions: PathConversionResult[]
   ): void {
     if (Array.isArray(data)) {
-      data.forEach((item, index) => {
+      data.forEach(item => {
         if (typeof item === 'object' && item !== null) {
-          this.processNestedPaths(item, config, conversions);
+          this.processNestedPaths(item as Record<string, unknown>, config, conversions);
         }
       });
     } else if (typeof data === 'object' && data !== null) {
-      Object.keys(data).forEach(key => {
-        const value = data[key];
+      const dataRecord = data as Record<string, unknown>;
+      Object.keys(dataRecord).forEach(key => {
+        const value = dataRecord[key];
 
         // Check if this key matches any of our path parameters
         const isPathParameter = config.pathParameters.some(param =>
@@ -318,11 +319,11 @@ export class PathInterceptor {
         if (isPathParameter && typeof value === 'string') {
           const conversionResult = this.processPathValue(value, config.targetFormat, key);
           if (conversionResult.success) {
-            data[key] = conversionResult.convertedPath;
+            dataRecord[key] = conversionResult.convertedPath;
             conversions.push(conversionResult);
           }
         } else if (typeof value === 'object' && value !== null) {
-          this.processNestedPaths(value, config, conversions);
+          this.processNestedPaths(value as Record<string, unknown>, config, conversions);
         }
       });
     }
@@ -335,20 +336,22 @@ export class PathInterceptor {
    * @param conversions Array to collect conversion results
    */
   private processResultPaths(
-    result: any,
+    result: unknown,
     config: ToolPathConfig,
     conversions: PathConversionResult[]
   ): void {
     if (Array.isArray(result)) {
-      result.forEach((item, index) => {
+      result.forEach(item => {
         if (typeof item === 'object' && item !== null) {
           this.processResultPaths(item, config, conversions);
         }
       });
     } else if (typeof result === 'object' && result !== null) {
+      const resultRecord = result as Record<string, unknown>;
+
       // Handle MCP content array format
-      if (result.content && Array.isArray(result.content)) {
-        result.content.forEach((contentItem: any) => {
+      if (resultRecord['content'] && Array.isArray(resultRecord['content'])) {
+        (resultRecord['content'] as Array<{ type: string; text?: string }>).forEach(contentItem => {
           if (contentItem.type === 'text' && typeof contentItem.text === 'string') {
             // Try to find and convert paths in text content
             const convertedText = this.convertPathsInText(contentItem.text, config, conversions);
@@ -360,8 +363,8 @@ export class PathInterceptor {
       }
 
       // Process other object properties
-      Object.keys(result).forEach(key => {
-        const value = result[key];
+      Object.keys(resultRecord).forEach(key => {
+        const value = resultRecord[key];
         if (typeof value === 'object' && value !== null) {
           this.processResultPaths(value, config, conversions);
         }
@@ -412,7 +415,7 @@ export class PathInterceptor {
    * @param obj The object to clone
    * @returns The cloned object
    */
-  private cloneObject(obj: any): any {
+  private cloneObject(obj: unknown): unknown {
     if (obj === null || typeof obj !== 'object') {
       return obj;
     }
@@ -425,9 +428,9 @@ export class PathInterceptor {
       return obj.map(item => this.cloneObject(item));
     }
 
-    const cloned: any = {};
-    Object.keys(obj).forEach(key => {
-      cloned[key] = this.cloneObject(obj[key]);
+    const cloned: Record<string, unknown> = {};
+    Object.keys(obj as Record<string, unknown>).forEach(key => {
+      cloned[key] = this.cloneObject((obj as Record<string, unknown>)[key]);
     });
 
     return cloned;

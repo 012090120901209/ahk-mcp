@@ -7,6 +7,7 @@ import { AhkDiagnosticsTool } from './ahk-analyze-diagnostics.js';
 import { AhkAnalyzeTool } from './ahk-analyze-code.js';
 import { AhkRunTool } from './ahk-run-script.js';
 import { safeParse } from '../core/validation-middleware.js';
+import type { McpToolResponse } from '../types/mcp-types.js';
 
 export const AhkProcessRequestArgsSchema = z.object({
   input: z.string().describe('Multi-line input containing file path and instructions'),
@@ -152,7 +153,7 @@ export class AhkProcessRequestTool {
   /**
    * Execute the parsed request
    */
-  async execute(args: unknown): Promise<any> {
+  async execute(args: unknown): Promise<McpToolResponse> {
     const parsed = safeParse(args, AhkProcessRequestArgsSchema, 'AHK_Process_Request');
     if (!parsed.success) return parsed.error;
 
@@ -233,7 +234,7 @@ export class AhkProcessRequestTool {
 
       // Execute the action if autoExecute is true
       if (autoExecute) {
-        let actionResult: any;
+        let actionResult: McpToolResponse | undefined;
 
         switch (parsedRequest.action) {
           case 'run':
@@ -249,7 +250,7 @@ export class AhkProcessRequestTool {
               timeout: 30000,
               killOnExit: true,
               detectWindow: false,
-            } as any);
+            });
             break;
 
           case 'diagnose':
@@ -288,8 +289,8 @@ export class AhkProcessRequestTool {
         // Add action result if available
         if (actionResult && actionResult.content) {
           response += '\n**Result:**\n';
-          actionResult.content.forEach((content: any) => {
-            if (content.type === 'text') {
+          actionResult.content.forEach(content => {
+            if (content.type === 'text' && content.text) {
               response += content.text + '\n';
             }
           });
@@ -330,7 +331,7 @@ export class AhkProcessRequestTool {
   /**
    * Quick method to process a file path and instruction
    */
-  static async processQuick(filePath: string, instruction: string): Promise<any> {
+  static async processQuick(filePath: string, instruction: string): Promise<McpToolResponse> {
     const tool = new AhkProcessRequestTool();
     return tool.execute({
       input: `${filePath}\n\n${instruction}`,

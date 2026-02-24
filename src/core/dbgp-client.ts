@@ -12,7 +12,7 @@ export interface DebugResponse {
   transaction_id: string;
   status?: string;
   reason?: string;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 export interface Breakpoint {
@@ -96,7 +96,7 @@ export class DBGpClient extends EventEmitter {
         resolve();
       });
 
-      this.server.on('error', (err: any) => {
+      this.server.on('error', (err: NodeJS.ErrnoException) => {
         if (err.code === 'EADDRINUSE') {
           logger.warn(`Port ${this.port} in use, trying next port`);
           this.port++;
@@ -166,7 +166,8 @@ export class DBGpClient extends EventEmitter {
       };
 
       this.on('message', handler);
-      this.socket!.write(fullCommand);
+      // socket is guaranteed non-null by the guard above
+      this.socket?.write(fullCommand);
     });
   }
 
@@ -208,7 +209,7 @@ export class DBGpClient extends EventEmitter {
       const attrs = match[1];
       const value = match[2];
 
-      const variable: any = {};
+      const variable: Record<string, string> = {};
       const attrRegex = /(\w+)="([^"]*)"/g;
       let attrMatch;
       while ((attrMatch = attrRegex.exec(attrs)) !== null) {
@@ -224,7 +225,7 @@ export class DBGpClient extends EventEmitter {
         }
       }
 
-      variables.push(variable as Variable);
+      variables.push(variable as unknown as Variable);
     }
 
     return variables;
@@ -240,7 +241,7 @@ export class DBGpClient extends EventEmitter {
 
     while ((match = stackRegex.exec(xml)) !== null) {
       const attrs = match[1];
-      const frame: any = {};
+      const frame: Record<string, string | number> = {};
 
       const attrRegex = /(\w+)="([^"]*)"/g;
       let attrMatch;
@@ -250,7 +251,7 @@ export class DBGpClient extends EventEmitter {
         frame[key] = key === 'level' || key === 'lineno' ? parseInt(val) : val;
       }
 
-      frames.push(frame as StackFrame);
+      frames.push(frame as unknown as StackFrame);
     }
 
     return frames;
@@ -292,10 +293,10 @@ export class DBGpClient extends EventEmitter {
 
     const response = await this.sendCommand(cmd);
     return {
-      id: response.id || '',
+      id: String(response.id || ''),
       file,
       line,
-      state: response.state,
+      state: response.state as string | undefined,
     };
   }
 
@@ -306,13 +307,13 @@ export class DBGpClient extends EventEmitter {
   async listBreakpoints(): Promise<Breakpoint[]> {
     const response = await this.sendCommand('breakpoint_list');
     const breakpoints: Breakpoint[] = [];
-    const xml = response._raw || '';
+    const xml = String(response._raw || '');
     const bpRegex = /<breakpoint([^>]*)\/>/g;
     let match;
 
     while ((match = bpRegex.exec(xml)) !== null) {
       const attrs = match[1];
-      const bp: any = {};
+      const bp: Record<string, string> = {};
 
       const attrRegex = /(\w+)="([^"]*)"/g;
       let attrMatch;
@@ -337,14 +338,14 @@ export class DBGpClient extends EventEmitter {
 
   async getVariables(contextId: number = 0): Promise<Variable[]> {
     const response = await this.sendCommand(`context_get -c ${contextId}`);
-    return this.parseProperties(response._raw || '');
+    return this.parseProperties(String(response._raw || ''));
   }
 
   async evaluateExpression(expression: string): Promise<string> {
     const encoded = Buffer.from(expression).toString('base64');
     const response = await this.sendCommand(`eval -- ${encoded}`);
 
-    const variables = this.parseProperties(response._raw || '');
+    const variables = this.parseProperties(String(response._raw || ''));
     return variables.length > 0 ? variables[0].value : '';
   }
 
@@ -352,7 +353,7 @@ export class DBGpClient extends EventEmitter {
 
   async getStackTrace(): Promise<StackFrame[]> {
     const response = await this.sendCommand('stack_get');
-    return this.parseStack(response._raw || '');
+    return this.parseStack(String(response._raw || ''));
   }
 
   // === Utility ===
@@ -408,16 +409,18 @@ export class DBGpClient extends EventEmitter {
 
     // Wait for next error
     return new Promise(resolve => {
+      const waiter = (error: ErrorInfo) => {
+        clearTimeout(timeout);
+        resolve(error);
+      };
+
       const timeout = setTimeout(() => {
-        const idx = this.errorWaiters.indexOf(resolve as any);
+        const idx = this.errorWaiters.indexOf(waiter);
         if (idx > -1) this.errorWaiters.splice(idx, 1);
         resolve(null);
       }, timeoutMs);
 
-      this.errorWaiters.push(error => {
-        clearTimeout(timeout);
-        resolve(error);
-      });
+      this.errorWaiters.push(waiter);
     });
   }
 

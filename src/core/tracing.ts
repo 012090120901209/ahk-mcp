@@ -536,7 +536,7 @@ export function getTraceSummary(span: Span): {
   const errorCount = spans.filter(s => s.status.code === 'ERROR').length;
   const slowestSpans = spans
     .filter(s => s.duration !== undefined)
-    .map(s => ({ name: s.name, duration: s.duration! }))
+    .map(s => ({ name: s.name, duration: s.duration ?? 0 }))
     .sort((a, b) => b.duration - a.duration)
     .slice(0, 5);
 

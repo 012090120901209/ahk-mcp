@@ -49,7 +49,7 @@ export class DependencyResolver {
         if (!this.reverseGraph.has(dep)) {
           this.reverseGraph.set(dep, []);
         }
-        this.reverseGraph.get(dep)!.push(lib.name);
+        this.reverseGraph.get(dep)?.push(lib.name);
       }
     }
   }
@@ -155,7 +155,8 @@ export class DependencyResolver {
 
     // Process queue
     while (queue.length > 0) {
-      const node = queue.shift()!;
+      const node = queue.shift();
+      if (node === undefined) break;
       result.push(node);
 
       // Get nodes that depend on this node (reverse graph)
@@ -187,8 +188,8 @@ export class DependencyResolver {
     const queue = [start];
 
     while (queue.length > 0) {
-      const node = queue.shift()!;
-      if (reachable.has(node)) continue;
+      const node = queue.shift();
+      if (node === undefined || reachable.has(node)) continue;
 
       reachable.add(node);
 
@@ -298,7 +299,8 @@ export class DependencyResolver {
     const queue = [libraryName];
 
     while (queue.length > 0) {
-      const current = queue.shift()!;
+      const current = queue.shift();
+      if (current === undefined) break;
       const deps = this.graph.get(current) || [];
 
       for (const dep of deps) {

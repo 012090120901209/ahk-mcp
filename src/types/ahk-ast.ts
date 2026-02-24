@@ -21,7 +21,7 @@ export interface AhkFunction extends AhkNode {
 export interface AhkParameter {
   name: string;
   type?: string;
-  defaultValue?: any;
+  defaultValue?: unknown;
   isOptional?: boolean;
   isVariadic?: boolean;
 }
@@ -49,7 +49,7 @@ export interface AhkMethod extends AhkNode {
 export interface AhkProperty extends AhkNode {
   type: 'property';
   name: string;
-  value?: any;
+  value?: unknown;
   getter?: AhkMethod;
   setter?: AhkMethod;
   isStatic?: boolean;
@@ -61,7 +61,7 @@ export interface AhkVariable extends AhkNode {
   type: 'variable';
   name: string;
   scope: 'local' | 'global' | 'static';
-  value?: any;
+  value?: unknown;
   dataType?: string;
 }
 
@@ -105,7 +105,7 @@ export interface AhkExpression extends AhkNode {
   operator?: string;
   left?: AhkExpression;
   right?: AhkExpression;
-  value?: any;
+  value?: unknown;
 }
 
 export interface AhkAssignment extends AhkNode {

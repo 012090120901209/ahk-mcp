@@ -2,7 +2,7 @@ import { z } from 'zod';
 import logger from '../logger.js';
 import { safeParse } from '../core/validation-middleware.js';
 import { toolAnalytics } from '../core/tool-analytics.js';
-import { McpToolResponse, createTextResponse, createErrorResponse } from '../types/mcp-types.js';
+import type { McpToolResponse } from '../types/mcp-types.js';
 
 export const AhkAnalyticsArgsSchema = z.object({
   action: z.enum(['summary', 'tool_stats', 'recent', 'export', 'clear']).default('summary'),

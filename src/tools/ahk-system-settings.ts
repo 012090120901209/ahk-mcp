@@ -2,6 +2,7 @@ import { z } from 'zod';
 import logger from '../logger.js';
 import { toolSettings } from '../core/tool-settings.js';
 import { safeParse } from '../core/validation-middleware.js';
+import type { McpToolResponse } from '../types/mcp-types.js';
 
 export const AhkSettingsArgsSchema = z.object({
   action: z
@@ -91,7 +92,7 @@ Manage tool settings and enable/disable features`,
 };
 
 export class AhkSettingsTool {
-  async execute(args: unknown): Promise<any> {
+  async execute(args: unknown): Promise<McpToolResponse> {
     try {
       const parsed = safeParse(args, AhkSettingsArgsSchema, 'AHK_Settings');
       if (!parsed.success) return parsed.error;

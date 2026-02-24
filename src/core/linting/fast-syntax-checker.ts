@@ -225,7 +225,7 @@ export class FastSyntaxChecker {
     for (const { regex, message, rule } of v1Patterns) {
       const match = content.match(regex);
       if (match) {
-        const line = this.getLineNumber(content, match.index!);
+        const line = this.getLineNumber(content, match.index ?? 0);
         warnings.push({
           line,
           message,

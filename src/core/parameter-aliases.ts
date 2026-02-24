@@ -1,5 +1,10 @@
 import logger from '../logger.js';
 
+/** Narrows an unknown value to a property-accessible object. */
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === 'object';
+}
+
 /**
  * Resolves the content parameter with backward compatibility.
  * Priority: newContent > content
@@ -7,20 +12,22 @@ import logger from '../logger.js';
  * @param args Tool arguments that may contain content or newContent
  * @returns The resolved content value, or undefined if neither provided
  */
-export function resolveContentParameter(args: any): string | undefined {
+export function resolveContentParameter(args: unknown): string | undefined {
+  if (!isRecord(args)) return undefined;
+
   // Priority 1: Check for new parameter name
   if (args.newContent !== undefined) {
     // If both provided, warn the user
     if (args.content !== undefined) {
       logger.warn('Both "content" and "newContent" provided. Using "newContent" (recommended).');
     }
-    return args.newContent;
+    return args.newContent as string;
   }
 
   // Priority 2: Check for deprecated parameter name
   if (args.content !== undefined) {
     logger.warn('Parameter "content" is deprecated. Please use "newContent" instead.');
-    return args.content;
+    return args.content as string;
   }
 
   // Neither provided
@@ -34,7 +41,7 @@ export function resolveContentParameter(args: any): string | undefined {
  * @param usedDeprecated Array of deprecated parameter names that were used
  * @returns Modified result with deprecation warnings prepended
  */
-export function addDeprecationWarning(result: any, usedDeprecated: string[]): any {
+export function addDeprecationWarning<T extends object>(result: T, usedDeprecated: string[]): T {
   if (usedDeprecated.length === 0) {
     return result;
   }
@@ -44,9 +51,10 @@ export function addDeprecationWarning(result: any, usedDeprecated: string[]): an
     `Please update to new parameter names. See tool documentation for details.\n\n`;
 
   // Prepend warning to first text content
-  if (result.content && Array.isArray(result.content) && result.content.length > 0) {
-    if (result.content[0].type === 'text' && typeof result.content[0].text === 'string') {
-      result.content[0].text = warning + result.content[0].text;
+  if (isRecord(result) && Array.isArray(result.content) && result.content.length > 0) {
+    const first = result.content[0] as Record<string, unknown>;
+    if (first.type === 'text' && typeof first.text === 'string') {
+      first.text = warning + first.text;
     }
   }
 
@@ -59,8 +67,10 @@ export function addDeprecationWarning(result: any, usedDeprecated: string[]): an
  * @param args Tool arguments
  * @returns Array of deprecated parameter names that were provided
  */
-export function detectDeprecatedParameters(args: any): string[] {
+export function detectDeprecatedParameters(args: unknown): string[] {
   const deprecated: string[] = [];
+
+  if (!isRecord(args)) return deprecated;
 
   if (args.content !== undefined && args.newContent === undefined) {
     deprecated.push('"content" (use "newContent")');
@@ -75,7 +85,7 @@ export function detectDeprecatedParameters(args: any): string[] {
  * @param args Tool arguments
  * @returns Object with content value and list of deprecated params used
  */
-export function resolveWithTracking(args: any): {
+export function resolveWithTracking(args: unknown): {
   content: string | undefined;
   deprecatedUsed: string[];
 } {

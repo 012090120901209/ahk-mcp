@@ -1,12 +1,18 @@
 import logger from '../logger.js';
-import type { AhkIndex } from '../types/index.js';
+import type {
+  AhkIndex,
+  AhkDocumentationFull,
+  AhkIndexFunction,
+  AhkIndexClass,
+  AhkIndexVariable,
+} from '../types/index.js';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import fs from 'node:fs';
 
 // Global data storage - loaded lazily
 let ahkIndex: AhkIndex | null = null;
-let ahkDocumentationFull: any = null;
+let ahkDocumentationFull: AhkDocumentationFull | null = null;
 
 function resolveDataPath(rel: string): string {
   // Resolve relative to this module at runtime (works in dist and src builds)
@@ -14,13 +20,15 @@ function resolveDataPath(rel: string): string {
   return path.resolve(moduleDir, '..', '..', 'data', rel);
 }
 
-async function dynamicJsonImport<T = any>(relPathFromData: string): Promise<T> {
+async function dynamicJsonImport<T>(relPathFromData: string): Promise<T> {
   const relFromCore = `../../data/${relPathFromData}`;
   // Prefer import attributes when available (Node >= 20)
   try {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- import() options arg has no generic in TS lib typings
     const mod = await import(relFromCore, { with: { type: 'json' } } as any);
     // Some bundlers put value on .default
-    return (mod as any).default ?? (mod as any);
+    const m = mod as { default?: T };
+    return m.default ?? (mod as T);
   } catch (err) {
     // Fallback to filesystem read for older Node versions
     try {
@@ -47,11 +55,13 @@ export async function loadAhkData(): Promise<void> {
     );
 
     // Always load the lightweight index first
-    ahkIndex = (await dynamicJsonImport<AhkIndex>('ahk_index.json')) as AhkIndex;
+    ahkIndex = await dynamicJsonImport<AhkIndex>('ahk_index.json');
 
     if (!lightMode) {
       // Load additional documentation datasets
-      ahkDocumentationFull = await dynamicJsonImport<any>('ahk_documentation_full.json');
+      ahkDocumentationFull = await dynamicJsonImport<AhkDocumentationFull>(
+        'ahk_documentation_full.json'
+      );
     } else {
       ahkDocumentationFull = null;
     }
@@ -73,14 +83,14 @@ export function getAhkIndex(): AhkIndex | null {
 /**
  * Get the full documentation
  */
-export function getAhkDocumentationFull(): any {
+export function getAhkDocumentationFull(): AhkDocumentationFull | null {
   return ahkDocumentationFull;
 }
 
 /**
  * Search for functions by name or keyword
  */
-export function searchFunctions(query: string): any[] {
+export function searchFunctions(query: string): AhkIndexFunction[] {
   if (!ahkIndex) return [];
 
   const normalizedQuery = query.toLowerCase();
@@ -94,7 +104,7 @@ export function searchFunctions(query: string): any[] {
 /**
  * Search for classes by name or keyword
  */
-export function searchClasses(query: string): any[] {
+export function searchClasses(query: string): AhkIndexClass[] {
   if (!ahkIndex) return [];
 
   const normalizedQuery = query.toLowerCase();
@@ -108,7 +118,7 @@ export function searchClasses(query: string): any[] {
 /**
  * Search for variables by name or keyword
  */
-export function searchVariables(query: string): any[] {
+export function searchVariables(query: string): AhkIndexVariable[] {
   if (!ahkIndex) return [];
 
   const normalizedQuery = query.toLowerCase();

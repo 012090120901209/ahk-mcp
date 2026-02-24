@@ -8,8 +8,7 @@
 import { z } from 'zod';
 import path from 'path';
 import { LibraryCatalog } from '../core/library-catalog.js';
-import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
-import { McpToolResponse, createTextResponse, createErrorResponse } from '../types/mcp-types.js';
+import type { McpToolResponse } from '../types/mcp-types.js';
 import { safeParse } from '../core/validation-middleware.js';
 
 /**
@@ -99,11 +98,11 @@ export async function initializeCatalog(scriptsDir: string): Promise<void> {
 export async function handleAHK_Library_Import(
   args: unknown,
   scriptsDir: string
-): Promise<CallToolResult> {
+): Promise<McpToolResponse> {
   try {
     // Validate arguments
     const parsed = safeParse(args, AHK_Library_Import_ArgsSchema, 'AHK_Library_Import');
-    if (!parsed.success) return parsed.error as any;
+    if (!parsed.success) return parsed.error;
 
     const { name, include_dependencies, format = 'angle-brackets' } = parsed.data;
     const catalog = getCatalog();
@@ -265,7 +264,7 @@ export async function handleAHK_Library_Import(
         lines.push('');
         lines.push('**Dependencies:**');
         for (const dep of versionedDeps) {
-          lines.push(`- ${dep.name}: v${dep.lib!.version}`);
+          lines.push(`- ${dep.name}: v${dep.lib?.version ?? 'unknown'}`);
         }
       }
       lines.push('');

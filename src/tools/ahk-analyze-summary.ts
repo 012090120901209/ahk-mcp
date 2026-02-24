@@ -3,6 +3,8 @@ import { getAhkIndex, getAhkDocumentationFull } from '../core/loader.js';
 import { ClaudeStandardsEngine } from '../core/claude-standards.js';
 import logger from '../logger.js';
 import { safeParse } from '../core/validation-middleware.js';
+import type { AhkDocFullVariable, AhkDocFullClassItem } from '../types/tool-types.js';
+import type { McpToolResponse } from '../types/mcp-types.js';
 
 export const AhkSummaryArgsSchema = z.object({});
 
@@ -17,8 +19,25 @@ Returns a summary of built-in variables, classes, and coding standards for AutoH
   },
 };
 
+interface SummaryVariable {
+  name: string;
+  type: string;
+  description: string;
+}
+
+interface SummaryClass {
+  name: string;
+  description: string;
+}
+
+interface SummaryMethod {
+  name: string;
+  returnType: string;
+  description: string;
+}
+
 export class AhkSummaryTool {
-  async execute(args: unknown): Promise<any> {
+  async execute(args: unknown): Promise<McpToolResponse> {
     const parsed = safeParse(args, AhkSummaryArgsSchema, 'AHK_Summary');
     if (!parsed.success) return parsed.error;
 
@@ -28,9 +47,9 @@ export class AhkSummaryTool {
     const standards = new ClaudeStandardsEngine().getStandards();
 
     // Use full documentation if available, fallback to index
-    let variables: any[] = [];
-    let classes: any[] = [];
-    let methods: any[] = [];
+    let variables: SummaryVariable[] = [];
+    let classes: SummaryClass[] = [];
+    let methods: SummaryMethod[] = [];
     let dataSource = 'index';
 
     if (fullDocs && fullDocs.data) {
@@ -38,7 +57,7 @@ export class AhkSummaryTool {
 
       // Extract variables from full documentation
       if (fullDocs.data.BuiltInVariables) {
-        variables = fullDocs.data.BuiltInVariables.map((v: any) => ({
+        variables = fullDocs.data.BuiltInVariables.map((v: AhkDocFullVariable) => ({
           name: v.Name,
           type: v.ReturnType || v.Type || 'Unknown',
           description: v.Description || 'No description available',
@@ -47,19 +66,19 @@ export class AhkSummaryTool {
 
       // Extract classes and methods from full documentation
       if (fullDocs.data.Classes) {
-        const classItems = fullDocs.data.Classes.filter(
-          (item: any) => item.Type === 'Class' || !item.Path
+        const classItems = (fullDocs.data.Classes ?? []).filter(
+          (item: AhkDocFullClassItem) => item.Type === 'Class' || !item.Path
         );
-        const methodItems = fullDocs.data.Classes.filter(
-          (item: any) => item.Type === 'Method' && item.Path
+        const methodItems = (fullDocs.data.Classes ?? []).filter(
+          (item: AhkDocFullClassItem) => item.Type === 'Method' && item.Path
         );
 
-        classes = classItems.map((c: any) => ({
+        classes = classItems.map((c: AhkDocFullClassItem) => ({
           name: c.Name,
           description: c.Description || 'No description available',
         }));
 
-        methods = methodItems.map((m: any) => ({
+        methods = methodItems.map((m: AhkDocFullClassItem) => ({
           name: `${m.Path}.${m.Name}`,
           returnType: m.ReturnType || 'Unknown',
           description: m.Description || 'No description available',
@@ -67,23 +86,23 @@ export class AhkSummaryTool {
       }
     } else if (index) {
       // Fallback to index data
-      variables = (index.variables || []).map((v: any) => ({
+      variables = (index.variables ?? []).map(v => ({
         name: v.Name,
         type: v.Type,
         description: v.Description,
       }));
-      classes = (index.classes || []).map((c: any) => ({
+      classes = (index.classes ?? []).map(c => ({
         name: c.Name,
         description: c.Description,
       }));
-      methods = (index.methods || []).map((m: any) => ({
+      methods = (index.methods ?? []).map(m => ({
         name: m.Name,
         returnType: m.ReturnType || 'Unknown',
         description: m.Description,
       }));
     }
 
-    const rules = (standards || []).map((s: any) => ({
+    const rules = (standards ?? []).map(s => ({
       name: s.name,
       message: s.message,
       category: s.category,

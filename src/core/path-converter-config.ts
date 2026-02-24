@@ -325,7 +325,7 @@ export class PathConverterConfigManager {
    * @param config The configuration to merge
    * @returns The merged configuration
    */
-  private mergeWithDefaults(config: any): PathConverterConfig {
+  private mergeWithDefaults(config: Partial<PathConverterConfig>): PathConverterConfig {
     return {
       enabled: config.enabled !== undefined ? config.enabled : DEFAULT_CONFIG.enabled,
       defaultTargetFormat: config.defaultTargetFormat || DEFAULT_CONFIG.defaultTargetFormat,
@@ -355,7 +355,7 @@ export class PathConverterConfigManager {
    * @param config The configuration to validate
    * @returns True if valid
    */
-  public validateConfig(config: any): boolean {
+  public validateConfig(config: unknown): boolean {
     try {
       ConfigSchema.parse(config);
       return true;

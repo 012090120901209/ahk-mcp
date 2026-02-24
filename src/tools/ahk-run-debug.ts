@@ -2,6 +2,7 @@ import { z } from 'zod';
 import net, { Server as NetServer, Socket } from 'net';
 import logger from '../logger.js';
 import { safeParse } from '../core/validation-middleware.js';
+import type { McpToolResponse } from '../types/mcp-types.js';
 
 type TrafficDirection = 'incoming' | 'outgoing';
 
@@ -88,7 +89,7 @@ class DebugPortProxy {
       });
 
       const p = new Promise<void>((resolve, reject) => {
-        server.once('error', (err: any) => {
+        server.once('error', (err: NodeJS.ErrnoException) => {
           if (err && (err.code === 'EADDRINUSE' || err.code === 'EACCES')) {
             logger.warn(`Port ${port} unavailable (${err.code}). Skipping.`);
             resolve();
@@ -480,7 +481,7 @@ export class AhkDebugAgentTool {
     return AhkDebugAgentTool.proxyInstance;
   }
 
-  async execute(args: unknown): Promise<any> {
+  async execute(args: unknown): Promise<McpToolResponse> {
     const parsed = safeParse(args, AhkDebugAgentArgsSchema, 'AHK_Debug_Agent');
     if (!parsed.success) return parsed.error;
 
@@ -516,7 +517,7 @@ export class AhkDebugAgentTool {
       if (mode === 'start') {
         const proxy = this.getOrCreateProxy(maxEvents ?? 200);
         const ports = resolvePortList();
-        proxy.setProtocolMode((validated as any).protocol || 'auto');
+        proxy.setProtocolMode(validated.protocol ?? 'auto');
         await proxy.startOnPorts(listenHost ?? '127.0.0.1', ports, forwardHost, forwardPort);
         const status = proxy.status();
         return { content: [{ type: 'text', text: this.formatStatus(status) }] };
@@ -537,7 +538,7 @@ export class AhkDebugAgentTool {
           // Use recommended rotating pool common for VS Code AHK adapters
           ports = [9002, 9003, 9004, 9005, 9006];
         }
-        proxy.setProtocolMode((validated as any).protocol || 'auto');
+        proxy.setProtocolMode(validated.protocol ?? 'auto');
         await proxy.startOnPorts(listenHost ?? '127.0.0.1', ports, forwardHost, forwardPort);
         const result = await proxy.onNextConnection(scanTimeoutMs ?? 3000);
         if (result.timedOut) {
@@ -593,7 +594,7 @@ export class AhkDebugAgentTool {
     }
   }
 
-  private formatStatus(status: any): string {
+  private formatStatus(status: ReturnType<DebugPortProxy['status']> | { running: false }): string {
     if (!status.running) {
       return 'AHK debug listener: stopped';
     }

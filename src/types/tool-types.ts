@@ -150,6 +150,35 @@ export interface AhkIndex {
   operators: AhkIndexOperator[];
 }
 
+/** Shape of items in ahk_documentation_full.json */
+export interface AhkDocFullVariable {
+  Name: string;
+  Path?: string;
+  Type?: string;
+  ReturnType?: string;
+  Description?: string;
+  Parameters?: string;
+}
+
+export interface AhkDocFullClassItem {
+  Name: string;
+  Type?: string;
+  Path?: string;
+  ReturnType?: string;
+  Description?: string;
+  Parameters?: string;
+}
+
+export interface AhkDocumentationFull {
+  data: {
+    BuiltInVariables?: AhkDocFullVariable[];
+    Classes?: AhkDocFullClassItem[];
+    Functions?: AhkIndexFunction[];
+    // Index signature allows accessing other top-level keys without casting
+    [key: string]: unknown;
+  };
+}
+
 // Claude standards types
 export interface ClaudeStandard {
   name: string;

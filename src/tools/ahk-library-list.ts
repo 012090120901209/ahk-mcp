@@ -7,8 +7,7 @@
 
 import { z } from 'zod';
 import { LibraryCatalog } from '../core/library-catalog.js';
-import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
-import { McpToolResponse, createTextResponse, createErrorResponse } from '../types/mcp-types.js';
+import type { McpToolResponse } from '../types/mcp-types.js';
 import { safeParse } from '../core/validation-middleware.js';
 
 /**
@@ -84,11 +83,11 @@ export async function initializeCatalog(scriptsDir: string): Promise<void> {
 export async function handleAHK_Library_List(
   args: unknown,
   scriptsDir: string
-): Promise<CallToolResult> {
+): Promise<McpToolResponse> {
   try {
     // Validate arguments
     const parsed = safeParse(args, AHK_Library_List_ArgsSchema, 'AHK_Library_List');
-    if (!parsed.success) return parsed.error as any;
+    if (!parsed.success) return parsed.error;
 
     const validatedArgs = parsed.data;
     const catalog = getCatalog();

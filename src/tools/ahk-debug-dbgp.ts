@@ -8,6 +8,7 @@ import logger from '../logger.js';
 import { safeParse } from '../core/validation-middleware.js';
 import { getDBGpClient, resetDBGpClient, ErrorInfo } from '../core/dbgp-client.js';
 import * as fs from 'fs/promises';
+import type { McpToolResponse } from '../types/mcp-types.js';
 
 export const AhkDebugDBGpArgsSchema = z.object({
   action: z
@@ -157,7 +158,7 @@ Actions:
 };
 
 export class AhkDebugDBGpTool {
-  async execute(args: unknown): Promise<any> {
+  async execute(args: unknown): Promise<McpToolResponse> {
     const parsed = safeParse(args, AhkDebugDBGpArgsSchema, 'AHK_Debug_DBGp');
     if (!parsed.success) return parsed.error;
 
@@ -198,23 +199,38 @@ export class AhkDebugDBGpTool {
         case 'analyze_error':
           return this.analyzeError(error as ErrorInfo);
         case 'apply_fix':
-          return await this.applyFix(file!, line!, original!, replacement!);
+          if (!file || line === undefined || !original || !replacement) {
+            return this.errorResponse('apply_fix requires: file, line, original, replacement');
+          }
+          return await this.applyFix(file, line, original, replacement);
         case 'list_errors':
           return this.listErrors();
         case 'clear_errors':
           return this.clearErrors();
         case 'get_source':
-          return await this.getSource(file!, line!, radius ?? 5);
+          if (!file || line === undefined) {
+            return this.errorResponse('get_source requires: file, line');
+          }
+          return await this.getSource(file, line, radius ?? 5);
         case 'breakpoint_set':
-          return await this.setBreakpoint(file!, line!, condition);
+          if (!file || line === undefined) {
+            return this.errorResponse('breakpoint_set requires: file, line');
+          }
+          return await this.setBreakpoint(file, line, condition);
         case 'breakpoint_remove':
-          return await this.removeBreakpoint(breakpoint_id!);
+          if (!breakpoint_id) {
+            return this.errorResponse('breakpoint_remove requires: breakpoint_id');
+          }
+          return await this.removeBreakpoint(breakpoint_id);
         case 'breakpoint_list':
           return await this.listBreakpoints();
         case 'variables_get':
           return await this.getVariables(context ?? 0);
         case 'evaluate':
-          return await this.evaluate(expression!);
+          if (!expression) {
+            return this.errorResponse('evaluate requires: expression');
+          }
+          return await this.evaluate(expression);
         case 'stack_trace':
           return await this.getStackTrace();
         default:
@@ -226,7 +242,7 @@ export class AhkDebugDBGpTool {
     }
   }
 
-  private async startListener(port: number): Promise<any> {
+  private async startListener(port: number): Promise<McpToolResponse> {
     const client = getDBGpClient();
     if (client.isConnected()) {
       return this.successResponse('Already connected to AutoHotkey debugger');
@@ -243,12 +259,12 @@ export class AhkDebugDBGpTool {
     }
   }
 
-  private async stopListener(): Promise<any> {
+  private async stopListener(): Promise<McpToolResponse> {
     resetDBGpClient();
     return this.successResponse('DBGp listener stopped');
   }
 
-  private getStatus(): any {
+  private getStatus(): McpToolResponse {
     const client = getDBGpClient();
     const status = {
       connected: client.isConnected(),
@@ -265,7 +281,7 @@ export class AhkDebugDBGpTool {
     };
   }
 
-  private async debugRun(): Promise<any> {
+  private async debugRun(): Promise<McpToolResponse> {
     const client = getDBGpClient();
     if (!client.isConnected()) {
       return this.errorResponse('Not connected to AutoHotkey debugger');
@@ -274,7 +290,7 @@ export class AhkDebugDBGpTool {
     return this.successResponse(`Execution continued. Status: ${response.status || 'running'}`);
   }
 
-  private async debugStepInto(): Promise<any> {
+  private async debugStepInto(): Promise<McpToolResponse> {
     const client = getDBGpClient();
     if (!client.isConnected()) {
       return this.errorResponse('Not connected to AutoHotkey debugger');
@@ -283,7 +299,7 @@ export class AhkDebugDBGpTool {
     return this.successResponse(`Step into. Status: ${response.status || 'break'}`);
   }
 
-  private async debugStepOver(): Promise<any> {
+  private async debugStepOver(): Promise<McpToolResponse> {
     const client = getDBGpClient();
     if (!client.isConnected()) {
       return this.errorResponse('Not connected to AutoHotkey debugger');
@@ -292,7 +308,7 @@ export class AhkDebugDBGpTool {
     return this.successResponse(`Step over. Status: ${response.status || 'break'}`);
   }
 
-  private async debugStepOut(): Promise<any> {
+  private async debugStepOut(): Promise<McpToolResponse> {
     const client = getDBGpClient();
     if (!client.isConnected()) {
       return this.errorResponse('Not connected to AutoHotkey debugger');
@@ -301,7 +317,7 @@ export class AhkDebugDBGpTool {
     return this.successResponse(`Step out. Status: ${response.status || 'break'}`);
   }
 
-  private async captureError(timeout: number): Promise<any> {
+  private async captureError(timeout: number): Promise<McpToolResponse> {
     const client = getDBGpClient();
     const error = await client.waitForError(timeout);
     if (!error) {
@@ -324,7 +340,7 @@ export class AhkDebugDBGpTool {
     };
   }
 
-  private analyzeError(error: ErrorInfo): any {
+  private analyzeError(error: ErrorInfo): McpToolResponse {
     if (!error) {
       return this.errorResponse('No error provided for analysis');
     }
@@ -382,7 +398,7 @@ Analyze this error and provide:
     line: number,
     original: string,
     replacement: string
-  ): Promise<any> {
+  ): Promise<McpToolResponse> {
     try {
       const content = await fs.readFile(file, 'utf-8');
       const lines = content.split(/\r?\n/);
@@ -413,7 +429,7 @@ Analyze this error and provide:
     }
   }
 
-  private listErrors(): any {
+  private listErrors(): McpToolResponse {
     const client = getDBGpClient();
     const errors = client.getQueuedErrors();
     return {
@@ -439,14 +455,14 @@ Analyze this error and provide:
     };
   }
 
-  private clearErrors(): any {
+  private clearErrors(): McpToolResponse {
     const client = getDBGpClient();
     const count = client.getQueuedErrors().length;
     client.clearErrorQueue();
     return this.successResponse(`Cleared ${count} errors from queue`);
   }
 
-  private async getSource(file: string, line: number, radius: number): Promise<any> {
+  private async getSource(file: string, line: number, radius: number): Promise<McpToolResponse> {
     const client = getDBGpClient();
     const context = await client.getSourceContext(file, line, radius);
     return {
@@ -459,7 +475,11 @@ Analyze this error and provide:
     };
   }
 
-  private async setBreakpoint(file: string, line: number, condition?: string): Promise<any> {
+  private async setBreakpoint(
+    file: string,
+    line: number,
+    condition?: string
+  ): Promise<McpToolResponse> {
     const client = getDBGpClient();
     if (!client.isConnected()) {
       return this.errorResponse('Not connected to AutoHotkey debugger');
@@ -471,7 +491,7 @@ Analyze this error and provide:
     );
   }
 
-  private async removeBreakpoint(id: string): Promise<any> {
+  private async removeBreakpoint(id: string): Promise<McpToolResponse> {
     const client = getDBGpClient();
     if (!client.isConnected()) {
       return this.errorResponse('Not connected to AutoHotkey debugger');
@@ -480,7 +500,7 @@ Analyze this error and provide:
     return this.successResponse(`Breakpoint ${id} removed`);
   }
 
-  private async listBreakpoints(): Promise<any> {
+  private async listBreakpoints(): Promise<McpToolResponse> {
     const client = getDBGpClient();
     if (!client.isConnected()) {
       return this.errorResponse('Not connected to AutoHotkey debugger');
@@ -496,7 +516,7 @@ Analyze this error and provide:
     };
   }
 
-  private async getVariables(contextId: number): Promise<any> {
+  private async getVariables(contextId: number): Promise<McpToolResponse> {
     const client = getDBGpClient();
     if (!client.isConnected()) {
       return this.errorResponse('Not connected to AutoHotkey debugger');
@@ -520,7 +540,7 @@ Analyze this error and provide:
     };
   }
 
-  private async evaluate(expression: string): Promise<any> {
+  private async evaluate(expression: string): Promise<McpToolResponse> {
     const client = getDBGpClient();
     if (!client.isConnected()) {
       return this.errorResponse('Not connected to AutoHotkey debugger');
@@ -536,7 +556,7 @@ Analyze this error and provide:
     };
   }
 
-  private async getStackTrace(): Promise<any> {
+  private async getStackTrace(): Promise<McpToolResponse> {
     const client = getDBGpClient();
     if (!client.isConnected()) {
       return this.errorResponse('Not connected to AutoHotkey debugger');
@@ -552,13 +572,13 @@ Analyze this error and provide:
     };
   }
 
-  private successResponse(message: string): any {
+  private successResponse(message: string): McpToolResponse {
     return {
       content: [{ type: 'text', text: message }],
     };
   }
 
-  private errorResponse(message: string): any {
+  private errorResponse(message: string): McpToolResponse {
     return {
       content: [{ type: 'text', text: `Error: ${message}` }],
       isError: true,

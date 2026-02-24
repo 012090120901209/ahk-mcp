@@ -5,6 +5,17 @@ import * as fs from 'fs/promises';
 import * as path from 'path';
 import { safeParse } from '../core/validation-middleware.js';
 import { AhkCompiler } from '../compiler/ahk-compiler.js';
+import type {
+  AhkIndex,
+  AhkDocumentationFull,
+  AhkDocFullVariable,
+  AhkDocFullClassItem,
+  AhkIndexVariable,
+  AhkIndexFunction,
+  AhkIndexClass,
+  AhkIndexMethod,
+} from '../types/tool-types.js';
+import type { McpToolResponse } from '../types/mcp-types.js';
 
 export const AhkContextInjectorArgsSchema = z.object({
   userPrompt: z.string().min(1, 'User prompt is required'),
@@ -55,12 +66,43 @@ Analyzes user prompts and LLM thinking to automatically inject relevant AutoHotk
   },
 };
 
+type ContextMatchData =
+  | AhkDocFullVariable
+  | AhkDocFullClassItem
+  | AhkIndexFunction
+  | AhkIndexMethod
+  | AhkIndexClass
+  | AhkIndexVariable;
+
+/** Extra fields normalised at push-time or carried through from source types. */
+interface ContextMatchDataExtras {
+  source?: string;
+  /** Lowercase alias — set explicitly by full-docs push sites. */
+  returnType?: string;
+  /** Lowercase alias — set explicitly by full-docs push sites. */
+  parameters?:
+    | string
+    | Array<{ Name: string; Description: string; Type?: string; Optional?: boolean }>;
+  /** Lowercase alias — set explicitly by full-docs push sites. */
+  path?: string;
+  /** PascalCase field present on index items (AhkIndexFunction, AhkIndexMethod). */
+  ReturnType?: string;
+  /** PascalCase field present on index items and doc items. */
+  Parameters?:
+    | string
+    | Array<{ Name: string; Description: string; Type?: string; Optional?: boolean }>;
+  /** PascalCase field present on AhkDocFullClassItem and AhkIndexMethod. */
+  Path?: string;
+  /** Examples array present on AhkIndexFunction and AhkIndexMethod. */
+  Examples?: Array<{ Description: string; Code: string }>;
+}
+
 interface ContextMatch {
   type: string;
   name: string;
   description: string;
   relevance: number;
-  data: any;
+  data: ContextMatchData & ContextMatchDataExtras;
 }
 
 export class AhkContextInjectorTool {
@@ -226,7 +268,7 @@ export class AhkContextInjectorTool {
     try {
       // Check cache first
       if (this.moduleInstructionsCache.has(moduleFile)) {
-        return this.moduleInstructionsCache.get(moduleFile)!;
+        return this.moduleInstructionsCache.get(moduleFile) ?? null;
       }
 
       // Determine project root - look for package.json to find root
@@ -328,7 +370,7 @@ export class AhkContextInjectorTool {
     }
   }
 
-  async execute(args: unknown): Promise<any> {
+  async execute(args: unknown): Promise<McpToolResponse> {
     const parsed = safeParse(args, AhkContextInjectorArgsSchema, 'AHK_Context_Injector');
     if (!parsed.success) return parsed.error;
 
@@ -537,27 +579,30 @@ export class AhkContextInjectorTool {
       const ast = result.data;
 
       // Recursive function to walk the AST
-      const walk = (node: any) => {
+      const walk = (node: Record<string, unknown> | null | undefined) => {
         if (!node) return;
 
         // Extract function calls
-        if (node.type === 'CallExpression' && node.callee) {
-          if (node.callee.type === 'Identifier') {
-            logger.debug('Found CallExpression Identifier:', node.callee.name);
-            keywords.push(node.callee.name.toLowerCase());
-          } else if (node.callee.type === 'MemberExpression' && node.callee.property) {
+        if (node['type'] === 'CallExpression' && node['callee']) {
+          const callee = node['callee'] as Record<string, unknown>;
+          if (callee['type'] === 'Identifier') {
+            logger.debug('Found CallExpression Identifier:', callee['name']);
+            keywords.push(String(callee['name']).toLowerCase());
+          } else if (callee['type'] === 'MemberExpression' && callee['property']) {
             // Handle Object.Method() -> extract Method
-            logger.debug('Found CallExpression MemberExpression:', node.callee.property.name);
-            keywords.push(node.callee.property.name.toLowerCase());
+            const prop = callee['property'] as Record<string, unknown>;
+            logger.debug('Found CallExpression MemberExpression:', prop['name']);
+            keywords.push(String(prop['name']).toLowerCase());
           }
         }
 
         // Extract identifiers (variables, classes)
-        if (node.type === 'Identifier') {
+        if (node['type'] === 'Identifier') {
+          const name = String(node['name']);
           // Filter out short variables to reduce noise
-          if (node.name.length > 2) {
-            logger.debug('Found Identifier:', node.name);
-            keywords.push(node.name.toLowerCase());
+          if (name.length > 2) {
+            logger.debug('Found Identifier:', name);
+            keywords.push(name.toLowerCase());
           }
         }
 
@@ -565,16 +610,20 @@ export class AhkContextInjectorTool {
         for (const key in node) {
           if (typeof node[key] === 'object' && node[key] !== null) {
             if (Array.isArray(node[key])) {
-              node[key].forEach(walk);
+              (node[key] as unknown[]).forEach(child =>
+                walk(child as Record<string, unknown> | null | undefined)
+              );
             } else {
-              walk(node[key]);
+              walk(node[key] as Record<string, unknown>);
             }
           }
         }
       };
 
       if (ast.body && Array.isArray(ast.body)) {
-        ast.body.forEach(walk);
+        (ast.body as unknown[]).forEach(node =>
+          walk(node as Record<string, unknown> | null | undefined)
+        );
       }
     }
 
@@ -599,7 +648,7 @@ export class AhkContextInjectorTool {
 
   private findRelevantContext(
     keywords: string[],
-    ahkIndex: any,
+    ahkIndex: AhkIndex,
     contextType: string,
     maxItems: number
   ): ContextMatch[] {
@@ -628,7 +677,7 @@ export class AhkContextInjectorTool {
 
   private searchInCategory(
     keywords: string[],
-    items: any[],
+    items: Array<AhkIndexVariable | AhkIndexFunction | AhkIndexClass | AhkIndexMethod>,
     category: string,
     matches: ContextMatch[]
   ): void {
@@ -648,7 +697,10 @@ export class AhkContextInjectorTool {
     }
   }
 
-  private calculateRelevance(keywords: string[], item: any): number {
+  private calculateRelevance(
+    keywords: string[],
+    item: AhkIndexVariable | AhkIndexFunction | AhkIndexClass | AhkIndexMethod
+  ): number {
     let relevance = 0;
     const itemText = `${item.Name} ${item.Description || ''}`.toLowerCase();
 
@@ -663,7 +715,7 @@ export class AhkContextInjectorTool {
       }
       // Keyword mapping match gets lower score
       else if (this.keywordMap.has(keyword)) {
-        const mappedElements = this.keywordMap.get(keyword)!;
+        const mappedElements = this.keywordMap.get(keyword) ?? [];
         for (const element of mappedElements) {
           if (item.Name.toLowerCase().includes(element.toLowerCase())) {
             relevance += 3;
@@ -690,13 +742,14 @@ export class AhkContextInjectorTool {
         contextText += `**${match.name}**: ${match.description}\n`;
 
         // Add examples if available
-        if (match.data.Examples && match.data.Examples.length > 0) {
-          contextText += `\n*Example:*\n\`\`\`autohotkey\n${match.data.Examples[0].Code}\n\`\`\`\n`;
+        const ctxExamples = match.data['Examples'] as Array<{ Code: string }> | undefined;
+        if (ctxExamples && ctxExamples.length > 0) {
+          contextText += `\n*Example:*\n\`\`\`autohotkey\n${ctxExamples[0].Code}\n\`\`\`\n`;
         }
 
         // Add parameters if available
-        if (match.data.Parameters && match.data.Parameters.length > 0) {
-          contextText += `\n*Parameters:* ${match.data.Parameters.map((p: any) => p.Name).join(', ')}\n`;
+        if (match.data['Parameters'] && (match.data['Parameters'] as unknown[]).length > 0) {
+          contextText += `\n*Parameters:* ${(match.data['Parameters'] as Array<{ Name: string }>).map(p => p.Name).join(', ')}\n`;
         }
 
         contextText += '\n';
@@ -730,8 +783,8 @@ export class AhkContextInjectorTool {
    */
   private findRelevantContextEnhanced(
     keywords: string[],
-    ahkIndex: any,
-    ahkFullDocs: any,
+    ahkIndex: AhkIndex | null,
+    ahkFullDocs: AhkDocumentationFull | null,
     contextType: string,
     maxItems: number
   ): ContextMatch[] {
@@ -756,7 +809,7 @@ export class AhkContextInjectorTool {
    */
   private searchInFullDocumentation(
     keywords: string[],
-    fullDocsData: any,
+    fullDocsData: AhkDocumentationFull['data'],
     contextType: string,
     matches: ContextMatch[]
   ): void {
@@ -842,7 +895,7 @@ export class AhkContextInjectorTool {
    */
   private searchInIndexData(
     keywords: string[],
-    ahkIndex: any,
+    ahkIndex: AhkIndex,
     contextType: string,
     matches: ContextMatch[]
   ): void {
@@ -886,7 +939,7 @@ export class AhkContextInjectorTool {
    */
   private searchInCategoryFiltered(
     keywords: string[],
-    items: any[],
+    items: Array<AhkIndexVariable | AhkIndexFunction | AhkIndexClass | AhkIndexMethod>,
     category: string,
     matches: ContextMatch[],
     existingNames: Set<string>
@@ -917,7 +970,10 @@ export class AhkContextInjectorTool {
   /**
    * Enhanced relevance calculation for full documentation items
    */
-  private calculateEnhancedRelevance(keywords: string[], item: any): number {
+  private calculateEnhancedRelevance(
+    keywords: string[],
+    item: AhkDocFullVariable | AhkDocFullClassItem | AhkIndexFunction
+  ): number {
     let relevance = 0;
     const itemText =
       `${item.Name} ${item.Description || ''} ${item.ReturnType || ''} ${item.Parameters || ''}`.toLowerCase();
@@ -940,16 +996,24 @@ export class AhkContextInjectorTool {
         relevance += 5;
       }
       // Parameters match
-      else if ((item.Parameters || '').toLowerCase().includes(keyword)) {
+      else if (
+        String(item.Parameters ?? '')
+          .toLowerCase()
+          .includes(keyword)
+      ) {
         relevance += 4;
       }
       // Path match (for methods)
-      else if ((item.Path || '').toLowerCase().includes(keyword)) {
+      else if (
+        'Path' in item &&
+        typeof item.Path === 'string' &&
+        item.Path.toLowerCase().includes(keyword)
+      ) {
         relevance += 6;
       }
       // Keyword mapping match
       else if (this.keywordMap.has(keyword)) {
-        const mappedElements = this.keywordMap.get(keyword)!;
+        const mappedElements = this.keywordMap.get(keyword) ?? [];
         for (const element of mappedElements) {
           if (itemText.includes(element.toLowerCase())) {
             relevance += 3;
@@ -979,36 +1043,37 @@ export class AhkContextInjectorTool {
         contextText += `**${match.name}**`;
 
         // Add return type if available
-        if (match.data.returnType || match.data.ReturnType) {
-          contextText += ` → *${match.data.returnType || match.data.ReturnType}*`;
+        if (match.data['returnType'] || match.data['ReturnType']) {
+          contextText += ` → *${match.data['returnType'] ?? match.data['ReturnType']}*`;
         }
 
         contextText += `\n${match.description}\n`;
 
         // Add parameters if available
-        if (match.data.parameters || match.data.Parameters) {
-          const params = match.data.parameters || match.data.Parameters;
-          if (params && params.length > 0) {
+        if (match.data['parameters'] || match.data['Parameters']) {
+          const params = match.data['parameters'] ?? match.data['Parameters'];
+          if (params && (params as unknown[]).length > 0) {
             if (typeof params === 'string') {
               contextText += `\n*Parameters:* ${params}\n`;
             } else if (Array.isArray(params)) {
-              contextText += `\n*Parameters:* ${params.map((p: any) => p.Name || p).join(', ')}\n`;
+              contextText += `\n*Parameters:* ${(params as Array<{ Name?: string }>).map(p => p.Name ?? String(p)).join(', ')}\n`;
             }
           }
         }
 
         // Add path for methods
-        if (match.data.path || match.data.Path) {
-          contextText += `\n*Class:* ${match.data.path || match.data.Path}\n`;
+        if (match.data['path'] || match.data['Path']) {
+          contextText += `\n*Class:* ${match.data['path'] ?? match.data['Path']}\n`;
         }
 
         // Add examples if available
-        if (match.data.Examples && match.data.Examples.length > 0) {
-          contextText += `\n*Example:*\n\`\`\`autohotkey\n${match.data.Examples[0].Code}\n\`\`\`\n`;
+        const examples = match.data['Examples'] as Array<{ Code: string }> | undefined;
+        if (examples && examples.length > 0) {
+          contextText += `\n*Example:*\n\`\`\`autohotkey\n${examples[0].Code}\n\`\`\`\n`;
         }
 
         // Add source indicator
-        const source = match.data.source === 'full_docs' ? '📚 Full Docs' : '📋 Index';
+        const source = match.data['source'] === 'full_docs' ? '📚 Full Docs' : '📋 Index';
         contextText += `\n*Source: ${source}*\n\n`;
       }
     }

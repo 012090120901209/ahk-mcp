@@ -3,6 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import logger from '../logger.js';
 import { safeParse } from '../core/validation-middleware.js';
+import type { McpToolResponse } from '../types/mcp-types.js';
 
 export const AhkVSCodeProblemsArgsSchema = z
   .object({
@@ -95,7 +96,7 @@ interface VSCodeProblemMarker {
   endLineNumber?: number;
   endColumn?: number;
   origin?: string;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 function normalizePath(input: string | undefined): string {
@@ -136,7 +137,7 @@ function includeBySeverity(name: MarkerSeverityName, filter: string): boolean {
 }
 
 export class AhkVSCodeProblemsTool {
-  async execute(args: unknown): Promise<any> {
+  async execute(args: unknown): Promise<McpToolResponse> {
     const parsed = safeParse(args, AhkVSCodeProblemsArgsSchema, 'AHK_VSCode_Problems');
     if (!parsed.success) return parsed.error;
 
@@ -208,10 +209,13 @@ export class AhkVSCodeProblemsTool {
     if (!raw) throw new Error('No content provided');
 
     try {
-      const data = JSON.parse(raw);
+      const data = JSON.parse(raw) as unknown;
       if (Array.isArray(data)) return data as VSCodeProblemMarker[];
       // Some formats wrap under a property like { problems: [...] }
-      if (Array.isArray((data as any).problems)) return (data as any).problems;
+      if (data !== null && typeof data === 'object') {
+        const wrapped = data as Record<string, unknown>;
+        if (Array.isArray(wrapped.problems)) return wrapped.problems as VSCodeProblemMarker[];
+      }
       throw new Error('Unexpected JSON format: expected an array');
     } catch (err) {
       logger.error('Failed to parse VS Code Problems JSON:', err);

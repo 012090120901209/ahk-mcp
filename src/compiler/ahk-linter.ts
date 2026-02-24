@@ -4,7 +4,14 @@
  */
 
 import { AhkLexer, Token, TokenType } from './ahk-lexer.js';
-import { AhkParser, Program, Statement, ParseError } from './ahk-parser.js';
+import {
+  AhkParser,
+  Program,
+  Statement,
+  ParseError,
+  ClassDeclaration,
+  FunctionDeclaration,
+} from './ahk-parser.js';
 
 export interface LintDiagnostic {
   code: string;
@@ -523,9 +530,9 @@ export class AhkLinter {
   ): void {
     for (const stmt of statements) {
       if (stmt.type === 'FunctionDeclaration') {
-        definedFunctions.add((stmt as any).name);
+        definedFunctions.add((stmt as FunctionDeclaration).name);
       } else if (stmt.type === 'ClassDeclaration') {
-        definedFunctions.add((stmt as any).name);
+        definedFunctions.add((stmt as ClassDeclaration).name);
       }
       // Add more collection logic as needed
     }
@@ -538,10 +545,10 @@ export class AhkLinter {
   ): void {
     for (const stmt of statements) {
       if (stmt.type === 'FunctionDeclaration') {
-        const name = (stmt as any).name;
+        const name = (stmt as FunctionDeclaration).name;
         functions.set(name, stmt);
       } else if (stmt.type === 'ClassDeclaration') {
-        const name = (stmt as any).name;
+        const name = (stmt as ClassDeclaration).name;
         classes.set(name, stmt);
       }
     }

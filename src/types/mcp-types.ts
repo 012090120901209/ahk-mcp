@@ -32,6 +32,7 @@ export interface McpContentItem {
 export interface McpToolResponse {
   content: McpContentItem[];
   isError?: boolean;
+  structuredContent?: Record<string, unknown>;
   _meta?: {
     toolName?: string;
     duration?: number;

@@ -13,6 +13,7 @@ import { pathConverter, PathFormat } from '../utils/path-converter.js';
 import { pathInterceptor } from '../core/path-interceptor.js';
 import { safeParse } from '../core/validation-middleware.js';
 import { setLastEditedFile } from '../core/config.js';
+import type { McpToolResponse } from '../types/mcp-types.js';
 import { openFileInVSCode } from '../utils/vscode-open.js';
 
 export const AhkEditArgsSchema = z.object({
@@ -180,8 +181,7 @@ Shows a DRY RUN report instead of touching the file.
       validate: {
         type: 'boolean',
         default: false,
-        description:
-          'Validate AHK code before writing. Blocks edit if syntax errors are found.',
+        description: 'Validate AHK code before writing. Blocks edit if syntax errors are found.',
       },
     },
   },
@@ -287,13 +287,13 @@ export class AhkEditTool {
   /**
    * Execute the edit tool
    */
-  async execute(args: unknown): Promise<any> {
-    let validatedArgs: any;
+  async execute(args: unknown): Promise<McpToolResponse> {
+    let validatedArgs: z.infer<typeof AhkEditArgsSchema> | undefined;
     try {
       const parsed = safeParse(args, AhkEditArgsSchema, 'AHK_File_Edit');
       if (!parsed.success) return parsed.error;
 
-      validatedArgs = parsed.data;
+      validatedArgs = parsed.data as z.infer<typeof AhkEditArgsSchema>;
 
       // Check if tool is enabled
       const availability = checkToolAvailability('AHK_File_Edit');
@@ -304,7 +304,10 @@ export class AhkEditTool {
       }
 
       // Apply path interception for cross-platform compatibility
-      const interceptionResult = pathInterceptor.interceptInput('AHK_File_Edit', validatedArgs);
+      const interceptionResult = pathInterceptor.interceptInput(
+        'AHK_File_Edit',
+        validatedArgs as Record<string, unknown>
+      );
       if (!interceptionResult.success) {
         logger.warn(`Path interception failed: ${interceptionResult.error}`);
       } else {
@@ -371,7 +374,7 @@ export class AhkEditTool {
         currentContent = await fs.readFile(targetFile, 'utf-8');
       } catch (error) {
         // For create action, it's okay if file doesn't exist
-        if (action === 'create' && (error as any).code === 'ENOENT') {
+        if (action === 'create' && (error as NodeJS.ErrnoException).code === 'ENOENT') {
           currentContent = '';
         } else {
           throw new Error(`Failed to read file: ${targetFile}`);
@@ -416,8 +419,8 @@ export class AhkEditTool {
               });
             } else if (line || startLine) {
               // Delete by line
-              const start = line || startLine!;
-              const end = endLine || start;
+              const start = line ?? startLine ?? 1;
+              const end = endLine ?? start;
               preview = previewGenerator.generateDeletePreview(currentContent, start, end);
             } else {
               throw new Error('Either search text or line number is required for delete action');
@@ -467,10 +470,10 @@ export class AhkEditTool {
             response;
         }
 
-        let result = {
+        let result: McpToolResponse = {
           content: [
             {
-              type: 'text',
+              type: 'text' as const,
               text: response,
             },
           ],
@@ -496,7 +499,7 @@ export class AhkEditTool {
           if (content === undefined) {
             throw new Error('Content is required for replace action');
           }
-          newContent = this.replace(currentContent, search, content, regex, all);
+          newContent = this.replace(currentContent, search, content, regex ?? false, all ?? false);
           operationSummary = `Replaced ${all ? 'all occurrences of' : 'first occurrence of'} "${search}" with "${content}"`;
           break;
         }
@@ -516,7 +519,7 @@ export class AhkEditTool {
         case 'delete': {
           if (search) {
             // Delete by search
-            newContent = this.replace(currentContent, search, '', regex, all);
+            newContent = this.replace(currentContent, search, '', regex ?? false, all ?? false);
             operationSummary = `Deleted ${all ? 'all occurrences of' : 'first occurrence of'} "${search}"`;
           } else if (line || startLine) {
             // Delete by line
@@ -618,28 +621,36 @@ export class AhkEditTool {
 
         // Parse validation response
         const validationText = validationResult.content?.[1]?.text || '';
-        let validationData: any = {};
+        let validationData: {
+          success?: boolean;
+          errors?: Array<{ type?: string; line?: number; message?: string }>;
+        } = {};
         try {
           const jsonMatch = validationText.match(/```json\n([\s\S]*?)\n```/);
           if (jsonMatch) {
-            validationData = JSON.parse(jsonMatch[1]);
+            validationData = JSON.parse(jsonMatch[1]) as typeof validationData;
           }
         } catch {
           // Fallback: check for errors in first content block
         }
 
-        if (!validationData.success || (validationData.errors && validationData.errors.length > 0)) {
-          const errorList = validationData.errors?.map((e: any) =>
-            `- **${e.type}** (line ${e.line || '?'}): ${e.message}`
-          ).join('\n') || 'Unknown validation error';
+        if (
+          !validationData.success ||
+          (validationData.errors && validationData.errors.length > 0)
+        ) {
+          const errorList =
+            validationData.errors
+              ?.map(e => `- **${e.type}** (line ${e.line ?? '?'}): ${e.message}`)
+              .join('\n') || 'Unknown validation error';
 
           return {
             content: [
               {
                 type: 'text',
-                text: `**Edit Blocked - Validation Failed**\n\n` +
-                      `The edit would introduce syntax errors:\n\n${errorList}\n\n` +
-                      `**File not modified.** Fix the code and try again, or set \`validate: false\` to skip validation.`,
+                text:
+                  `**Edit Blocked - Validation Failed**\n\n` +
+                  `The edit would introduce syntax errors:\n\n${errorList}\n\n` +
+                  `**File not modified.** Fix the code and try again, or set \`validate: false\` to skip validation.`,
               },
             ],
             isError: true,
@@ -697,12 +708,12 @@ export class AhkEditTool {
             timeout: 30000,
             killOnExit: true,
             detectWindow: false,
-          } as any);
+          });
 
           if (runResult?.content?.length) {
             const runText = runResult.content
-              .filter((item: any) => item.type === 'text')
-              .map((item: any) => item.text)
+              .filter(item => item.type === 'text')
+              .map(item => item.text)
               .join('\n');
             response += runText || 'Script executed.';
           } else {
@@ -722,10 +733,10 @@ export class AhkEditTool {
         }
       }
 
-      let result = {
+      let result: McpToolResponse = {
         content: [
           {
-            type: 'text',
+            type: 'text' as const,
             text: response,
           },
         ],
@@ -734,7 +745,7 @@ export class AhkEditTool {
       // Apply output path interception for cross-platform compatibility
       const outputInterception = pathInterceptor.interceptOutput('AHK_File_Edit', result);
       if (outputInterception.success) {
-        result = outputInterception.modifiedData;
+        result = outputInterception.modifiedData as McpToolResponse;
         if (outputInterception.conversions.length > 0) {
           logger.debug(
             `Output path conversions applied: ${outputInterception.conversions.length} paths converted`

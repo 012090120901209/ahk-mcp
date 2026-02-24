@@ -512,10 +512,10 @@ export async function withPathRetryOrError<T>(
 > {
   const result = await withPathRetry(filePath, operation, options);
 
-  if (result.success) {
+  if (result.success && result.result !== undefined) {
     return {
       success: true,
-      result: result.result!,
+      result: result.result,
       usedPath: result.usedPath,
     };
   }

@@ -350,16 +350,18 @@ export class AhkDiagnosticProvider {
       const fnMatch = trimmed.match(/^(?<name>[A-Za-z_]\w*)\s*\([^)]*\)\s*(\{|=>)?/);
       if (fnMatch) {
         const name = (fnMatch.groups?.name || '').toLowerCase();
+        const matchedName = fnMatch.groups?.name;
+        if (!matchedName) continue; // invariant: regex guarantees this group when match succeeds
         if (!keywordSet.has(name)) {
-          const nameStartInTrimmed = trimmed.indexOf(fnMatch.groups!.name!);
+          const nameStartInTrimmed = trimmed.indexOf(matchedName);
           const leadingSpaces = line.length - line.trimStart().length;
           const startChar = leadingSpaces + nameStartInTrimmed;
-          const endChar = startChar + fnMatch.groups!.name!.length;
+          const endChar = startChar + matchedName.length;
 
           if (functionDefs.has(name)) {
             diagnostics.push(
               this.createDiagnostic(
-                `Duplicate function definition: ${fnMatch.groups!.name!}`,
+                `Duplicate function definition: ${matchedName}`,
                 lineIndex,
                 startChar,
                 endChar,
@@ -405,12 +407,12 @@ export class AhkDiagnosticProvider {
       const leadingIdentMatch = trimmed.match(/^(?<id>[A-Za-z_]\w*)\b(\s+)(?<rest>.+)$/);
       if (leadingIdentMatch) {
         const id = (leadingIdentMatch.groups?.id || '').toLowerCase();
+        const matchedId = leadingIdentMatch.groups?.id;
+        if (!matchedId) continue; // invariant: regex guarantees this group when match succeeds
         if (!keywordSet.has(id)) {
           // If immediately followed by '(' then it's a proper function call
           // const afterIdent = trimmed.slice(leadingIdentMatch[0].length - (leadingIdentMatch.groups?.rest?.length || 0));
-          const hasParenCall = /^\(/.test(
-            trimmed.slice(leadingIdentMatch.groups!.id!.length).trimStart()
-          );
+          const hasParenCall = /^\(/.test(trimmed.slice(matchedId.length).trimStart());
           const hasAssign = trimmed.includes(':=');
           const looksLikeLabel = trimmed.endsWith(':');
           const looksLikeHotkey = trimmed.includes('::');
@@ -418,11 +420,11 @@ export class AhkDiagnosticProvider {
             // Common tell: first arg is a string or number (e.g., "text" or 1000)
             // but we warn generally to encourage function-call form in v2
             const leadingSpaces = line.length - line.trimStart().length;
-            const startChar = leadingSpaces + trimmed.indexOf(leadingIdentMatch.groups!.id!);
-            const endChar = startChar + leadingIdentMatch.groups!.id!.length;
+            const startChar = leadingSpaces + trimmed.indexOf(matchedId);
+            const endChar = startChar + matchedId.length;
             diagnostics.push(
               this.createDiagnostic(
-                `Use function-call syntax in v2: ${leadingIdentMatch.groups!.id!}(...)`,
+                `Use function-call syntax in v2: ${matchedId}(...)`,
                 lineIndex,
                 startChar,
                 endChar,

@@ -11,6 +11,7 @@ import { activeFile } from '../core/active-file.js';
 import { safeParse } from '../core/validation-middleware.js';
 import { codeQualityManager, LintLevel } from '../core/linting/code-quality-manager.js';
 import { structureAnalyzer } from '../core/linting/structure-analyzer.js';
+import type { McpToolResponse } from '../types/mcp-types.js';
 
 // ===== Schema Definition =====
 
@@ -94,7 +95,7 @@ export const ahkLintToolDefinition = {
 // ===== Tool Implementation =====
 
 export class AhkLintTool {
-  async execute(args: unknown): Promise<any> {
+  async execute(args: unknown): Promise<McpToolResponse> {
     const startTime = Date.now();
 
     // Validate arguments

@@ -84,6 +84,8 @@ export const AhkSmallEditArgsSchema = z.object({
     .describe('Run the script after edits complete (single file only).'),
 });
 
+type SmallEditArgs = z.infer<typeof AhkSmallEditArgsSchema>;
+
 export const ahkSmallEditToolDefinition = {
   name: 'AHK_File_Edit_Small',
   description: `Token-efficient editor for small, targeted changes. Ideal when you need a lightweight replace or line edit without loading the full diff engine. Supports regex and literal replacements, multi-file batches, optional diff previews, and dry-run mode.
@@ -256,10 +258,11 @@ export class AhkSmallEditTool {
       const { content: resolvedContent, deprecatedUsed } = resolveWithTracking(args);
 
       // Use resolved content if available, otherwise use the original content parameter
+      // Cast needed: spreading a Zod inferred type loses non-optionality of defaulted fields
       const normalizedArgs = {
         ...args,
         content: resolvedContent !== undefined ? resolvedContent : args.content,
-      };
+      } as SmallEditArgs;
 
       const targets = await this.resolveTargets(normalizedArgs.file, normalizedArgs.files);
 
@@ -475,12 +478,12 @@ export class AhkSmallEditTool {
                   timeout: 30000,
                   killOnExit: true,
                   detectWindow: false,
-                } as any);
+                });
 
                 if (runResult?.content?.length) {
-                  const runText = runResult.content
-                    .filter((item: any) => item.type === 'text')
-                    .map((item: any) => item.text)
+                  const runText = (runResult.content as ToolMessage[])
+                    .filter(item => item.type === 'text')
+                    .map(item => item.text)
                     .join('\n');
                   runMessages.push(runText || 'Script executed.');
                 } else {
@@ -552,7 +555,7 @@ export class AhkSmallEditTool {
     return active ? [active] : [];
   }
 
-  private applyEdit(file: string, original: string, args: any): EditResult {
+  private applyEdit(file: string, original: string, args: SmallEditArgs): EditResult {
     switch (args.action as EditAction) {
       case 'replace_regex':
         return this.applyRegexReplace(original, args);
@@ -570,7 +573,7 @@ export class AhkSmallEditTool {
     }
   }
 
-  private applyRegexReplace(content: string, args: any): EditResult {
+  private applyRegexReplace(content: string, args: SmallEditArgs): EditResult {
     if (!args.find) {
       throw new Error('Missing "find" pattern for regex replace.');
     }
@@ -596,7 +599,7 @@ export class AhkSmallEditTool {
     };
   }
 
-  private applyLiteralReplace(content: string, args: any): EditResult {
+  private applyLiteralReplace(content: string, args: SmallEditArgs): EditResult {
     if (!args.find) {
       throw new Error('Missing "find" text for literal replace.');
     }
@@ -630,7 +633,7 @@ export class AhkSmallEditTool {
     };
   }
 
-  private applyLineReplace(content: string, args: any): EditResult {
+  private applyLineReplace(content: string, args: SmallEditArgs): EditResult {
     const { line, startLine, endLine, content: replacement } = args;
 
     if (typeof replacement !== 'string') {
@@ -658,7 +661,7 @@ export class AhkSmallEditTool {
     };
   }
 
-  private applyLineDelete(content: string, args: any): EditResult {
+  private applyLineDelete(content: string, args: SmallEditArgs): EditResult {
     const { line, startLine, endLine } = args;
     const lines = content.split('\n');
     const start = this.resolveLineIndex(line ?? startLine, lines.length);
@@ -680,7 +683,7 @@ export class AhkSmallEditTool {
     };
   }
 
-  private applyLineInsert(content: string, args: any): EditResult {
+  private applyLineInsert(content: string, args: SmallEditArgs): EditResult {
     if (typeof args.line !== 'number') {
       throw new Error('Line insert actions require a specific line number.');
     }

@@ -28,7 +28,7 @@ class StderrLogger {
     return current <= threshold;
   }
 
-  private serialize(arg: any, level: string): string {
+  private serialize(arg: unknown, level: string): string {
     if (typeof arg === 'string') return arg;
     if (typeof arg !== 'object' || arg === null) return String(arg);
     // Avoid heavy serialization for verbose levels
@@ -48,7 +48,7 @@ class StderrLogger {
     }
   }
 
-  private log(level: string, ...args: any[]): void {
+  private log(level: string, ...args: unknown[]): void {
     if (!this.shouldLog(level)) return;
     const timestamp = new Date().toISOString();
 
@@ -82,19 +82,19 @@ class StderrLogger {
     }
   }
 
-  error(...args: any[]): void {
+  error(...args: unknown[]): void {
     this.log('error', ...args);
   }
 
-  warn(...args: any[]): void {
+  warn(...args: unknown[]): void {
     this.log('warn', ...args);
   }
 
-  info(...args: any[]): void {
+  info(...args: unknown[]): void {
     this.log('info', ...args);
   }
 
-  debug(...args: any[]): void {
+  debug(...args: unknown[]): void {
     this.log('debug', ...args);
   }
 }
@@ -103,7 +103,7 @@ const logger = new StderrLogger();
 
 // Override console methods to prevent accidental stdout usage
 // This is a failsafe in case any dependency tries to use console.log
-console.log = (...args: any[]) => {
+console.log = (...args: unknown[]) => {
   // Redirect to stderr instead of stdout
   process.stderr.write('[CONSOLE.LOG REDIRECTED] ' + args.join(' ') + '\n');
 };

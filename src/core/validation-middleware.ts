@@ -251,10 +251,10 @@ export function safeParse<T>(
 ): SafeParseResult<T> {
   const result = validateWithSchema(data, schema);
 
-  if (result.success) {
+  if (result.success && result.data !== undefined) {
     return {
       success: true,
-      data: result.data!,
+      data: result.data,
     };
   }
 
@@ -283,10 +283,16 @@ export function safeParse<T>(
  * ```
  */
 export function validateArgs<T>(schema: z.ZodType<T>) {
-  return function decorator(target: any, propertyKey: string, descriptor: PropertyDescriptor) {
-    const originalMethod = descriptor.value;
+  return function decorator(target: object, propertyKey: string, descriptor: PropertyDescriptor) {
+    const originalMethod = descriptor.value as (
+      this: { constructor: { name: string } },
+      args: T
+    ) => Promise<ToolResponse>;
 
-    descriptor.value = async function (this: any, args: unknown): Promise<ToolResponse> {
+    descriptor.value = async function (
+      this: { constructor: { name: string } },
+      args: unknown
+    ): Promise<ToolResponse> {
       const result = validateWithSchema(args, schema);
       const toolName = this.constructor.name || 'Unknown Tool';
 
@@ -295,8 +301,8 @@ export function validateArgs<T>(schema: z.ZodType<T>) {
         return createValidationErrorResponse(result.errors || [], toolName);
       }
 
-      // Call original method with validated args
-      return await originalMethod.call(this, result.data);
+      // Call original method with validated args — data is defined when success is true
+      return await originalMethod.call(this, result.data as T);
     };
 
     return descriptor;
@@ -358,6 +364,6 @@ export function combineValidationResults<T1, T2>(
 
   return {
     success: true,
-    data: [result1.data!, result2.data!],
+    data: [result1.data as T1, result2.data as T2],
   };
 }

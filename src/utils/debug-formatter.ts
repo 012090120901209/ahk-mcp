@@ -7,7 +7,7 @@ export interface DebugEntry {
   reason: string;
   duration: number;
   cacheStatus?: 'HIT' | 'MISS' | 'N/A';
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 /**

@@ -57,7 +57,7 @@ export class OpenTelemetryExporter {
       enabled: process.env.AHK_MCP_OTEL_ENABLED === 'true',
       endpoint: process.env.AHK_MCP_OTEL_ENDPOINT || 'http://localhost:4318/v1/traces',
       serviceName: process.env.AHK_MCP_OTEL_SERVICE_NAME || 'ahk-mcp-server',
-      exporterType: (process.env.AHK_MCP_OTEL_EXPORTER as any) || 'otlp',
+      exporterType: (process.env.AHK_MCP_OTEL_EXPORTER as OTelConfig['exporterType']) || 'otlp',
     };
   }
 
@@ -216,7 +216,10 @@ export class OpenTelemetryExporter {
   /**
    * Convert attributes to OTLP format
    */
-  private convertAttributes(attrs: Record<string, unknown>): Array<{ key: string; value: any }> {
+  private convertAttributes(attrs: Record<string, unknown>): Array<{
+    key: string;
+    value: { stringValue?: string; intValue?: number; boolValue?: boolean };
+  }> {
     return Object.entries(attrs).map(([key, value]) => {
       if (typeof value === 'string') {
         return { key, value: { stringValue: value } };
@@ -269,7 +272,7 @@ export const otelExporter = new OpenTelemetryExporter();
 if (otelExporter.isEnabled()) {
   // Monkey-patch tracer.endSpan to export spans
   const originalEndSpan = tracer.endSpan.bind(tracer);
-  (tracer as any).endSpan = function (span: Span, status?: any) {
+  tracer.endSpan = function (span: Span, status?: Parameters<typeof tracer.endSpan>[1]) {
     originalEndSpan(span, status);
 
     // Export root spans (they contain all children)

@@ -7,6 +7,7 @@ import { checkToolAvailability } from '../core/tool-settings.js';
 import { createErrorResponse } from '../utils/response-helpers.js';
 import { requestDocumentSymbols } from '../utils/thqby-lsp-client.js';
 import { activeFile } from '../core/active-file.js';
+import type { McpToolResponse } from '../types/mcp-types.js';
 
 export const AhkThqbyDocumentSymbolsArgsSchema = z.object({
   code: z
@@ -54,7 +55,7 @@ export const ahkThqbyDocumentSymbolsToolDefinition = {
 };
 
 export class AhkThqbyDocumentSymbolsTool {
-  async execute(args: unknown): Promise<any> {
+  async execute(args: unknown): Promise<McpToolResponse> {
     const parsed = safeParse(args, AhkThqbyDocumentSymbolsArgsSchema, 'AHK_THQBY_Document_Symbols');
     if (!parsed.success) return parsed.error;
 

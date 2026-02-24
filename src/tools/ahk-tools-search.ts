@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import logger from '../logger.js';
 import { safeParse } from '../core/validation-middleware.js';
+import type { McpToolResponse } from '../types/mcp-types.js';
 
 export const AhkToolsSearchArgsSchema = z.object({
   category: z
@@ -67,6 +68,17 @@ export const ahkToolsSearchToolDefinition = {
       },
     },
   },
+  outputSchema: {
+    type: 'object',
+    properties: {
+      category: { type: 'string' },
+      keyword: { type: ['string', 'null'] },
+      detailLevel: { type: 'string' },
+      found: { type: 'number' },
+      tools: { type: 'array' },
+    },
+    required: ['category', 'keyword', 'detailLevel', 'found', 'tools'],
+  },
 };
 
 export type AhkToolsSearchArgs = z.infer<typeof AhkToolsSearchArgsSchema>;
@@ -78,7 +90,7 @@ interface ToolInfo {
   name: string;
   category: string;
   summary: string;
-  fullDefinition?: any;
+  fullDefinition?: Record<string, unknown>;
 }
 
 const TOOL_CATALOG: ToolInfo[] = [
@@ -231,7 +243,7 @@ const TOOL_CATALOG: ToolInfo[] = [
  * Provides progressive tool discovery to reduce upfront token consumption
  */
 export class AhkToolsSearchTool {
-  async execute(args: unknown): Promise<any> {
+  async execute(args: unknown): Promise<McpToolResponse> {
     const parsed = safeParse(args, AhkToolsSearchArgsSchema, 'AHK_Tools_Search');
     if (!parsed.success) return parsed.error;
 
@@ -270,6 +282,13 @@ export class AhkToolsSearchTool {
 
         return {
           content: [{ type: 'text', text: response }],
+          structuredContent: {
+            category,
+            keyword: keyword ?? null,
+            detailLevel,
+            found: 0,
+            tools: [],
+          },
         };
       }
 
@@ -323,19 +342,41 @@ export class AhkToolsSearchTool {
       response += `• Show analysis tools: { category: "analysis", detailLevel: "summary" }\n`;
       response += `• Get all tool names: { category: "all", detailLevel: "names" }`;
 
+      const structuredContent = {
+        category,
+        keyword: keyword ?? null,
+        detailLevel,
+        found: filteredTools.length,
+        tools: filteredTools.map(tool => ({
+          name: tool.name,
+          category: tool.category,
+          summary: tool.summary,
+        })),
+      };
+
       return {
         content: [{ type: 'text', text: response }],
+        structuredContent,
       };
     } catch (error) {
       logger.error('Error in AHK_Tools_Search:', error);
+      const message = error instanceof Error ? error.message : String(error);
       return {
         content: [
           {
             type: 'text',
-            text: `**Tool Search Error**\n\n${error instanceof Error ? error.message : String(error)}\n\n**Tip:** Try using category: "all" and detailLevel: "names" to see all available tools.`,
+            text: `**Tool Search Error**\n\n${message}\n\n**Tip:** Try using category: "all" and detailLevel: "names" to see all available tools.`,
           },
         ],
         isError: true,
+        structuredContent: {
+          category: 'all',
+          keyword: null,
+          detailLevel: 'summary',
+          found: 0,
+          tools: [],
+          error: message,
+        },
       };
     }
   }

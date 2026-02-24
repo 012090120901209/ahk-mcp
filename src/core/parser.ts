@@ -9,6 +9,7 @@ import type {
   AhkComment,
   Position,
 } from '../types/index.js';
+import type { Range } from '../types/lsp-types.js';
 
 export interface ParseResult {
   document: AhkDocument;
@@ -294,7 +295,7 @@ export class AhkParser {
 
   private parseParameters(
     paramString: string
-  ): Array<{ name: string; type?: string; defaultValue?: any; isOptional?: boolean }> {
+  ): Array<{ name: string; type?: string; defaultValue?: string; isOptional?: boolean }> {
     if (!paramString.trim()) return [];
 
     const params = paramString.split(',').map(p => p.trim());
@@ -326,7 +327,7 @@ export class AhkParser {
   /**
    * Get symbol at position
    */
-  getSymbolAtPosition(position: Position): { name: string; type: string; range: any } | null {
+  getSymbolAtPosition(position: Position): { name: string; type: string; range: Range } | null {
     if (position.line >= this.lines.length) return null;
 
     const line = this.lines[position.line];

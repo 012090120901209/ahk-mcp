@@ -4,6 +4,7 @@ import { AhkEditTool } from './ahk-file-edit.js';
 import { AhkFileTool } from './ahk-file-active.js';
 import { resolveWithTracking, addDeprecationWarning } from '../core/parameter-aliases.js';
 import { safeParse } from '../core/validation-middleware.js';
+import type { McpToolResponse } from '../types/mcp-types.js';
 
 export const AhkFileEditorArgsSchema = z.object({
   filePath: z.string().describe('Path to the AutoHotkey file to edit'),
@@ -64,7 +65,7 @@ export class AhkFileEditorTool {
     this.fileTool = new AhkFileTool();
   }
 
-  async execute(args: unknown): Promise<any> {
+  async execute(args: unknown): Promise<McpToolResponse> {
     const parsed = safeParse(args, AhkFileEditorArgsSchema, 'AHK_File_Edit_Advanced');
     if (!parsed.success) return parsed.error;
 
@@ -115,10 +116,10 @@ export class AhkFileEditorTool {
       if (action === 'view') {
         // Just show file status
         const statusResult = await this.fileTool.execute({ action: 'get' });
-        let result = {
+        let result: McpToolResponse = {
           content: [
             {
-              type: 'text',
+              type: 'text' as const,
               text: response + statusResult.content[0]?.text,
             },
           ],
@@ -146,10 +147,10 @@ export class AhkFileEditorTool {
         response += `\n**Dry Run Tip:** Add \`"dryRun": true\` to any of the above tools to preview changes before applying them.`;
       }
 
-      let result = {
+      let result: McpToolResponse = {
         content: [
           {
-            type: 'text',
+            type: 'text' as const,
             text: response,
           },
         ],
@@ -166,7 +167,7 @@ export class AhkFileEditorTool {
       return {
         content: [
           {
-            type: 'text',
+            type: 'text' as const,
             text: `**File Editor Error**\n\n${error instanceof Error ? error.message : String(error)}\n\n**Tip:** Make sure you provide both a valid .ahk file path and a description of the changes you want to make.`,
           },
         ],

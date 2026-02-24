@@ -4,8 +4,10 @@ import type { Stats } from 'fs';
 import path from 'path';
 import logger from '../logger.js';
 import { activeFile } from '../core/active-file.js';
+import { getPrioritizedFileSearchPlan, loadConfig } from '../core/config.js';
 import { safeParse } from '../core/validation-middleware.js';
 import { checkToolAvailability } from '../core/tool-settings.js';
+import type { McpToolResponse } from '../types/mcp-types.js';
 
 export const AhkFileListArgsSchema = z.object({
   directory: z
@@ -16,9 +18,11 @@ export const AhkFileListArgsSchema = z.object({
     ),
   nameFilter: z
     .string()
+    .min(1)
+    .max(200)
     .optional()
     .describe(
-      'Filter files by name pattern. Supports * wildcards (e.g., "*Hotstring*", "GUI_*", "*Manager.ahk").'
+      'Filter files by name pattern (1-200 characters). Supports * wildcards (e.g., "*Hotstring*", "GUI_*", "*Manager.ahk").'
     ),
   recursive: z.boolean().optional().default(false).describe('Include files from subdirectories.'),
   includeDirectories: z
@@ -33,15 +37,24 @@ export const AhkFileListArgsSchema = z.object({
     .describe(
       'Limit results to specific file extensions (defaults to [".ahk"]). Use empty array to include all files.'
     ),
-  maxResults: z
+  offset: z
     .number()
+    .int()
+    .min(0)
+    .optional()
+    .default(0)
+    .describe('Number of items to skip for pagination (default: 0).'),
+  limit: z
+    .number()
+    .int()
     .min(1)
     .max(500)
     .optional()
     .default(30)
-    .describe('Maximum entries (default 30 for token efficiency).'),
+    .describe('Maximum items to return per page (default: 30, max: 500).'),
   maxDepth: z
     .number()
+    .int()
     .min(1)
     .max(10)
     .optional()
@@ -64,6 +77,18 @@ export const AhkFileListArgsSchema = z.object({
     .describe('Output format: compact (paths only), detailed (with stats), json (full data).'),
 });
 
+const AhkFileListOutputSchema: Record<string, unknown> = {
+  type: 'object',
+  properties: {
+    directory: { type: 'string' },
+    counts: { type: 'object' },
+    pagination: { type: 'object' },
+    entries: { type: 'array' },
+    filters: { type: 'object' },
+  },
+  required: ['directory', 'counts', 'pagination', 'entries'],
+};
+
 export const ahkFileListToolDefinition = {
   name: 'AHK_File_List',
   description: `List AHK files with optional name search. Use nameFilter with wildcards (e.g., "*Hotstring*") to find specific files.`,
@@ -77,7 +102,10 @@ export const ahkFileListToolDefinition = {
       },
       nameFilter: {
         type: 'string',
-        description: 'Filter by filename pattern with * wildcards (e.g., "*Hotstring*", "GUI_*").',
+        minLength: 1,
+        maxLength: 200,
+        description:
+          'Filter by filename pattern with * wildcards (e.g., "*Hotstring*", "GUI_*"). 1-200 characters.',
       },
       recursive: {
         type: 'boolean',
@@ -100,15 +128,21 @@ export const ahkFileListToolDefinition = {
         description:
           'Limit results to specific file extensions (defaults to [".ahk"]). Use empty array to include all files.',
       },
-      maxResults: {
-        type: 'number',
+      offset: {
+        type: 'integer',
+        minimum: 0,
+        default: 0,
+        description: 'Number of items to skip for pagination.',
+      },
+      limit: {
+        type: 'integer',
         minimum: 1,
         maximum: 500,
         default: 30,
-        description: 'Maximum entries (default 50 for token efficiency).',
+        description: 'Maximum items to return per page.',
       },
       maxDepth: {
-        type: 'number',
+        type: 'integer',
         minimum: 1,
         maximum: 10,
         default: 5,
@@ -133,6 +167,7 @@ export const ahkFileListToolDefinition = {
       },
     },
   },
+  outputSchema: AhkFileListOutputSchema,
 };
 
 interface ListedEntry {
@@ -151,7 +186,7 @@ interface QueueItem {
 }
 
 export class AhkFileListTool {
-  async execute(args: unknown): Promise<any> {
+  async execute(args: unknown): Promise<McpToolResponse> {
     const parsed = safeParse(args, AhkFileListArgsSchema, 'AHK_File_List');
     if (!parsed.success) return parsed.error;
 
@@ -170,38 +205,146 @@ export class AhkFileListTool {
         includeDirectories = false,
         includeHidden = false,
         extensions,
-        maxResults = 30,
+        offset = 0,
+        limit = 30,
         maxDepth = 5,
         includeStats = true,
         absolutePaths = true,
         outputFormat = 'compact',
       } = parsed.data;
 
-      const rootDirectory = await this.resolveDirectory(directory);
+      let selectedDirectory = await this.resolveDirectory(directory);
       const normalizedExtensions = this.normalizeExtensions(extensions);
 
-      const entries = await this.collectEntries(rootDirectory, {
+      // Security: Validate nameFilter doesn't contain path traversal patterns
+      if (nameFilter && (nameFilter.includes('../') || nameFilter.includes('..\\'))) {
+        return {
+          content: [
+            {
+              type: 'text',
+              text: 'Error: nameFilter cannot contain path traversal patterns (../ or ..\\)',
+            },
+          ],
+          isError: true,
+        };
+      }
+
+      // Collect more entries than needed to support pagination
+      const maxToCollect = offset + limit + 100; // +100 to check if there's more
+      const collectOptions = {
         nameFilter,
         recursive,
         includeDirectories,
         includeHidden,
         extensions: normalizedExtensions,
-        maxResults,
+        maxResults: maxToCollect,
         maxDepth,
         includeStats,
         absolutePaths,
-      });
+      };
+
+      let allEntries: ListedEntry[] = [];
+      const searchedDirectories: string[] = [];
+      let searchMode: 'direct' | 'prioritized' = 'direct';
+      let searchStrategy: 'focused' | 'expanded' = 'focused';
+      let searchPlanBreakdown: Record<string, string[]> | undefined;
+      const addSearchedDirectory = (candidate: string) => {
+        if (!searchedDirectories.includes(candidate)) {
+          searchedDirectories.push(candidate);
+        }
+      };
+
+      // Focused fallback search order to reduce noisy broad scans:
+      // scriptDir -> Lib -> similar project folders.
+      if (!directory && nameFilter) {
+        const searchPlan = getPrioritizedFileSearchPlan({
+          scriptDir: selectedDirectory,
+          projectHint: nameFilter,
+          includeConfiguredSearchDirs: false,
+          includeCwdFallback: false,
+        });
+        searchMode = 'prioritized';
+        searchStrategy = searchPlan.strategy;
+        searchPlanBreakdown = searchPlan.breakdown;
+        const prioritizedDirectories = searchPlan.directories.slice(0, 12);
+
+        if (prioritizedDirectories.length === 0) {
+          prioritizedDirectories.push(selectedDirectory);
+        }
+
+        for (const candidateDirectory of prioritizedDirectories) {
+          addSearchedDirectory(candidateDirectory);
+          const entries = await this.collectEntries(candidateDirectory, collectOptions);
+          if (entries.length > 0) {
+            selectedDirectory = candidateDirectory;
+            allEntries = entries;
+            break;
+          }
+        }
+      } else {
+        addSearchedDirectory(selectedDirectory);
+        allEntries = await this.collectEntries(selectedDirectory, collectOptions);
+      }
+
+      // Apply pagination
+      const totalCount = allEntries.length;
+      const entries = allEntries.slice(offset, offset + limit);
+      const hasMore = totalCount > offset + limit;
 
       const fileCount = entries.filter(e => e.type === 'file').length;
       const dirCount = entries.filter(e => e.type === 'directory').length;
+
+      // Pagination metadata for all responses
+      const paginationMeta = {
+        offset,
+        limit,
+        returned: entries.length,
+        total: totalCount > offset + limit ? totalCount : offset + entries.length,
+        has_more: hasMore,
+      };
+      const structuredContent = {
+        directory: selectedDirectory,
+        counts: {
+          files: fileCount,
+          directories: dirCount,
+        },
+        pagination: paginationMeta,
+        entries: entries.map(entry => ({
+          name: entry.name,
+          path: entry.path,
+          type: entry.type,
+          size: entry.size ?? null,
+          modified: entry.modified ?? null,
+          depth: entry.depth,
+        })),
+        filters: {
+          nameFilter: nameFilter ?? null,
+          recursive,
+          includeDirectories,
+          includeHidden,
+          extensions: normalizedExtensions,
+          maxDepth,
+          absolutePaths,
+          includeStats,
+          searchMode,
+          searchStrategy,
+          searchedDirectories,
+          searchPlan: searchPlanBreakdown,
+        },
+      };
 
       // Format output based on outputFormat parameter
       if (outputFormat === 'compact') {
         // Minimal token usage - just filenames (not full paths)
         const names = entries.map(e => e.name);
-        const header = `${fileCount} files in ...${rootDirectory.split(path.sep).slice(-2).join('/')}`;
+        const header = `${fileCount} files in ...${selectedDirectory.split(path.sep).slice(-2).join('/')}`;
+        const footer = hasMore
+          ? `\n\n(Showing ${offset + 1}-${offset + entries.length}, more available)`
+          : '';
         return {
-          content: [{ type: 'text', text: `${header}\n${names.join('\n') || 'None'}` }],
+          content: [{ type: 'text', text: `${header}\n${names.join('\n') || 'None'}${footer}` }],
+          structuredContent,
+          _meta: { pagination: paginationMeta, searchedDirectories },
         };
       }
 
@@ -213,20 +356,24 @@ export class AhkFileListTool {
               type: 'text',
               text: JSON.stringify(
                 {
-                  directory: rootDirectory,
+                  directory: selectedDirectory,
                   counts: { files: fileCount, directories: dirCount },
+                  pagination: paginationMeta,
                   entries: entries.map(e => ({
                     path: e.path,
                     type: e.type,
                     size: e.size,
                     modified: e.modified,
                   })),
+                  searchedDirectories,
                 },
                 null,
                 2
               ),
             },
           ],
+          structuredContent,
+          _meta: { pagination: paginationMeta, searchedDirectories },
         };
       }
 
@@ -239,25 +386,38 @@ export class AhkFileListTool {
           if (entry.modified) statsParts.push(entry.modified.split('T')[0]); // Just date, not full ISO
         }
         const meta = statsParts.length ? ` (${statsParts.join(', ')})` : '';
-        return `${index + 1}. ${entry.path}${meta}`;
+        return `${offset + index + 1}. ${entry.path}${meta}`;
       });
 
-      const header = `**${fileCount} file(s)** in \`${rootDirectory}\`${nameFilter ? ` matching "${nameFilter}"` : ''}`;
+      const header = `**${fileCount} file(s)** in \`${selectedDirectory}\`${nameFilter ? ` matching "${nameFilter}"` : ''}`;
+      const footer = hasMore
+        ? `\n\n*Showing ${offset + 1}-${offset + entries.length} of ${totalCount}+*`
+        : '';
 
-      return {
-        content: [
-          { type: 'text', text: `${header}\n\n${lines.join('\n') || 'No entries found.'}` },
-        ],
-      };
-    } catch (error) {
-      logger.error('Error in AHK_File_List tool:', error);
       return {
         content: [
           {
             type: 'text',
-            text: `Error: ${error instanceof Error ? error.message : String(error)}`,
+            text: `${header}\n\n${lines.join('\n') || 'No entries found.'}${footer}`,
           },
         ],
+        structuredContent,
+        _meta: { pagination: paginationMeta, searchedDirectories },
+      };
+    } catch (error) {
+      logger.error('Error in AHK_File_List tool:', error);
+      const message = error instanceof Error ? error.message : String(error);
+      return {
+        content: [
+          {
+            type: 'text',
+            text: `Error: ${message}`,
+          },
+        ],
+        isError: true,
+        structuredContent: {
+          error: message,
+        },
       };
     }
   }
@@ -265,7 +425,14 @@ export class AhkFileListTool {
   private async resolveDirectory(explicitDir?: string): Promise<string> {
     let candidate: string | undefined = explicitDir;
 
-    // Priority: explicit > env var > active file dir > cwd
+    // Priority: explicit > configured scriptDir > env var > active file dir > cwd
+    if (!candidate) {
+      const cfg = loadConfig();
+      if (cfg.scriptDir) {
+        candidate = cfg.scriptDir;
+      }
+    }
+
     if (!candidate && process.env.AHK_MCP_SCRIPT_DIR) {
       candidate = process.env.AHK_MCP_SCRIPT_DIR;
     }
@@ -322,7 +489,8 @@ export class AhkFileListTool {
     const queue: QueueItem[] = [{ directory: root, depth: 1, relativePath: '' }];
 
     while (queue.length > 0 && results.length < options.maxResults) {
-      const current = queue.shift()!;
+      const current = queue.shift();
+      if (!current) break;
 
       let dirEntries;
       try {

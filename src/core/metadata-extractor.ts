@@ -16,6 +16,8 @@ import type {
   DocumentationInfo,
   JSDocTag,
   DependencyInfo,
+  MethodInfo,
+  PropertyInfo,
 } from '../types/library-types.js';
 
 /**
@@ -310,8 +312,8 @@ export class MetadataExtractor {
       startLine: number;
       endLine: number;
       baseClass?: string;
-      methods: any[];
-      properties: any[];
+      methods: MethodInfo[];
+      properties: PropertyInfo[];
     }> = [];
     const functions: Array<{ name: string; startLine: number; endLine: number }> = [];
 

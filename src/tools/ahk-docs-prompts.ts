@@ -7,6 +7,7 @@ import {
   loadPromptsFromModules,
   type ModulePrompt,
 } from './ahk-docs-modules.js';
+import type { McpToolResponse } from '../types/mcp-types.js';
 
 export interface PromptTemplate {
   title: string;
@@ -557,7 +558,7 @@ export { insertPromptIntoModule, loadPromptsFromModules, getPromptSlug };
 export type { ModulePrompt };
 
 export class AhkPromptsTool {
-  async execute(args: unknown): Promise<any> {
+  async execute(args: unknown): Promise<McpToolResponse> {
     const parsed = safeParse(args, AhkPromptsArgsSchema, 'AHK_Prompts');
     if (!parsed.success) return parsed.error;
 

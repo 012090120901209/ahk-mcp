@@ -2,6 +2,8 @@ import { z } from 'zod';
 import { getAhkIndex } from '../core/loader.js';
 import logger from '../logger.js';
 import { safeParse } from '../core/validation-middleware.js';
+import type { AhkIndex, AhkIndexFunction, AhkIndexVariable } from '../types/tool-types.js';
+import type { McpToolResponse } from '../types/mcp-types.js';
 
 export const AhkSamplingEnhancerArgsSchema = z.object({
   originalPrompt: z.string().min(1, 'Original prompt is required'),
@@ -138,7 +140,7 @@ export class AhkSamplingEnhancer {
     comprehensive: { maxFunctions: 6, maxVariables: 5, includeExamples: true },
   };
 
-  async execute(args: unknown): Promise<any> {
+  async execute(args: unknown): Promise<McpToolResponse> {
     const parsed = safeParse(args, AhkSamplingEnhancerArgsSchema, 'AHK_Sampling_Enhancer');
     if (!parsed.success) return parsed.error;
 
@@ -270,10 +272,14 @@ export class AhkSamplingEnhancer {
     return context;
   }
 
-  private findRelevantFunctions(keywords: string[], ahkIndex: any, maxItems: number): any[] {
+  private findRelevantFunctions(
+    keywords: string[],
+    ahkIndex: AhkIndex,
+    maxItems: number
+  ): AhkIndexFunction[] {
     if (!ahkIndex.functions) return [];
 
-    const matches: Array<{ item: any; relevance: number }> = [];
+    const matches: Array<{ item: AhkIndexFunction; relevance: number }> = [];
 
     for (const func of ahkIndex.functions) {
       let relevance = 0;
@@ -296,10 +302,14 @@ export class AhkSamplingEnhancer {
       .map(m => m.item);
   }
 
-  private findRelevantVariables(keywords: string[], ahkIndex: any, maxItems: number): any[] {
+  private findRelevantVariables(
+    keywords: string[],
+    ahkIndex: AhkIndex,
+    maxItems: number
+  ): AhkIndexVariable[] {
     if (!ahkIndex.variables) return [];
 
-    const matches: Array<{ item: any; relevance: number }> = [];
+    const matches: Array<{ item: AhkIndexVariable; relevance: number }> = [];
 
     for (const variable of ahkIndex.variables) {
       let relevance = 0;
@@ -325,7 +335,9 @@ export class AhkSamplingEnhancer {
   private createSamplingRequest(
     originalPrompt: string,
     enhancedContext: string,
-    modelPreferences: any,
+    modelPreferences:
+      | { intelligencePriority?: number; costPriority?: number; speedPriority?: number }
+      | undefined,
     maxTokens: number
   ): SamplingRequest {
     return {

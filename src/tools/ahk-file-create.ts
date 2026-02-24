@@ -8,6 +8,7 @@ import { pathInterceptor } from '../core/path-interceptor.js';
 import { pathConverter, PathFormat } from '../utils/path-converter.js';
 import { createErrorResponse } from '../utils/response-helpers.js';
 import { safeParse } from '../core/validation-middleware.js';
+import type { McpToolResponse } from '../types/mcp-types.js';
 import { setLastEditedFile } from '../core/config.js';
 import { openFileInVSCode } from '../utils/vscode-open.js';
 
@@ -82,7 +83,7 @@ async function pathExists(targetPath: string): Promise<boolean> {
 }
 
 export class AhkFileCreateTool {
-  async execute(rawArgs: unknown): Promise<any> {
+  async execute(rawArgs: unknown): Promise<McpToolResponse> {
     const parsed = safeParse(rawArgs, AhkFileCreateArgsSchema, 'AHK_File_Create');
     if (!parsed.success) return parsed.error;
 
@@ -217,16 +218,16 @@ export class AhkFileCreateTool {
             : 'New AutoHotkey file created successfully.',
       };
 
-      let response = {
+      let response: McpToolResponse = {
         content: [
           {
-            type: 'text',
+            type: 'text' as const,
             text: dryRun
               ? '[DRY RUN] AutoHotkey file creation preview.'
               : 'AutoHotkey file created successfully.',
           },
           {
-            type: 'text',
+            type: 'text' as const,
             text: JSON.stringify(resultPayload, null, 2),
           },
         ],
@@ -250,7 +251,7 @@ export class AhkFileCreateTool {
       // Intercept outgoing data for path conversion when needed
       const outputInterception = pathInterceptor.interceptOutput('AHK_File_Create', response);
       if (outputInterception.success) {
-        response = outputInterception.modifiedData;
+        response = outputInterception.modifiedData as McpToolResponse;
       } else if (outputInterception.error) {
         logger.warn(`AHK_File_Create output interception failed: ${outputInterception.error}`);
       }

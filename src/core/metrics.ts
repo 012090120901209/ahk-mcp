@@ -334,7 +334,11 @@ class MetricsCollector {
 
   // Create a middleware for Express
   createMiddleware() {
-    return (req: any, res: any, next: any) => {
+    return (
+      req: { method?: string },
+      res: { statusCode: number; on(event: string, cb: () => void): void },
+      next: () => void
+    ) => {
       const start = Date.now();
 
       this.incrementActiveRequests();

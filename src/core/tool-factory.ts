@@ -33,7 +33,7 @@ import { ToolRegistry as CoreToolRegistry } from './tool-registry.js';
  * Base interface for all tools
  */
 interface ITool {
-  execute(args?: any): Promise<any>;
+  execute(args?: unknown): Promise<unknown>;
 }
 
 /**

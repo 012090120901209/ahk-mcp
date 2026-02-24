@@ -2,6 +2,7 @@ import { z } from 'zod';
 import logger from '../logger.js';
 import { safeParse } from '../core/validation-middleware.js';
 import { createErrorResponse } from '../utils/response-helpers.js';
+import type { McpToolResponse } from '../types/mcp-types.js';
 
 /**
  * CloudAHK Validation Tool
@@ -163,7 +164,7 @@ export class AhkCloudAhkValidateTool {
   /**
    * Execute the CloudAHK validation
    */
-  async execute(args: unknown): Promise<any> {
+  async execute(args: unknown): Promise<McpToolResponse> {
     const parsed = safeParse(args, AhkCloudAhkValidateArgsSchema, 'AHK_Cloud_Validate');
     if (!parsed.success) return parsed.error;
 

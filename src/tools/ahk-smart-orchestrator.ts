@@ -1,7 +1,12 @@
 import { z } from 'zod';
 import logger from '../logger.js';
-import { OrchestrationEngine, OrchestrationRequest } from '../core/orchestration-engine.js';
+import {
+  OrchestrationEngine,
+  OrchestrationRequest,
+  OrchestrationResult,
+} from '../core/orchestration-engine.js';
 import { AhkCloudValidateTool } from './ahk-cloud-validate.js';
+import type { McpToolResponse } from '../types/mcp-types.js';
 
 export const AhkSmartOrchestratorArgsSchema = z.object({
   intent: z.string().min(1).describe('High-level description of what you want to do'),
@@ -72,7 +77,7 @@ export class AhkSmartOrchestratorTool {
     this.validateTool = new AhkCloudValidateTool();
   }
 
-  async execute(args: z.infer<typeof AhkSmartOrchestratorArgsSchema>): Promise<any> {
+  async execute(args: z.infer<typeof AhkSmartOrchestratorArgsSchema>): Promise<McpToolResponse> {
     try {
       const validatedArgs = AhkSmartOrchestratorArgsSchema.parse(args);
 
@@ -104,29 +109,43 @@ export class AhkSmartOrchestratorTool {
 
           // Parse validation response
           const validationText = validationResult.content?.[1]?.text || '';
-          let validationData: any = {};
+          interface ValidationError {
+            type?: string;
+            line?: number;
+            message?: string;
+          }
+          interface ValidationData {
+            success?: boolean;
+            errors?: ValidationError[];
+          }
+          let validationData: ValidationData = {};
           try {
             const jsonMatch = validationText.match(/```json\n([\s\S]*?)\n```/);
             if (jsonMatch) {
-              validationData = JSON.parse(jsonMatch[1]);
+              validationData = JSON.parse(jsonMatch[1]) as ValidationData;
             }
           } catch {
             // Ignore parse errors
           }
 
-          if (!validationData.success || (validationData.errors && validationData.errors.length > 0)) {
-            const errorList = validationData.errors?.map((e: any) =>
-              `- **${e.type}** (line ${e.line || '?'}): ${e.message}`
-            ).join('\n') || 'Unknown validation error';
+          if (
+            !validationData.success ||
+            (validationData.errors && validationData.errors.length > 0)
+          ) {
+            const errorList =
+              validationData.errors
+                ?.map(e => `- **${e.type ?? 'error'}** (line ${e.line ?? '?'}): ${e.message ?? ''}`)
+                .join('\n') ?? 'Unknown validation error';
 
             return {
               content: [
                 {
                   type: 'text',
-                  text: `**Validation Failed**\n\n` +
-                        `File: ${result.metadata.filePath}\n\n` +
-                        `Errors found:\n${errorList}\n\n` +
-                        `Fix these errors before editing.`,
+                  text:
+                    `**Validation Failed**\n\n` +
+                    `File: ${result.metadata.filePath}\n\n` +
+                    `Errors found:\n${errorList}\n\n` +
+                    `Fix these errors before editing.`,
                 },
               ],
               isError: true,
@@ -174,7 +193,7 @@ export class AhkSmartOrchestratorTool {
     }
   }
 
-  private formatErrorResponse(result: any): string {
+  private formatErrorResponse(result: OrchestrationResult): string {
     const lines: string[] = [
       '[ERROR] **Orchestration Failed**\n',
       `Tool calls made: ${result.toolCallsMade}\n`,
@@ -182,7 +201,7 @@ export class AhkSmartOrchestratorTool {
 
     if (result.errors && result.errors.length > 0) {
       lines.push('**Errors:**');
-      result.errors.forEach((err: string) => lines.push(`• ${err}`));
+      result.errors.forEach(err => lines.push(`• ${err}`));
       lines.push('');
     }
 

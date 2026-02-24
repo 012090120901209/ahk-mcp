@@ -1,7 +1,14 @@
 import { z } from 'zod';
 import path from 'path';
 import logger from '../logger.js';
-import { loadConfig, saveConfig, detectFilePaths, resolveFilePath } from '../core/config.js';
+import {
+  loadConfig,
+  saveConfig,
+  detectFilePaths,
+  resolveFilePath,
+  resolveFilePathDetailed,
+} from '../core/config.js';
+import type { McpToolResponse } from '../types/mcp-types.js';
 import { setActiveFilePath, getActiveFilePath } from '../core/active-file.js';
 import { safeParse } from '../core/validation-middleware.js';
 
@@ -38,13 +45,43 @@ Automatically detect and set active AutoHotkey file from user text`,
     },
     required: ['text'],
   },
+  outputSchema: {
+    type: 'object',
+    properties: {
+      detected: { type: 'array', items: { type: 'string' } },
+      resolved: { type: 'array', items: { type: 'string' } },
+      unresolved: { type: 'array', items: { type: 'string' } },
+      activeFile: { type: ['string', 'null'] },
+      autoSet: { type: 'boolean' },
+      activeFileSet: { type: 'boolean' },
+      config: { type: 'object' },
+      searchDiagnostics: { type: 'array' },
+    },
+    required: [
+      'detected',
+      'resolved',
+      'unresolved',
+      'activeFile',
+      'autoSet',
+      'activeFileSet',
+      'searchDiagnostics',
+    ],
+  },
 };
+
+interface SearchDiagnosticEntry {
+  input: string;
+  resolvedPath: string | null;
+  strategy: 'focused' | 'expanded';
+  searchedDirectories: string[];
+  attempts: number;
+}
 
 export class AhkAutoFileTool {
   /**
    * Detect and optionally set active file from text
    */
-  async execute(args: unknown): Promise<any> {
+  async execute(args: unknown): Promise<McpToolResponse> {
     const parsed = safeParse(args, AhkAutoFileArgsSchema, 'AHK_File_Detect');
     if (!parsed.success) return parsed.error;
 
@@ -61,6 +98,22 @@ export class AhkAutoFileTool {
 
       // Detect potential file paths in the text
       const detectedPaths = detectFilePaths(text);
+      const cfg = loadConfig();
+      const activeAtStart = getActiveFilePath();
+
+      const baseStructured = {
+        detected: detectedPaths,
+        resolved: [] as string[],
+        unresolved: [] as string[],
+        activeFile: activeAtStart ?? null,
+        autoSet,
+        activeFileSet: false,
+        config: {
+          scriptDir: cfg.scriptDir ?? null,
+          searchDirs: cfg.searchDirs ?? [],
+        },
+        searchDiagnostics: [] as SearchDiagnosticEntry[],
+      };
 
       if (detectedPaths.length === 0) {
         return {
@@ -70,35 +123,53 @@ export class AhkAutoFileTool {
               text: 'No AutoHotkey file paths detected in the provided text.',
             },
           ],
+          structuredContent: baseStructured,
         };
       }
 
       // Try to resolve each detected path
       const resolvedFiles: string[] = [];
       const unresolvedPaths: string[] = [];
+      const searchDiagnostics: SearchDiagnosticEntry[] = [];
+      const normalizedScriptDir = scriptDir ? path.resolve(scriptDir) : undefined;
 
       for (const detectedPath of detectedPaths) {
-        const resolved = resolveFilePath(detectedPath);
-        if (resolved) {
-          resolvedFiles.push(resolved);
+        const details = resolveFilePathDetailed(detectedPath, {
+          scriptDir: normalizedScriptDir,
+          projectHint: detectedPath,
+          includeConfiguredSearchDirs: false,
+          includeCwdFallback: false,
+        });
+
+        searchDiagnostics.push({
+          input: detectedPath,
+          resolvedPath: details.resolvedPath ?? null,
+          strategy: details.strategy,
+          searchedDirectories: details.searchDirectories,
+          attempts: details.attemptedPaths.length,
+        });
+
+        if (details.resolvedPath) {
+          resolvedFiles.push(details.resolvedPath);
         } else {
           unresolvedPaths.push(detectedPath);
         }
       }
+      const uniqueResolvedFiles = [...new Set(resolvedFiles)];
 
       // If we found files and autoSet is true, set the first one as active
       let activeFileSet = false;
-      if (autoSet && resolvedFiles.length > 0) {
-        const setSuccess = setActiveFilePath(resolvedFiles[0]);
+      if (autoSet && uniqueResolvedFiles.length > 0) {
+        const setSuccess = setActiveFilePath(uniqueResolvedFiles[0]);
         activeFileSet = setSuccess;
       }
 
       // Build response
       let response = '📁 **AutoHotkey File Detection Results**\n\n';
 
-      if (resolvedFiles.length > 0) {
+      if (uniqueResolvedFiles.length > 0) {
         response += '✅ **Found Files:**\n';
-        resolvedFiles.forEach((file, index) => {
+        uniqueResolvedFiles.forEach((file, index) => {
           const isActive = index === 0 && activeFileSet;
           response += `• ${file}${isActive ? ' (set as active)' : ''}\n`;
         });
@@ -120,39 +191,62 @@ export class AhkAutoFileTool {
       }
 
       // Add current config info
-      const cfg = loadConfig();
       const currentActive = getActiveFilePath();
       response += '\n**Current Configuration:**\n';
       response += `• Active File: ${currentActive || 'None'}\n`;
       response += `• Script Directory: ${cfg.scriptDir || 'Not set'}\n`;
+      response += `• Search Strategy: script -> Lib -> project-like -> fallback\n`;
+
+      const structuredContent = {
+        detected: detectedPaths,
+        resolved: uniqueResolvedFiles,
+        unresolved: unresolvedPaths,
+        activeFile: currentActive ?? null,
+        autoSet,
+        activeFileSet,
+        config: {
+          scriptDir: cfg.scriptDir ?? null,
+          searchDirs: cfg.searchDirs ?? [],
+        },
+        searchDiagnostics,
+      };
 
       return {
         content: [
           { type: 'text', text: response.trim() },
           {
             type: 'text',
-            text: JSON.stringify(
-              {
-                detected: detectedPaths,
-                resolved: resolvedFiles,
-                unresolved: unresolvedPaths,
-                activeFile: currentActive,
-              },
-              null,
-              2
-            ),
+            text: JSON.stringify(structuredContent, null, 2),
           },
         ],
+        structuredContent,
       };
     } catch (error) {
       logger.error('Error in AHK_File_Detect tool:', error);
+      const cfg = loadConfig();
+      const message = error instanceof Error ? error.message : String(error);
       return {
         content: [
           {
             type: 'text',
-            text: `Error: ${error instanceof Error ? error.message : String(error)}`,
+            text: `Error: ${message}`,
           },
         ],
+        isError: true,
+        structuredContent: {
+          detected: [],
+          resolved: [],
+          unresolved: [],
+          activeFile: getActiveFilePath() ?? null,
+          autoSet: true,
+          activeFileSet: false,
+          config: {
+            scriptDir: cfg.scriptDir ?? null,
+            searchDirs: cfg.searchDirs ?? [],
+          },
+          searchDiagnostics: [],
+          error: message,
+        },
       };
     }
   }

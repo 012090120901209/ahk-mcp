@@ -5,6 +5,8 @@ import { AhkDiagnosticProvider } from '../lsp/diagnostics.js';
 import logger from '../logger.js';
 import { activeFile, autoDetect } from '../core/active-file.js';
 import { safeParse } from '../core/validation-middleware.js';
+import type { Diagnostic } from '../types/index.js';
+import type { McpToolResponse } from '../types/mcp-types.js';
 
 // Zod schema for tool arguments
 export const AhkDiagnosticsArgsSchema = z.object({
@@ -66,7 +68,7 @@ export class AhkDiagnosticsTool {
   /**
    * Execute the diagnostics tool
    */
-  async execute(args: unknown): Promise<any> {
+  async execute(args: unknown): Promise<McpToolResponse> {
     // Validate arguments using middleware
     const parsed = safeParse(args, AhkDiagnosticsArgsSchema, 'AHK_Diagnostics');
     if (!parsed.success) return parsed.error;
@@ -154,7 +156,10 @@ export class AhkDiagnosticsTool {
   /**
    * Format diagnostics response for human-readable output
    */
-  private formatDiagnosticsResponse(diagnostics: any[], args: any): string {
+  private formatDiagnosticsResponse(
+    diagnostics: Diagnostic[],
+    args: { enableClaudeStandards?: boolean }
+  ): string {
     if (diagnostics.length === 0) {
       return `✅ **No issues found!**\n\nYour AutoHotkey v2 code looks good with ${args.enableClaudeStandards ? 'Claude coding standards enabled' : 'basic syntax checking'}.`;
     }
@@ -179,7 +184,7 @@ export class AhkDiagnosticsTool {
       if (items && items.length > 0) {
         response += `### ${severityIcons[severity as keyof typeof severityIcons]} ${severity}s (${items.length})\n\n`;
 
-        items.forEach((diagnostic: any, index: number) => {
+        items.forEach((diagnostic: Diagnostic, index: number) => {
           const line = diagnostic.range.start.line + 1;
           const char = diagnostic.range.start.character + 1;
 
@@ -218,7 +223,7 @@ export class AhkDiagnosticsTool {
   /**
    * Group diagnostics by severity for better organization
    */
-  private groupDiagnosticsBySeverity(diagnostics: any[]): Record<string, any[]> {
+  private groupDiagnosticsBySeverity(diagnostics: Diagnostic[]): Record<string, Diagnostic[]> {
     const severityNames: Record<number, string> = {
       1: 'Error',
       2: 'Warning',
@@ -226,7 +231,7 @@ export class AhkDiagnosticsTool {
       4: 'Hint',
     };
 
-    const grouped: Record<string, any[]> = {};
+    const grouped: Record<string, Diagnostic[]> = {};
 
     diagnostics.forEach(diagnostic => {
       const severityName = severityNames[diagnostic.severity] || 'Unknown';

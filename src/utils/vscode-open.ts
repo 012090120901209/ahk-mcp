@@ -1,127 +1,374 @@
+import { spawn } from 'node:child_process';
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import { spawn } from 'node:child_process';
 import logger from '../logger.js';
+
+const COMMAND_PROBE_TIMEOUT_MS = 3000;
 
 export interface VSCodeOpenOptions {
   line?: number;
   column?: number;
   reuseWindow?: boolean;
   wait?: boolean;
+  cwd?: string;
 }
 
-export interface VSCodeLaunchResult {
+export interface VSCodeOpenResult {
   command: string;
   args: string[];
+  filePath: string;
+  line?: number;
+  column?: number;
+  reuseWindow: boolean;
+  wait: boolean;
+  durationMs: number;
+  exitCode: number;
 }
 
-function isShellCommand(command: string): boolean {
-  const ext = path.extname(command).toLowerCase();
-  if (ext === '.cmd' || ext === '.bat') return true;
-  return command.toLowerCase() === 'code';
+interface CommandProbeResult {
+  ok: boolean;
+  reason?: string;
 }
 
-function normalizeCommand(candidate: string): string {
-  const trimmed = candidate.trim();
-  if (!trimmed) return '';
-
-  const looksLikePath =
-    trimmed.includes(path.sep) || /^[a-zA-Z]:[\\/]/.test(trimmed) || trimmed.startsWith('\\\\');
-  return looksLikePath ? path.resolve(trimmed) : trimmed;
+interface CommandRunResult {
+  exitCode: number;
+  stdout: string;
+  stderr: string;
+  durationMs: number;
 }
 
-async function resolveVSCodeCommand(): Promise<string> {
-  const candidates: string[] = [];
-  const override = process.env.AHK_MCP_VSCODE_CMD;
-  if (override) candidates.push(normalizeCommand(override));
+interface CommandExecutionError extends Error {
+  code?: string;
+  exitCode?: number | null;
+  stdout?: string;
+  stderr?: string;
+}
 
-  const localAppData = process.env.LOCALAPPDATA;
-  if (localAppData) {
-    candidates.push(path.join(localAppData, 'Programs', 'Microsoft VS Code', 'bin', 'code.cmd'));
-    candidates.push(path.join(localAppData, 'Programs', 'Microsoft VS Code', 'Code.exe'));
+let cachedVSCodeCommand: string | undefined;
+
+function unique(values: Array<string | undefined>): string[] {
+  const seen = new Set<string>();
+  const result: string[] = [];
+
+  for (const value of values) {
+    if (!value) continue;
+    const trimmed = value.trim();
+    if (!trimmed || seen.has(trimmed)) continue;
+    seen.add(trimmed);
+    result.push(trimmed);
   }
 
-  const programFiles = process.env['ProgramFiles'];
-  if (programFiles) {
-    candidates.push(path.join(programFiles, 'Microsoft VS Code', 'bin', 'code.cmd'));
-    candidates.push(path.join(programFiles, 'Microsoft VS Code', 'Code.exe'));
+  return result;
+}
+
+function looksLikePath(command: string): boolean {
+  return command.includes('\\') || command.includes('/');
+}
+
+function getCommandCandidates(): string[] {
+  const envOverride = process.env.AHK_MCP_VSCODE_PATH;
+  const isWindows = process.platform === 'win32';
+
+  const windowsCandidates = isWindows
+    ? [
+        'code.cmd',
+        'code',
+        process.env.LOCALAPPDATA
+          ? path.join(process.env.LOCALAPPDATA, 'Programs', 'Microsoft VS Code', 'Code.exe')
+          : undefined,
+        process.env.ProgramFiles
+          ? path.join(process.env.ProgramFiles, 'Microsoft VS Code', 'Code.exe')
+          : undefined,
+        process.env['ProgramFiles(x86)']
+          ? path.join(process.env['ProgramFiles(x86)'], 'Microsoft VS Code', 'Code.exe')
+          : undefined,
+      ]
+    : ['code'];
+
+  return unique([envOverride, ...windowsCandidates]);
+}
+
+async function probeVSCodeCommand(command: string): Promise<CommandProbeResult> {
+  if (looksLikePath(command)) {
+    try {
+      await fs.access(command);
+    } catch (error) {
+      return {
+        ok: false,
+        reason: `path does not exist (${error instanceof Error ? error.message : String(error)})`,
+      };
+    }
   }
 
-  const programFilesX86 = process.env['ProgramFiles(x86)'];
-  if (programFilesX86) {
-    candidates.push(path.join(programFilesX86, 'Microsoft VS Code', 'bin', 'code.cmd'));
-    candidates.push(path.join(programFilesX86, 'Microsoft VS Code', 'Code.exe'));
+  return new Promise(resolve => {
+    const child = spawn(command, ['--version'], {
+      windowsHide: true,
+      stdio: ['ignore', 'pipe', 'pipe'],
+    });
+
+    let settled = false;
+    let stdout = '';
+    let stderr = '';
+
+    const finish = (result: CommandProbeResult): void => {
+      if (settled) return;
+      settled = true;
+      resolve(result);
+    };
+
+    const timer = setTimeout(() => {
+      try {
+        child.kill();
+      } catch {
+        // Ignore cleanup failures.
+      }
+      finish({ ok: false, reason: `probe timed out after ${COMMAND_PROBE_TIMEOUT_MS}ms` });
+    }, COMMAND_PROBE_TIMEOUT_MS);
+
+    child.stdout.on('data', chunk => {
+      stdout += chunk.toString();
+    });
+
+    child.stderr.on('data', chunk => {
+      stderr += chunk.toString();
+    });
+
+    child.on('error', error => {
+      clearTimeout(timer);
+      finish({ ok: false, reason: error.message });
+    });
+
+    child.on('close', code => {
+      clearTimeout(timer);
+      if (code === 0) {
+        finish({ ok: true });
+        return;
+      }
+
+      finish({
+        ok: false,
+        reason: `probe exited with code ${code}; stderr="${stderr.trim() || '(empty)'}", stdout="${stdout.trim() || '(empty)'}"`,
+      });
+    });
+  });
+}
+
+async function resolveVSCodeCommand(forceRefresh: boolean = false): Promise<string> {
+  if (!forceRefresh && cachedVSCodeCommand) {
+    return cachedVSCodeCommand;
   }
 
-  candidates.push('code');
+  const candidates = getCommandCandidates();
+  if (candidates.length === 0) {
+    throw new Error(
+      'No VS Code command candidates found. Set AHK_MCP_VSCODE_PATH to an explicit VS Code executable path.'
+    );
+  }
+
+  const failures: string[] = [];
 
   for (const candidate of candidates) {
-    if (!candidate) continue;
-    if (candidate.toLowerCase() === 'code') {
+    const probe = await probeVSCodeCommand(candidate);
+    if (probe.ok) {
+      cachedVSCodeCommand = candidate;
+      logger.debug(`VS Code command resolved: ${candidate}`);
       return candidate;
     }
-    try {
-      await fs.access(candidate);
-      return candidate;
-    } catch {
-      continue;
-    }
+
+    failures.push(`${candidate}: ${probe.reason || 'unknown failure'}`);
   }
 
-  return 'code';
+  throw new Error(
+    `No working VS Code command found. Tried ${candidates.length} candidate(s): ${failures.join(' | ')}`
+  );
+}
+
+function createCommandExecutionError(
+  message: string,
+  details: {
+    code?: string;
+    exitCode?: number | null;
+    stdout?: string;
+    stderr?: string;
+  }
+): CommandExecutionError {
+  const error = new Error(message) as CommandExecutionError;
+  error.code = details.code;
+  error.exitCode = details.exitCode;
+  error.stdout = details.stdout;
+  error.stderr = details.stderr;
+  return error;
+}
+
+function runVSCodeCommand(
+  command: string,
+  args: string[],
+  cwd?: string
+): Promise<CommandRunResult> {
+  return new Promise((resolve, reject) => {
+    const startedAt = Date.now();
+    const child = spawn(command, args, {
+      cwd,
+      windowsHide: true,
+      stdio: ['ignore', 'pipe', 'pipe'],
+    });
+
+    let stdout = '';
+    let stderr = '';
+
+    child.stdout.on('data', chunk => {
+      stdout += chunk.toString();
+    });
+
+    child.stderr.on('data', chunk => {
+      stderr += chunk.toString();
+    });
+
+    child.on('error', error => {
+      reject(
+        createCommandExecutionError(
+          `Failed to launch VS Code command "${command}": ${error.message}`,
+          {
+            code: (error as NodeJS.ErrnoException).code,
+            stdout,
+            stderr,
+          }
+        )
+      );
+    });
+
+    child.on('close', code => {
+      const durationMs = Date.now() - startedAt;
+
+      if (code !== 0) {
+        reject(
+          createCommandExecutionError(
+            `VS Code command exited with code ${code}. command="${command}" args="${args.join(' ')}"`,
+            { exitCode: code, stdout, stderr }
+          )
+        );
+        return;
+      }
+
+      resolve({
+        exitCode: code ?? 0,
+        stdout,
+        stderr,
+        durationMs,
+      });
+    });
+  });
+}
+
+function validateOpenOptions(options: VSCodeOpenOptions): { line?: number; column?: number } {
+  const { line, column } = options;
+
+  if (line !== undefined && (!Number.isInteger(line) || line < 1)) {
+    throw new Error(`Invalid line value "${line}". line must be an integer >= 1.`);
+  }
+
+  if (column !== undefined && (!Number.isInteger(column) || column < 1)) {
+    throw new Error(`Invalid column value "${column}". column must be an integer >= 1.`);
+  }
+
+  return { line, column };
+}
+
+function buildVSCodeArgs(
+  filePath: string,
+  line: number | undefined,
+  column: number | undefined,
+  reuseWindow: boolean,
+  wait: boolean
+): string[] {
+  const args: string[] = [];
+
+  if (reuseWindow) {
+    args.push('--reuse-window');
+  } else {
+    args.push('--new-window');
+  }
+
+  if (wait) {
+    args.push('--wait');
+  }
+
+  if (line !== undefined) {
+    const location = column !== undefined ? `${filePath}:${line}:${column}` : `${filePath}:${line}`;
+    args.push('--goto', location);
+  } else {
+    args.push(filePath);
+  }
+
+  return args;
 }
 
 export async function openFileInVSCode(
   filePath: string,
   options: VSCodeOpenOptions = {}
-): Promise<VSCodeLaunchResult> {
-  const resolvedPath = path.resolve(filePath);
-  await fs.access(resolvedPath);
-
-  const command = await resolveVSCodeCommand();
-  const args: string[] = [];
-
-  if (options.reuseWindow !== false) {
-    args.push('--reuse-window');
+): Promise<VSCodeOpenResult> {
+  if (!filePath || filePath.trim().length === 0) {
+    throw new Error('File path is required to open VS Code.');
   }
 
-  if (typeof options.line === 'number') {
-    const line = options.line;
-    const column = typeof options.column === 'number' ? options.column : 1;
-    args.push('--goto');
-    args.push(`${resolvedPath}:${line}:${column}`);
-  } else {
-    args.push(resolvedPath);
+  const targetPath = path.resolve(filePath.trim());
+
+  try {
+    await fs.access(targetPath);
+  } catch (error) {
+    throw createCommandExecutionError(
+      `Target file does not exist or is not accessible: ${targetPath}`,
+      {
+        code: (error as NodeJS.ErrnoException).code,
+      }
+    );
   }
 
-  const useShell = isShellCommand(command);
+  const { line, column } = validateOpenOptions(options);
+  const reuseWindow = options.reuseWindow ?? true;
+  const wait = options.wait ?? false;
 
-  await new Promise<void>((resolve, reject) => {
-    const child = spawn(command, args, {
-      windowsHide: true,
-      stdio: 'ignore',
-      shell: useShell,
-    });
+  const args = buildVSCodeArgs(targetPath, line, column, reuseWindow, wait);
 
-    child.on('error', error => {
-      reject(error);
-    });
+  let command = await resolveVSCodeCommand(false);
 
-    if (options.wait) {
-      child.on('close', code => {
-        if (code && code !== 0) {
-          reject(new Error(`VS Code exited with code ${code}`));
-        } else {
-          resolve();
-        }
-      });
-    } else {
-      child.unref();
-      resolve();
+  const run = async (refreshCommand: boolean): Promise<CommandRunResult> => {
+    if (refreshCommand) {
+      command = await resolveVSCodeCommand(true);
     }
-  });
+    return runVSCodeCommand(command, args, options.cwd);
+  };
 
-  logger.info(`VS Code launch: ${command} ${args.join(' ')}`);
+  let runResult: CommandRunResult;
 
-  return { command, args };
+  try {
+    runResult = await run(false);
+  } catch (error) {
+    const err = error as CommandExecutionError;
+
+    if (err.code === 'ENOENT') {
+      logger.warn(
+        `VS Code command "${command}" failed with ENOENT. Refreshing command cache and retrying once.`
+      );
+      runResult = await run(true);
+    } else {
+      throw error;
+    }
+  }
+
+  return {
+    command,
+    args,
+    filePath: targetPath,
+    line,
+    column,
+    reuseWindow,
+    wait,
+    durationMs: runResult.durationMs,
+    exitCode: runResult.exitCode,
+  };
+}
+
+export function resetVSCodeCommandCache(): void {
+  cachedVSCodeCommand = undefined;
 }

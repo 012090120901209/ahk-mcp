@@ -9,6 +9,7 @@ import fs from 'fs/promises';
 import { setLastEditedFile } from '../core/config.js';
 import { toolSettings } from '../core/tool-settings.js';
 import { openFileInVSCode } from '../utils/vscode-open.js';
+import type { McpToolResponse } from '../types/mcp-types.js';
 
 export const AhkWorkflowAnalyzeFixRunArgsSchema = z.object({
   filePath: z
@@ -80,6 +81,27 @@ export const ahkWorkflowAnalyzeFixRunToolDefinition = {
 
 export type AhkWorkflowAnalyzeFixRunArgs = z.infer<typeof AhkWorkflowAnalyzeFixRunArgsSchema>;
 
+interface WorkflowStep {
+  step: string;
+  duration: number;
+  status: 'completed' | 'failed' | 'pending' | 'dry-run';
+  fixesApplied?: number | string;
+  remainingIssues?: number;
+  error?: string;
+}
+
+interface WorkflowState {
+  steps: WorkflowStep[];
+  totalDuration: number;
+  issuesFound: number;
+  issuesFixed: number;
+  verificationPassed: boolean;
+  scriptRan: boolean;
+  scriptFailed: boolean;
+  scriptError: string;
+  issues: Array<{ severity: string; message: string; line?: number }>;
+}
+
 /**
  * Composite Workflow Tool: Analyze → Fix → Run
  *
@@ -103,7 +125,7 @@ export class AhkWorkflowAnalyzeFixRunTool {
     this.lspTool = lspTool;
   }
 
-  async execute(args: unknown): Promise<any> {
+  async execute(args: unknown): Promise<McpToolResponse> {
     const parsed = safeParse(
       args,
       AhkWorkflowAnalyzeFixRunArgsSchema,
@@ -117,8 +139,8 @@ export class AhkWorkflowAnalyzeFixRunTool {
       logger.info(`Workflow: Analyze → Fix → Run for ${filePath}`);
 
       const startTime = Date.now();
-      const workflow = {
-        steps: [] as any[],
+      const workflow: WorkflowState = {
+        steps: [],
         totalDuration: 0,
         issuesFound: 0,
         issuesFixed: 0,
@@ -126,7 +148,7 @@ export class AhkWorkflowAnalyzeFixRunTool {
         scriptRan: false,
         scriptFailed: false,
         scriptError: '',
-        issues: [] as Array<{ severity: string; message: string; line?: number }>,
+        issues: [],
       };
 
       // Step 1: Read the file
@@ -298,7 +320,7 @@ export class AhkWorkflowAnalyzeFixRunTool {
           // Extract error details from run result
           let runError = '';
           if (!runSuccess) {
-            const runText = runResult.content?.map((c: any) => c.text).join('\n') || '';
+            const runText = runResult.content?.map(c => c.text).join('\n') || '';
             // Look for exit code and stderr
             const exitMatch = runText.match(/exit code:\s*(-?\d+)/i);
             const stderrMatch = runText.match(/Error Output:\s*```\s*([\s\S]*?)```/);
@@ -359,7 +381,7 @@ export class AhkWorkflowAnalyzeFixRunTool {
   /**
    * Format workflow summary
    */
-  private formatSummary(workflow: any, summaryOnly: boolean): string {
+  private formatSummary(workflow: WorkflowState, summaryOnly: boolean): string {
     let summary = `# Workflow: Analyze → Fix → Run\n\n`;
 
     summary += `## Summary\n\n`;
@@ -385,7 +407,7 @@ export class AhkWorkflowAnalyzeFixRunTool {
     // Show issues preview when there are issues
     if (workflow.issuesFound > 0 && workflow.issues && workflow.issues.length > 0) {
       summary += `## Issues Preview (top ${Math.min(workflow.issues.length, 5)})\n\n`;
-      workflow.issues.slice(0, 5).forEach((issue: any, i: number) => {
+      workflow.issues.slice(0, 5).forEach((issue, i) => {
         const icon = issue.severity === 'error' ? '❌' : '⚠️';
         summary += `${i + 1}. ${icon} ${issue.message}\n`;
       });
@@ -397,7 +419,7 @@ export class AhkWorkflowAnalyzeFixRunTool {
 
     if (!summaryOnly) {
       summary += `## Workflow Steps\n\n`;
-      workflow.steps.forEach((step: any) => {
+      workflow.steps.forEach(step => {
         const statusIcon =
           step.status === 'completed' ? '✅' : step.status === 'failed' ? '❌' : '⏳';
         summary += `### ${statusIcon} ${step.step}\n\n`;

@@ -8,6 +8,7 @@ import { AhkRunTool } from './ahk-run-script.js';
 import { safeParse } from '../core/validation-middleware.js';
 import { setLastEditedFile } from '../core/config.js';
 import { openFileInVSCode } from '../utils/vscode-open.js';
+import type { McpToolResponse } from '../types/mcp-types.js';
 
 export const AhkDiffEditArgsSchema = z.object({
   diff: z.string().describe('Unified diff format patch to apply'),
@@ -236,7 +237,7 @@ export class AhkDiffEditTool {
   /**
    * Execute the diff edit tool
    */
-  async execute(args: unknown): Promise<any> {
+  async execute(args: unknown): Promise<McpToolResponse> {
     const parsed = safeParse(args, AhkDiffEditArgsSchema, 'AHK_File_Edit_Diff');
     if (!parsed.success) return parsed.error;
 
@@ -342,7 +343,7 @@ export class AhkDiffEditTool {
         if (runAfterEdit) {
           response += '\n\n**Run Result:**\n';
           try {
-            const runResult = await this.runTool.execute({
+            const runResult = (await this.runTool.execute({
               mode: 'run',
               filePath: targetFile,
               wait: true,
@@ -351,12 +352,12 @@ export class AhkDiffEditTool {
               timeout: 30000,
               killOnExit: true,
               detectWindow: false,
-            } as any);
+            })) as McpToolResponse;
 
             if (runResult?.content?.length) {
               const runText = runResult.content
-                .filter((item: any) => item.type === 'text')
-                .map((item: any) => item.text)
+                .filter(item => item.type === 'text')
+                .map(item => item.text)
                 .join('\n');
               response += runText || 'Script executed successfully.';
             } else {

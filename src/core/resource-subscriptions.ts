@@ -71,7 +71,7 @@ class ResourceSubscriptionManager {
     if (!this.resourceUpdateCallbacks.has(uri)) {
       this.resourceUpdateCallbacks.set(uri, []);
     }
-    this.resourceUpdateCallbacks.get(uri)!.push(callback);
+    this.resourceUpdateCallbacks.get(uri)?.push(callback);
   }
 
   /**
