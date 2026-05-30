@@ -63,6 +63,12 @@ export class ReplSession {
   private seq = 0;
   private pending: Pending | null = null;
   private stdoutBuf = '';
+  /**
+   * Successful statements, in order, replayed ahead of each new expression so
+   * that interpreter state persists across calls. See `send` for why this is
+   * needed and its trade-offs.
+   */
+  private history: string[] = [];
 
   private ensureStarted(): void {
     if (this.child) return;
@@ -125,15 +131,42 @@ export class ReplSession {
     }
   }
 
-  /** Evaluate a single AHK expression in the live interpreter. */
+  /**
+   * Evaluate a single AHK expression, with interpreter state persisting across
+   * calls (`x := 41` then `x + 1` → `42`).
+   *
+   * The alpha.30 fork's `Eval()` runs each call in its own isolated scope and
+   * takes no scope argument, so consecutive bare `Eval`s do not share variables.
+   * To make state persist we replay the prior successful statements ahead of the
+   * new one inside a single comma-expression — `(h1, h2, …, expr)` — which AHK
+   * evaluates left-to-right in one shared scope and yields the final value, so
+   * only `expr`'s result is Printed.
+   *
+   * Trade-off: statements with EXTERNAL side effects (Run, file writes, MsgBox,
+   * HTTP) re-execute on every later call. Keep AHK_Eval to expressions and
+   * variable assignments; use AHK_Run for scripts. AHK_Repl_Reset clears history.
+   */
   async send(expr: string, timeoutMs: number = DEFAULT_TIMEOUT): Promise<EvalResult> {
+    const combined =
+      this.history.length > 0 ? `(${[...this.history, expr].join(', ')})` : expr;
+    const result = await this.sendRaw(combined, timeoutMs);
+    // Only remember statements that ran cleanly, so one failing line can't
+    // poison every subsequent eval by throwing during replay.
+    if (!result.timedOut && result.error.length === 0) {
+      this.history.push(expr);
+    }
+    return result;
+  }
+
+  /** Frame one payload to the live interpreter and read back its result. */
+  private async sendRaw(payload: string, timeoutMs: number): Promise<EvalResult> {
     this.ensureStarted();
     if (this.pending) {
       throw new Error('REPL is busy with another expression.');
     }
     const seq = ++this.seq;
     const marker = `\x1E${seq}\x1E`;
-    const payload = expr.replace(/\\/g, '\\\\').replace(/\n/g, NL_ENCODE);
+    const wire = payload.replace(/\\/g, '\\\\').replace(/\n/g, NL_ENCODE);
 
     return await new Promise<EvalResult>(resolve => {
       const timer = setTimeout(() => {
@@ -145,12 +178,16 @@ export class ReplSession {
       }, timeoutMs);
 
       this.pending = { marker, output: [], error: [], resolve, timer };
-      this.child!.stdin.write(`${seq}${FIELD_SEP}${payload}\n`);
+      this.child!.stdin.write(`${seq}${FIELD_SEP}${wire}\n`);
     });
   }
 
-  /** Kill the interpreter; the next `send` respawns a fresh one (state cleared). */
+  /**
+   * Kill the interpreter and clear replayed history; the next `send` respawns a
+   * fresh one with no state.
+   */
   reset(): void {
+    this.history = [];
     this.stop();
   }
 
