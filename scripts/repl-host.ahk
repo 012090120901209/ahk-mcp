@@ -36,10 +36,46 @@ ProcessLine(line) {
     payload := StrReplace(payload, "\\", "\")
     try {
         result := Eval(payload)
-        Print("{}", result)
+        ; Stringify so Print never throws on a non-string result (Array/Map/Object).
+        Print("{}", Stringify(result))
     } catch as e {
-        Print("{}", ERR_PREFIX (Type(e) ": ") e.Message)
+        ; An expression that runs but yields nothing (e.g. arr.Push(x)) makes Eval
+        ; raise "No value was returned" — a successful empty result for a REPL, not
+        ; an error. Reporting it as empty (rather than an error) also lets the
+        ; server keep such statements in its replayed history so their state sticks.
+        if InStr(e.Message, "No value was returned")
+            Print("{}", "")
+        else
+            Print("{}", ERR_PREFIX (Type(e) ": ") e.Message)
     }
     ; End marker — the value slot keeps any braces in seq from being parsed.
     Print("{}", MARK seq MARK)
+}
+
+; Render any Eval result as a single-line string so Print never throws on
+; non-string values. Primitives pass through unchanged; Arrays/Maps/objects get
+; a readable form; anything unusual falls back to its type name.
+Stringify(value) {
+    if !IsObject(value)
+        return value ""
+    try {
+        if value is Array {
+            out := ""
+            for v in value
+                out .= (A_Index > 1 ? ", " : "") Stringify(v ?? "")
+            return "[" out "]"
+        }
+        if value is Map {
+            out := ""
+            for k, v in value
+                out .= (A_Index > 1 ? ", " : "") Stringify(k) ": " Stringify(v ?? "")
+            return "Map(" out ")"
+        }
+        out := ""
+        for k, v in value.OwnProps()
+            out .= (out = "" ? "" : ", ") k ": " Stringify(v ?? "")
+        return "{" out "}"
+    } catch {
+        return Type(value)
+    }
 }
