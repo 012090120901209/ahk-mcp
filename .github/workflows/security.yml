@@ -5,9 +5,9 @@ on:
     # Run daily at 2 AM UTC
     - cron: "0 2 * * *"
   push:
-    branches: [main, develop]
+    branches: [master, main, develop]
   pull_request:
-    branches: [main]
+    branches: [master, main]
   workflow_dispatch:
 
 jobs:
