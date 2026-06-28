@@ -41,6 +41,7 @@ import { AHK_Library_Import_Definition } from '../tools/ahk-library-import.js';
 import { AHK_Library_Search_Definition } from '../tools/ahk-library-search.js';
 import { ahkCloudValidateToolDefinition } from '../tools/ahk-cloud-validate.js';
 import { ahkDebugDBGpToolDefinition } from '../tools/ahk-debug-dbgp.js';
+import { ahkEvalToolDefinition, ahkReplResetToolDefinition } from '../tools/ahk-eval.js';
 
 export type ToolCategory =
   | 'analysis'
@@ -155,6 +156,8 @@ const TOOL_METADATA: ToolMetadataEntry[] = [
   // Execution (destructive, openWorld)
   entry(ahkDebugAgentToolDefinition, 'run-debug', 'execution'),
   entry(ahkCloudValidateToolDefinition, 'cloud-validate', 'execution'),
+  entry(ahkEvalToolDefinition, 'eval', 'execution'),
+  entry(ahkReplResetToolDefinition, 'repl-reset', 'execution'),
   // entry(ahkRunToolDefinition, 'run-script', 'execution'), // Hidden: use run-debug instead
   // entry(ahkTestInteractiveToolDefinition, 'test-interactive', 'execution'), // Hidden: dev-only
 

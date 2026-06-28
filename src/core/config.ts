@@ -11,6 +11,10 @@ export interface AhkMcpConfig {
   autoDetectedPaths?: string[];
   lastEditedFile?: string;
   lastEditedAt?: string;
+  /** Absolute path to the AutoHotkey v2 executable used for running/eval. */
+  ahkPath?: string;
+  /** VS Code workspace (.code-workspace file or folder) opened by AHK_VSCode_Open. */
+  vscodeWorkspace?: string;
 }
 
 export interface PrioritizedFileSearchOptions {
@@ -72,6 +76,27 @@ export function saveConfig(cfg: AhkMcpConfig): void {
     logger.error('Failed to save config:', err);
     throw err;
   }
+}
+
+/**
+ * Resolve the configured AutoHotkey v2 executable path.
+ * Precedence: the AHK_PATH environment override, then the persisted `ahkPath`
+ * config value. Returns undefined when neither is set, so callers can fall back
+ * to a PATH lookup (e.g. `where AutoHotkey64.exe`).
+ */
+export function getAhkPath(): string | undefined {
+  const fromEnv = process.env.AHK_PATH?.trim();
+  if (fromEnv) return fromEnv;
+  const cfg = loadConfig();
+  return cfg.ahkPath?.trim() || undefined;
+}
+
+/**
+ * Resolve the configured VS Code workspace path (persisted `vscodeWorkspace`).
+ */
+export function getVscodeWorkspace(): string | undefined {
+  const cfg = loadConfig();
+  return cfg.vscodeWorkspace?.trim() || undefined;
 }
 
 export function normalizeDir(input?: string): string | undefined {

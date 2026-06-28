@@ -42,25 +42,11 @@ export const AhkFileViewArgsSchema = z.object({
   showStructure: z.boolean().default(true).describe('Show code structure info'),
 });
 
-const AhkFileViewOutputSchema: Record<string, unknown> = {
-  type: 'object',
-  properties: {
-    file: { type: 'string' },
-    mode: { type: 'string' },
-    metadata: { type: 'object' },
-    structure: { type: 'object' },
-    content: { type: 'string' },
-    displayInfo: { type: 'object' },
-  },
-  required: ['file', 'mode', 'metadata', 'content', 'displayInfo'],
-};
-
 // Auto-generate inputSchema from Zod schema - no manual duplication!
 export const ahkFileViewToolDefinition = createToolDefinition(
   'AHK_File_View',
   'View AHK files with structure analysis. Modes: structured (default), raw, summary, outline. Supports line ranges and syntax highlighting.',
-  AhkFileViewArgsSchema,
-  { outputSchema: AhkFileViewOutputSchema }
+  AhkFileViewArgsSchema
 );
 
 interface FileMetadata {
