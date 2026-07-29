@@ -287,12 +287,12 @@ interface AhkConfigArgs {
 
 **Purpose**: Manage server configuration **Returns**: Configuration state
 
-#### AHK_Active_File
+#### AHK_File_Active
 
 ```typescript
 interface AhkActiveFileArgs {
   action: 'get' | 'set';
-  filePath?: string; // File path to set
+  path?: string; // File path to set
 }
 ```
 

@@ -16,6 +16,7 @@ deeper references as needed.
 
 - QUICKREFERENCE.md - One-page overview
 - PLAINLANGUAGE_SUMMARY.md - Plain-language walkthrough
+- MCP_TRANSPORT_COMPATIBILITY.md - HTTP headers/session flow for MCP clients
 - ARCHITECTURE_DIAGRAMS.md - System diagrams
 - TOOLCHAINS.md - Toolchain diagrams
 - CODING_AGENT_GUIDE.md - AI agent integration patterns

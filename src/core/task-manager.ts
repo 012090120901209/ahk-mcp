@@ -1,32 +1,24 @@
 import { randomUUID } from 'crypto';
+import type { Task, TaskStatus } from '@modelcontextprotocol/server';
 import logger from '../logger.js';
 import type { ToolResponse } from './server-interface.js';
 import { ErrorCode, ErrorCategory, ErrorSeverity } from './error-types.js';
 
-export type TaskStatus = 'working' | 'completed' | 'failed' | 'canceled';
-
-export interface TaskInfo {
-  taskId: string;
-  status: TaskStatus;
-  statusMessage?: string;
-  createdAt: string;
-  lastUpdatedAt: string;
-  ttl?: number;
-  pollInterval?: number;
-}
+export type TaskInfo = Task;
 
 interface TaskRecord extends TaskInfo {
   toolName: string;
   result?: ToolResponse;
-  cancelRequested?: boolean;
   expiresAt?: number;
+  abortController: AbortController;
+  waiters: Set<() => void>;
 }
 
 export interface TaskCreateOptions {
   toolName: string;
-  ttl?: number;
+  ttl?: number | null;
   pollInterval?: number;
-  execute: () => Promise<ToolResponse>;
+  execute: (signal: AbortSignal) => Promise<ToolResponse>;
 }
 
 export class TaskManager {
@@ -37,7 +29,8 @@ export class TaskManager {
 
     const now = new Date();
     const taskId = randomUUID();
-    const ttl = options.ttl;
+    const ttl = options.ttl ?? null;
+    const abortController = new AbortController();
     const record: TaskRecord = {
       taskId,
       toolName: options.toolName,
@@ -47,7 +40,8 @@ export class TaskManager {
       lastUpdatedAt: now.toISOString(),
       ttl,
       pollInterval: options.pollInterval,
-      expiresAt: typeof ttl === 'number' ? Date.now() + ttl : undefined,
+      abortController,
+      waiters: new Set(),
     };
 
     this.tasks.set(taskId, record);
@@ -57,11 +51,18 @@ export class TaskManager {
     return this.toTaskInfo(record);
   }
 
-  listTasks(status?: TaskStatus): TaskInfo[] {
+  listTasks(cursor?: string, pageSize: number = 50): { tasks: TaskInfo[]; nextCursor?: string } {
     this.pruneExpired();
-    const items = Array.from(this.tasks.values());
-    const filtered = status ? items.filter(task => task.status === status) : items;
-    return filtered.map(task => this.toTaskInfo(task));
+    const offset = this.decodeCursor(cursor);
+    const items = Array.from(this.tasks.values())
+      .sort((a, b) => a.createdAt.localeCompare(b.createdAt))
+      .slice(offset, offset + pageSize);
+    const nextOffset = offset + items.length;
+
+    return {
+      tasks: items.map(task => this.toTaskInfo(task)),
+      ...(nextOffset < this.tasks.size ? { nextCursor: this.encodeCursor(nextOffset) } : {}),
+    };
   }
 
   getTask(taskId: string): TaskInfo | undefined {
@@ -81,8 +82,11 @@ export class TaskManager {
       return { status: 'working', message: 'Task still running' };
     }
 
-    if (record.status === 'canceled') {
-      return { status: 'canceled', message: record.statusMessage || 'Task canceled' };
+    if (record.status === 'cancelled') {
+      return {
+        status: 'cancelled',
+        result: record.result ?? this.createErrorResult('Task cancelled', taskId),
+      };
     }
 
     if (record.result) {
@@ -95,37 +99,60 @@ export class TaskManager {
     };
   }
 
+  async waitForTaskResult(
+    taskId: string,
+    signal?: AbortSignal
+  ): Promise<{ status: TaskStatus; result?: ToolResponse; message?: string } | undefined> {
+    let outcome = this.getTaskResult(taskId);
+    while (outcome?.status === 'working') {
+      const record = this.tasks.get(taskId);
+      if (!record) return undefined;
+      await this.waitForChange(record, signal);
+      outcome = this.getTaskResult(taskId);
+    }
+
+    return outcome;
+  }
+
   cancelTask(taskId: string): TaskInfo | undefined {
     this.pruneExpired();
     const record = this.tasks.get(taskId);
     if (!record) return undefined;
 
     if (record.status === 'working') {
-      record.cancelRequested = true;
-      record.status = 'canceled';
-      record.statusMessage = 'Task canceled by client';
+      record.abortController.abort(new Error('Task cancelled by client'));
+      record.status = 'cancelled';
+      record.statusMessage = 'Task cancelled by client';
+      record.result = this.createErrorResult('Task cancelled by client', taskId);
       record.lastUpdatedAt = new Date().toISOString();
-      logger.info(`Task canceled: ${taskId}`);
+      this.startRetentionWindow(record);
+      this.notifyWaiters(record);
+      logger.info(`Task cancelled: ${taskId}`);
     }
 
     return this.toTaskInfo(record);
   }
 
-  private runTask(record: TaskRecord, execute: () => Promise<ToolResponse>): void {
+  private runTask(
+    record: TaskRecord,
+    execute: (signal: AbortSignal) => Promise<ToolResponse>
+  ): void {
     const taskId = record.taskId;
     const toolName = record.toolName;
 
     void (async () => {
       try {
-        const result = await execute();
+        const result = await execute(record.abortController.signal);
         if (record.status !== 'working') {
           return;
         }
 
         record.result = result;
-        record.status = 'completed';
+        record.status = result.isError ? 'failed' : 'completed';
         record.statusMessage = result.isError ? 'Task completed with errors' : 'Task completed';
         record.lastUpdatedAt = new Date().toISOString();
+        this.startRetentionWindow(record);
+        this.notifyWaiters(record);
         logger.info(`Task completed: ${taskId} (${toolName})`);
       } catch (error) {
         if (record.status !== 'working') {
@@ -137,6 +164,8 @@ export class TaskManager {
         record.statusMessage = message;
         record.result = this.createErrorResult(message);
         record.lastUpdatedAt = new Date().toISOString();
+        this.startRetentionWindow(record);
+        this.notifyWaiters(record);
         logger.error(`Task failed: ${taskId} (${toolName})`, error);
       }
     })();
@@ -147,22 +176,70 @@ export class TaskManager {
     for (const [taskId, record] of this.tasks) {
       if (!record.expiresAt || now <= record.expiresAt) continue;
 
-      if (record.status === 'working') {
-        record.status = 'failed';
-        record.statusMessage = 'Task expired';
-        record.result = this.createErrorResult('Task expired');
-        record.lastUpdatedAt = new Date().toISOString();
-        logger.warn(`Task expired: ${taskId}`);
-        continue;
-      }
-
+      record.abortController.abort(new Error('Task expired'));
+      this.notifyWaiters(record);
       this.tasks.delete(taskId);
+      logger.warn(`Task expired and removed: ${taskId}`);
     }
   }
 
   private toTaskInfo(record: TaskRecord): TaskInfo {
     const { taskId, status, statusMessage, createdAt, lastUpdatedAt, ttl, pollInterval } = record;
     return { taskId, status, statusMessage, createdAt, lastUpdatedAt, ttl, pollInterval };
+  }
+
+  private encodeCursor(offset: number): string {
+    return Buffer.from(`offset:${offset}`, 'utf8').toString('base64url');
+  }
+
+  private decodeCursor(cursor?: string): number {
+    if (!cursor) return 0;
+
+    try {
+      const decoded = Buffer.from(cursor, 'base64url').toString('utf8');
+      const match = /^offset:(\d+)$/.exec(decoded);
+      if (!match) throw new Error('invalid cursor');
+      return Number(match[1]);
+    } catch {
+      throw new Error('Invalid tasks/list cursor');
+    }
+  }
+
+  private waitForChange(record: TaskRecord, signal?: AbortSignal): Promise<void> {
+    if (signal?.aborted) {
+      return Promise.reject(
+        signal.reason instanceof Error ? signal.reason : new Error('Task result request cancelled')
+      );
+    }
+
+    return new Promise((resolve, reject) => {
+      const finish = () => {
+        signal?.removeEventListener('abort', abort);
+        record.waiters.delete(finish);
+        resolve();
+      };
+      const abort = () => {
+        record.waiters.delete(finish);
+        reject(
+          signal?.reason instanceof Error
+            ? signal.reason
+            : new Error('Task result request cancelled')
+        );
+      };
+
+      record.waiters.add(finish);
+      signal?.addEventListener('abort', abort, { once: true });
+    });
+  }
+
+  private notifyWaiters(record: TaskRecord): void {
+    for (const waiter of [...record.waiters]) {
+      waiter();
+    }
+  }
+
+  private startRetentionWindow(record: TaskRecord): void {
+    record.expiresAt = record.ttl === null ? undefined : Date.now() + record.ttl;
   }
 
   private createErrorResult(message: string, taskId?: string): ToolResponse {

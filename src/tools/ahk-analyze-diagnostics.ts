@@ -5,6 +5,7 @@ import { AhkDiagnosticProvider } from '../lsp/diagnostics.js';
 import logger from '../logger.js';
 import { activeFile, autoDetect } from '../core/active-file.js';
 import { safeParse } from '../core/validation-middleware.js';
+import { checkCache, type CachedCheckResult } from '../core/check-cache.js';
 import type { Diagnostic } from '../types/index.js';
 import type { McpToolResponse } from '../types/mcp-types.js';
 
@@ -25,6 +26,10 @@ export const AhkDiagnosticsArgsSchema = z.object({
     .optional()
     .default('all')
     .describe('Filter diagnostics by severity level'),
+  bypassCache: z
+    .boolean()
+    .optional()
+    .describe('Skip the check-result cache and force a fresh analysis.'),
 });
 
 export const ahkDiagnosticsToolDefinition = {
@@ -81,6 +86,7 @@ export class AhkDiagnosticsTool {
       );
 
       let codeToAnalyze = validatedArgs.code;
+      let cacheablePath: string | undefined;
       if (!codeToAnalyze) {
         const fallbackPath = validatedArgs.filePath || activeFile.getActiveFile();
         if (!fallbackPath) {
@@ -114,18 +120,56 @@ export class AhkDiagnosticsTool {
           };
         }
 
+        cacheablePath = resolvedPath;
         codeToAnalyze = await fs.readFile(resolvedPath, 'utf-8');
       }
 
       // Auto-detect any file paths in the code (in case user pasted a path)
       autoDetect(codeToAnalyze);
 
-      // Get diagnostics from provider
-      const diagnostics = await this.diagnosticProvider.getDiagnostics(
-        codeToAnalyze,
-        validatedArgs.enableClaudeStandards,
-        validatedArgs.severity
-      );
+      // We only cache the canonical pipeline output (Claude standards
+      // enabled). If callers override that flag the result set differs
+      // materially, so we skip the cache for those calls.
+      const cacheEligible =
+        !!cacheablePath &&
+        validatedArgs.enableClaudeStandards === true &&
+        !validatedArgs.bypassCache;
+
+      const severity = validatedArgs.severity ?? 'all';
+
+      let diagnostics: Diagnostic[] | undefined;
+      if (cacheEligible && cacheablePath) {
+        const cached = checkCache.get(cacheablePath);
+        if (cached?.diagnostics) {
+          diagnostics = this.filterCachedDiagnostics(cached.diagnostics, severity);
+          logger.debug(
+            `AHK_Diagnostics cache hit for ${cacheablePath} (${diagnostics.length} after filter)`
+          );
+        }
+      }
+
+      if (!diagnostics) {
+        // Run the full unfiltered pipeline so we can cache a canonical
+        // result, then apply the severity filter in-memory.
+        const rawDiagnostics = await this.diagnosticProvider.getDiagnostics(
+          codeToAnalyze,
+          validatedArgs.enableClaudeStandards,
+          'all'
+        );
+
+        if (cacheEligible && cacheablePath) {
+          const cachedResult: CachedCheckResult = {
+            ok: rawDiagnostics.every(d => d.severity !== 1),
+            stdout: '',
+            stderr: '',
+            exitCode: 0,
+            diagnostics: rawDiagnostics,
+          };
+          checkCache.set(cacheablePath, cachedResult);
+        }
+
+        diagnostics = this.filterCachedDiagnostics(rawDiagnostics, severity);
+      }
 
       logger.info(`Generated ${diagnostics.length} diagnostics`);
 
@@ -218,6 +262,20 @@ export class AhkDiagnosticsTool {
     }
 
     return response.trim();
+  }
+
+  /**
+   * Apply a severity filter to cached (unfiltered) diagnostics.
+   * Mirrors `AhkDiagnosticProvider`'s internal severity filtering so
+   * cache-hit and cache-miss paths return equivalent results.
+   */
+  private filterCachedDiagnostics(
+    diagnostics: Diagnostic[],
+    severityFilter: 'error' | 'warning' | 'info' | 'all'
+  ): Diagnostic[] {
+    if (severityFilter === 'all') return diagnostics;
+    const target = severityFilter === 'error' ? 1 : severityFilter === 'warning' ? 2 : 3; // info -> 3
+    return diagnostics.filter(d => d.severity === target);
   }
 
   /**

@@ -1,6 +1,7 @@
 import type { IToolServer, ToolArgs, ToolHandler } from './server-interface.js';
 import path from 'path';
 import { friendlyLogger, LogCategory } from './friendly-logger.js';
+import { toolSettings } from './tool-settings.js';
 
 /**
  * Get the project root directory (one level up from dist/)
@@ -46,6 +47,7 @@ export class ToolRegistry {
       { name: 'AHK_VSCode_Problems', instance: 'ahkVSCodeProblemsToolInstance' },
       { name: 'AHK_File_Recent', instance: 'ahkRecentToolInstance' },
       { name: 'AHK_Config', instance: 'ahkConfigToolInstance' },
+      // Legacy compatibility alias. Prefer AHK_File_Active in all user-facing surfaces.
       { name: 'AHK_Active_File', instance: 'ahkActiveFileToolInstance' },
       { name: 'AHK_LSP', instance: 'ahkLspToolInstance' },
       { name: 'AHK_File_View', instance: 'ahkFileViewToolInstance' },
@@ -99,6 +101,15 @@ export class ToolRegistry {
     this.toolHandlers.set('AHK_Library_Search', async args => {
       const { AHK_Library_Search_Handler } = await import('../tools/ahk-library-search.js');
       return AHK_Library_Search_Handler(args);
+    });
+
+    this.toolHandlers.set('AHK_Cache_Stats', async args => {
+      const { AhkCacheStatsTool } = await import('../tools/ahk-cache-stats.js');
+      return new AhkCacheStatsTool().execute(args);
+    });
+    this.toolHandlers.set('ahk-parse-ast', async args => {
+      const { handleAhkParseAst } = await import('../tools/ahk-parse-ast.js');
+      return handleAhkParseAst(args);
     });
   }
 
@@ -176,6 +187,14 @@ export class ToolRegistry {
     const handler = this.toolHandlers.get(toolName);
     if (!handler) {
       throw new Error(`Unknown tool: ${toolName}`);
+    }
+
+    const disabledMessage = toolSettings.getDisabledMessage(toolName);
+    if (disabledMessage) {
+      return {
+        content: [{ type: 'text' as const, text: disabledMessage }],
+        isError: true,
+      };
     }
 
     // Friendly logging start

@@ -1,0 +1,1 @@
+; A truly empty script

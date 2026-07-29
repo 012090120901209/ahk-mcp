@@ -130,13 +130,12 @@ const TOOL_CATALOG: ToolInfo[] = [
     category: 'file',
     summary: 'Auto-detect AHK files from context and conversation',
   },
-  { name: 'AHK_File_Active', category: 'file', summary: 'Get/set the active file for operations' },
-  { name: 'AHK_File_Recent', category: 'file', summary: 'List recently accessed AHK files' },
   {
-    name: 'AHK_Active_File',
+    name: 'AHK_File_Active',
     category: 'file',
-    summary: 'Manage active file state (alias for AHK_File_Active)',
+    summary: 'Get/set the active file for operations (preferred active-file tool)',
   },
+  { name: 'AHK_File_Recent', category: 'file', summary: 'List recently accessed AHK files' },
 
   // Analysis Tools
   {
@@ -170,6 +169,11 @@ const TOOL_CATALOG: ToolInfo[] = [
     category: 'analysis',
     summary: 'Intelligent workflow orchestration with caching (detect → analyze → view)',
   },
+  {
+    name: 'AHK_Workflow_Analyze_Fix_Run',
+    category: 'analysis',
+    summary: 'Analyze → fix → verify → run workflow in a single call',
+  },
 
   // Execution Tools
   {
@@ -191,6 +195,16 @@ const TOOL_CATALOG: ToolInfo[] = [
     name: 'AHK_Test_Interactive',
     category: 'execution',
     summary: 'Interactive testing and validation of AHK code',
+  },
+  {
+    name: 'AHK_Cloud_Validate',
+    category: 'execution',
+    summary: 'Cloud-backed AutoHotkey syntax and runtime validation',
+  },
+  {
+    name: 'AHK_Debug_DBGp',
+    category: 'execution',
+    summary: 'DBGp debugger for breakpoints, stepping, variables, and auto-fix flows',
   },
 
   // Documentation Tools
@@ -219,10 +233,20 @@ const TOOL_CATALOG: ToolInfo[] = [
     category: 'library',
     summary: 'Import library code into your script',
   },
+  {
+    name: 'AHK_Library_Search',
+    category: 'library',
+    summary: 'Search symbols across installed AutoHotkey libraries',
+  },
 
   // System Tools
   { name: 'AHK_Config', category: 'system', summary: 'View and manage system configuration' },
   { name: 'AHK_Settings', category: 'system', summary: 'Manage server settings and preferences' },
+  {
+    name: 'AHK_Tools_Search',
+    category: 'system',
+    summary: 'Discover the available AutoHotkey MCP tools with token-efficient output',
+  },
   {
     name: 'AHK_VSCode_Open',
     category: 'system',
@@ -230,11 +254,6 @@ const TOOL_CATALOG: ToolInfo[] = [
   },
   { name: 'AHK_Alpha', category: 'system', summary: 'Access alpha/experimental features' },
   { name: 'AHK_Analytics', category: 'system', summary: 'View usage analytics and statistics' },
-  {
-    name: 'AHK_Trace_Viewer',
-    category: 'system',
-    summary: 'View distributed tracing and observability data',
-  },
 ];
 
 /**

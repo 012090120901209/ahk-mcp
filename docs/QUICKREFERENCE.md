@@ -116,7 +116,7 @@ Claude activates AHK_Doc_Search
   • Searches for window detection functions
   • Finds WinGetList, WinGetTitle, WinActivate
   ↓
-Claude activates AHK_Docs_Samples
+Claude activates AHK_Sampling_Enhancer
   • Gets example code for each function
   ↓
 Claude activates AHK_Context_Injector
@@ -163,15 +163,15 @@ NEED TO...              TOOL NAME              WHAT IT DOES
 Analyze code            AHK_Analyze            Breakdown code structure
 Find errors             AHK_Diagnostics        Find bugs & issues
 Learn a feature         AHK_Doc_Search         Find + explain features
-See examples            AHK_Docs_Samples       Show working code
+See examples            AHK_Sampling_Enhancer  Show working code
 Read a file             AHK_File_View          Display file contents
 Create a file           AHK_File_Create        Make new script
 Edit a file             AHK_File_Edit          Modify script safely
 Run a script            AHK_Run                Execute & test
-Debug a script          AHK_Run_Debug          Step-through execution
+Debug a script          AHK_Debug_Agent        Debug execution and inspect failures
 Test with UI            AHK_Test_Interactive   Run & verify with GUI
 Check settings          AHK_Config             View current setup
-See what's used         AHK_System_Analytics   Track tool usage
+See what's used         AHK_Analytics          Track tool usage
 ```
 
 ---
@@ -287,8 +287,8 @@ Claude: "Sure, let me gather AutoHotkey knowledge"
 ### What The Server Does:
 
 1. **AHK_Doc_Search**: Finds OnClipboardChanged function
-2. **AHK_Docs_Samples**: Gets clipboard handling examples
-3. **AHK_Docs_Samples**: Gets file I/O examples
+2. **AHK_Sampling_Enhancer**: Gets clipboard handling examples
+3. **AHK_Sampling_Enhancer**: Gets file I/O examples
 4. **AHK_Context_Injector**: Gets GUI and hotkey patterns
 5. Claude writes complete working code
 6. **AHK_File_Create**: Saves the script

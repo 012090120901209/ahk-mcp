@@ -14,9 +14,11 @@ async function dynamicJsonImport(relPathFromData) {
     const relFromCore = `../../data/${relPathFromData}`;
     // Prefer import attributes when available (Node >= 20)
     try {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- import() options arg has no generic in TS lib typings
         const mod = await import(relFromCore, { with: { type: 'json' } });
         // Some bundlers put value on .default
-        return mod.default ?? mod;
+        const m = mod;
+        return m.default ?? mod;
     }
     catch (err) {
         // Fallback to filesystem read for older Node versions
@@ -41,7 +43,7 @@ export async function loadAhkData() {
         // Use stderr to avoid polluting MCP stdout channel
         process.stderr.write(`[INFO] Loading AutoHotkey documentation data (mode=${lightMode ? 'light' : 'full'})...\n`);
         // Always load the lightweight index first
-        ahkIndex = (await dynamicJsonImport('ahk_index.json'));
+        ahkIndex = await dynamicJsonImport('ahk_index.json');
         if (!lightMode) {
             // Load additional documentation datasets
             ahkDocumentationFull = await dynamicJsonImport('ahk_documentation_full.json');

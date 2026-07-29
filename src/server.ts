@@ -1,22 +1,47 @@
-import { Server } from '@modelcontextprotocol/sdk/server/index.js';
-import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
-import { SSEServerTransport } from '@modelcontextprotocol/sdk/server/sse.js';
-import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
-import { randomUUID } from 'node:crypto';
-import type { Express, NextFunction, Request, Response } from 'express';
-import { z } from 'zod';
 import {
-  CancelledNotificationSchema,
-  CallToolRequestSchema,
-  CompleteRequestSchema,
-  ListToolsRequestSchema,
-  ListPromptsRequestSchema,
-  GetPromptRequestSchema,
-  ListResourcesRequestSchema,
-  ReadResourceRequestSchema,
-  SetLevelRequestSchema,
-  isInitializeRequest,
-} from '@modelcontextprotocol/sdk/types.js';
+  Server,
+  createMcpHandler,
+  ProtocolError,
+  INVALID_PARAMS,
+  METHOD_NOT_FOUND,
+  SUPPORTED_PROTOCOL_VERSIONS,
+  RELATED_TASK_META_KEY,
+  PROTOCOL_VERSION_META_KEY,
+  CLIENT_CAPABILITIES_META_KEY,
+  inputRequired,
+  acceptedContent,
+  isInputRequiredResult,
+  type InputRequiredResult,
+  type ClientCapabilities,
+  type ServerContext,
+  type ListToolsResult,
+  type CallToolResult,
+} from '@modelcontextprotocol/server';
+import { serveStdio } from '@modelcontextprotocol/server/stdio';
+
+/**
+ * Protocol revisions this server answers, newest first.
+ *
+ * The SDK's `LATEST_PROTOCOL_VERSION` / `SUPPORTED_PROTOCOL_VERSIONS` are the *legacy*
+ * (initialize-era) values — `LATEST_PROTOCOL_VERSION` is `2025-11-25` and the supported
+ * list stops there. The modern list is not exported from the package root, so the
+ * 2026-07-28 revision is named explicitly here.
+ */
+/** Key for the AHK_Run script-path elicitation embedded in an InputRequiredResult. */
+const AHK_RUN_FILE_PATH_INPUT = 'ahkRunFilePath';
+
+/** Validates the client-supplied path on the retry leg; the value is untrusted. */
+const AhkRunFilePathSchema = z.object({ filePath: z.string().min(1) });
+
+const MODERN_PROTOCOL_VERSIONS = ['2026-07-28'] as const;
+const ALL_PROTOCOL_VERSIONS: readonly string[] = [
+  ...MODERN_PROTOCOL_VERSIONS,
+  ...SUPPORTED_PROTOCOL_VERSIONS,
+];
+import { toNodeHandler } from '@modelcontextprotocol/node';
+import { z } from 'zod';
+import { timingSafeEqual } from 'node:crypto';
+import type { Express, NextFunction, Request, Response } from 'express';
 import { initializeDataLoader, getAhkIndex } from './core/loader.js';
 import logger from './logger.js';
 import { ToolRegistry } from './core/tool-registry.js';
@@ -26,6 +51,7 @@ import { TaskManager } from './core/task-manager.js';
 
 import { logDebugEvent, logDebugError } from './debug-journal.js';
 import { getUnifiedLogger } from './core/unified-logger.js';
+import { startDapServer, type DapServerHandle } from './dap/index.js';
 // Import tool classes and definitions
 import { AhkDiagnosticsTool } from './tools/ahk-analyze-diagnostics.js';
 import { AhkSummaryTool } from './tools/ahk-analyze-summary.js';
@@ -72,32 +98,43 @@ import { pathInterceptor } from './core/path-interceptor.js';
 import { observabilityServer } from './core/observability-server.js';
 import './core/opentelemetry.js'; // Initialize OpenTelemetry (if enabled)
 import { tracer } from './core/tracing.js';
-import { getStandardToolDefinitions, getToolMetadata } from './core/tool-metadata.js';
-import { InMemoryEventStore } from './core/in-memory-event-store.js';
+import { getStandardToolDefinitions, toolSupportsTasks } from './core/tool-metadata.js';
 import type { ToolResponse } from './core/server-interface.js';
+import { extractProgressToken, ProgressNotifier } from './core/progress-notifier.js';
+import { clientRoots } from './core/client-roots.js';
+import { mountDashboard } from './dashboard.js';
+import { toolAnalytics } from './core/tool-analytics.js';
+import { runWithMcpRequestContextAsync } from './core/mcp-request-context.js';
+import { resourceSubscriptions } from './core/resource-subscriptions.js';
+import {
+  ANALYTICS_APP_URI,
+  MCP_APPS_EXTENSION_ID,
+  MCP_APP_MIME_TYPE,
+  clientSupportsMcpApps,
+  createAnalyticsAppHtml,
+} from './core/mcp-apps.js';
 
-type StreamableSessionEntry = {
-  protocol: 'streamable';
-  server: Server;
-  transport: StreamableHTTPServerTransport;
+/**
+ * Retained only to keep the dashboard's session panel type-compatible.
+ *
+ * Protocol revision 2026-07-28 removed protocol-level sessions (SEP-2567), and the
+ * Streamable HTTP entry serves both eras statelessly, so this registry is never
+ * populated. The panel renders its existing "No active sessions" empty state.
+ */
+type SessionEntry = {
+  protocol: 'streamable' | 'sse';
   createdAt: number;
   lastActivity: number;
 };
-
-type SseSessionEntry = {
-  protocol: 'sse';
-  server: Server;
-  transport: SSEServerTransport;
-  createdAt: number;
-  lastActivity: number;
-};
-
-type SessionEntry = StreamableSessionEntry | SseSessionEntry;
 
 export class AutoHotkeyMcpServer {
   private server: Server;
+  /** Handle for the dual-era stdio listener (`serveStdio`); undefined in HTTP mode. */
+  private stdioHandle?: ReturnType<typeof serveStdio>;
   private toolRegistry: ToolRegistry;
-  private taskManager: TaskManager;
+  private taskManagers = new WeakMap<Server, TaskManager>();
+  private resourcePollTimers = new WeakMap<Server, Map<string, NodeJS.Timeout>>();
+  private connectedServers = new Set<Server>();
   public ahkDiagnosticsToolInstance: AhkDiagnosticsTool;
   public ahkSummaryToolInstance: AhkSummaryTool;
   public ahkPromptsToolInstance: AhkPromptsTool;
@@ -135,6 +172,9 @@ export class AutoHotkeyMcpServer {
   public ahkLintToolInstance: AhkLintTool;
   public ahkCloudValidateToolInstance: AhkCloudValidateTool;
   public ahkDebugDBGpToolInstance: AhkDebugDBGpTool;
+
+  /** DAP server handle, non-null when AHK_DAP_ENABLED=1. */
+  private dapServer: DapServerHandle | null = null;
 
   constructor() {
     // Initialize tool instances
@@ -175,7 +215,6 @@ export class AutoHotkeyMcpServer {
     this.ahkDebugDBGpToolInstance = new AhkDebugDBGpTool();
 
     this.toolRegistry = new ToolRegistry(this);
-    this.taskManager = new TaskManager();
 
     // Initialize workflow tool with dependencies (must be after other tools are initialized)
     this.ahkWorkflowAnalyzeFixRunToolInstance = new AhkWorkflowAnalyzeFixRunTool(
@@ -200,14 +239,38 @@ export class AutoHotkeyMcpServer {
       {
         name: 'ahk-mcp-server',
         version: '2.0.0',
+        description:
+          'AutoHotkey v2 development server for file operations, diagnostics, documentation, execution, and debugging.',
       },
       {
+        enforceStrictCapabilities: true,
+        instructions:
+          'Prefer read-only analysis and preview modes before edits or execution. Establish a target with AHK_File_Active, run AHK_Diagnostics or AHK_Lint before AHK_Run, and request task execution only when a tool advertises execution.taskSupport as optional.',
         capabilities: {
-          tools: {},
+          tools: {
+            listChanged: true,
+          },
           prompts: {},
-          resources: {},
+          resources: {
+            subscribe: true,
+          },
           completions: {},
+          /**
+           * @deprecated Deprecated as of protocol revision 2026-07-28 (SEP-2577).
+           * Remains functional for at least twelve months. Migration: log to stderr
+           * (stdio) or emit OpenTelemetry instead.
+           */
           logging: {},
+          /**
+           * Legacy (2025-11-25) tasks capability, stripped by the SDK on the 2026 wire.
+           *
+           * The `io.modelcontextprotocol/tasks` extension is deliberately NOT advertised:
+           * `tasks/*` is era-gated by the SDK's method registry and absent from the
+           * 2026-07-28 revision, so a modern client calling `tasks/get` receives
+           * `-32601 Method not found` regardless of the handlers registered below.
+           * Advertising the extension would promise a capability this server cannot serve.
+           * Task support therefore remains legacy-only until the SDK ships a 2026 runtime.
+           */
           tasks: {
             list: {},
             cancel: {},
@@ -217,9 +280,17 @@ export class AutoHotkeyMcpServer {
               },
             },
           },
+          extensions: {
+            [MCP_APPS_EXTENSION_ID]: {
+              mimeTypes: [MCP_APP_MIME_TYPE],
+            },
+          },
         },
       }
     );
+
+    this.connectedServers.add(server);
+    this.taskManagers.set(server, new TaskManager());
 
     this.setupToolHandlers(server);
     this.setupTaskHandlers(server);
@@ -227,6 +298,7 @@ export class AutoHotkeyMcpServer {
     this.setupResourceHandlers(server);
     this.setupCompletionHandlers(server);
     this.setupLoggingHandlers(server);
+    this.setupRootsHandlers(server);
 
     return server;
   }
@@ -237,17 +309,262 @@ export class AutoHotkeyMcpServer {
   private setupLoggingHandlers(server: Server): void {
     // Handle logging/setLevel requests (sent by some clients during initialization)
     // We acknowledge the request but use our own server-side logging
-    server.setRequestHandler(SetLevelRequestSchema, async request => {
+    server.setRequestHandler('logging/setLevel', async request => {
       const level = request.params.level;
       logger.debug(`Client requested log level: ${level} (using server-side logging)`);
       return {};
     });
 
-    server.setNotificationHandler(CancelledNotificationSchema, async notification => {
+    server.setNotificationHandler('notifications/cancelled', async notification => {
       logger.info(
         `Client cancelled request ${notification.params.requestId ?? 'unknown'}: ${notification.params.reason ?? 'no reason provided'}`
       );
     });
+  }
+
+  private setupRootsHandlers(server: Server): void {
+    server.setNotificationHandler('notifications/roots/list_changed', async () => {
+      clientRoots.invalidate(server);
+    });
+  }
+
+  private injectRequestContext(
+    args: unknown,
+    progressToken: string | number | undefined
+  ): Record<string, unknown> | unknown {
+    if (!progressToken || !args || typeof args !== 'object' || Array.isArray(args)) {
+      return args;
+    }
+
+    return {
+      ...(args as Record<string, unknown>),
+      _progressToken: progressToken,
+    };
+  }
+
+  /**
+   * Whether this request is being served under the modern (2026-07-28) era.
+   *
+   * Modern requests carry their revision in `_meta`; legacy requests negotiated it once
+   * via `initialize` and carry nothing per-request. The distinction is load-bearing: the
+   * SDK's push-style server-to-client calls (`elicitInput`, `requestSampling`,
+   * `listRoots`) throw on a modern request, which must use Multi Round-Trip Requests
+   * (SEP-2322) instead.
+   */
+  private isModernRequest(ctx: ServerContext): boolean {
+    const version = ctx.mcpReq._meta?.[PROTOCOL_VERSION_META_KEY];
+    return typeof version === 'string' && version >= '2026-07-28';
+  }
+
+  private clientSupportsFormElicitation(server: Server, ctx?: ServerContext): boolean {
+    // `getClientCapabilities()` is handshake-era state and is empty on a modern request,
+    // where capabilities travel per-request in `_meta` instead. Read the envelope first
+    // and fall back to the stored capabilities for legacy connections.
+    // The SDK decodes the modern envelope into `ctx.mcpReq.envelope`; the raw `_meta`
+    // key is checked too so a hand-built request still resolves.
+    const envelopeBag = ctx?.mcpReq.envelope as Record<string, unknown> | undefined;
+    const fromEnvelope = (envelopeBag?.clientCapabilities ??
+      ctx?.mcpReq._meta?.[CLIENT_CAPABILITIES_META_KEY]) as ClientCapabilities | undefined;
+    const elicitation = (fromEnvelope ?? server.getClientCapabilities())?.elicitation;
+    if (!elicitation) {
+      return false;
+    }
+
+    const hasFormCapability = elicitation.form !== undefined;
+    const hasUrlCapability = elicitation.url !== undefined;
+
+    return hasFormCapability || (!hasFormCapability && !hasUrlCapability);
+  }
+
+  /**
+   * Resolves any missing arguments a tool needs before execution.
+   *
+   * Returns the prepared arguments, or an {@link InputRequiredResult} that the
+   * `tools/call` handler must return verbatim so a modern client can supply the missing
+   * input and retry (SEP-2322).
+   */
+  private async prepareToolArguments(
+    server: Server,
+    toolName: string,
+    args: unknown,
+    signal?: AbortSignal,
+    ctx?: ServerContext
+  ): Promise<unknown | InputRequiredResult> {
+    if (toolName !== 'AHK_Run') {
+      return args;
+    }
+
+    if (!args || typeof args !== 'object' || Array.isArray(args)) {
+      return args;
+    }
+
+    const typedArgs = args as Record<string, unknown>;
+
+    // Retry leg of the multi-round-trip: the client re-issued this call carrying the
+    // path it collected. Values come from the client, so validate before use.
+    const supplied = acceptedContent(
+      ctx?.mcpReq.inputResponses,
+      AHK_RUN_FILE_PATH_INPUT,
+      AhkRunFilePathSchema
+    );
+    if (supplied?.filePath) {
+      return { ...typedArgs, filePath: supplied.filePath.trim() };
+    }
+    if (typedArgs.filePath || getActiveFilePath()) {
+      return args;
+    }
+
+    if (!this.clientSupportsFormElicitation(server, ctx)) {
+      return args;
+    }
+
+    const message = 'AHK_Run needs a script path before it can launch AutoHotkey.';
+    const requestedSchema = {
+      type: 'object' as const,
+      properties: {
+        filePath: {
+          type: 'string' as const,
+          title: 'Script Path',
+          description: 'Absolute path to the .ahk script you want to run',
+          minLength: 1,
+        },
+      },
+      required: ['filePath'],
+    };
+
+    // Modern era: server-initiated requests are gone. Return an InputRequiredResult and
+    // let the client re-issue the original tools/call carrying `inputResponses`
+    // (SEP-2322). The retry is handled at the top of this method.
+    if (ctx && this.isModernRequest(ctx)) {
+      return inputRequired({
+        inputRequests: {
+          [AHK_RUN_FILE_PATH_INPUT]: inputRequired.elicit({ message, requestedSchema }),
+        },
+      });
+    }
+
+    // Legacy era: the push-style elicitation round trip still works.
+    const result = await server.elicitInput(
+      { mode: 'form', message, requestedSchema },
+      signal ? { signal } : undefined
+    );
+
+    if (result.action !== 'accept' || !result.content?.filePath) {
+      throw new Error('AHK_Run cancelled before a script path was provided');
+    }
+
+    return {
+      ...typedArgs,
+      filePath: String(result.content.filePath).trim(),
+    };
+  }
+
+  private isKnownResourceUri(uri: string): boolean {
+    return this.getResourceDefinitions().some(resource => resource.uri === uri);
+  }
+
+  private isDynamicResourceUri(uri: string): boolean {
+    return uri === 'ahk://context/auto' || uri.startsWith('ahk://system/');
+  }
+
+  private getResourceTimerMap(server: Server): Map<string, NodeJS.Timeout> {
+    let timers = this.resourcePollTimers.get(server);
+    if (!timers) {
+      timers = new Map<string, NodeJS.Timeout>();
+      this.resourcePollTimers.set(server, timers);
+    }
+    return timers;
+  }
+
+  private subscribeResource(server: Server, uri: string): void {
+    resourceSubscriptions.subscribe(uri);
+
+    if (!this.isDynamicResourceUri(uri)) {
+      return;
+    }
+
+    const timers = this.getResourceTimerMap(server);
+    if (timers.has(uri)) {
+      return;
+    }
+
+    const intervalMs = uri === 'ahk://system/clipboard' ? 2000 : 5000;
+    const timer = setInterval(() => {
+      void server.sendResourceUpdated({ uri });
+    }, intervalMs);
+    timer.unref();
+    timers.set(uri, timer);
+  }
+
+  private unsubscribeResource(server: Server, uri: string): void {
+    resourceSubscriptions.unsubscribe(uri);
+
+    const timers = this.resourcePollTimers.get(server);
+    const timer = timers?.get(uri);
+    if (timer) {
+      clearInterval(timer);
+      timers?.delete(uri);
+    }
+  }
+
+  private disposeServerState(server: Server): void {
+    const timers = this.resourcePollTimers.get(server);
+    if (timers) {
+      timers.forEach(timer => clearInterval(timer));
+      this.resourcePollTimers.delete(server);
+    }
+
+    clientRoots.clear(server);
+    this.taskManagers.delete(server);
+    this.connectedServers.delete(server);
+  }
+
+  private getDiscoveryCacheHints(): { ttlMs: number; cacheScope: 'private' } {
+    return {
+      ttlMs: this.getPositiveIntEnv('AHK_MCP_DISCOVERY_TTL_MS', 30_000),
+      cacheScope: 'private',
+    };
+  }
+
+  private getStandardToolsForClient(server: Server) {
+    const supportsApps = clientSupportsMcpApps(server);
+    return getStandardToolDefinitions()
+      .filter(tool => toolSettings.isToolAvailable(tool.name))
+      .map(tool => {
+        if (tool.name !== 'AHK_Analytics' || !supportsApps) {
+          return tool;
+        }
+
+        return {
+          ...tool,
+          _meta: {
+            ...tool._meta,
+            ui: {
+              resourceUri: ANALYTICS_APP_URI,
+              visibility: ['model', 'app'],
+            },
+          },
+        };
+      });
+  }
+
+  private async notifyToolCatalogChanged(previousToolNames: string[]): Promise<void> {
+    const currentToolNames = getStandardToolDefinitions()
+      .filter(tool => toolSettings.isToolAvailable(tool.name))
+      .map(tool => tool.name);
+    if (previousToolNames.join('\n') === currentToolNames.join('\n')) {
+      return;
+    }
+
+    await Promise.all(
+      [...this.connectedServers].map(async connectedServer => {
+        try {
+          await connectedServer.sendToolListChanged();
+        } catch (error) {
+          logger.debug('Unable to send tools/list_changed notification', error);
+        }
+      })
+    );
   }
 
   /**
@@ -255,7 +572,7 @@ export class AutoHotkeyMcpServer {
    */
   private setupToolHandlers(server: Server): void {
     // List tools handler
-    server.setRequestHandler(ListToolsRequestSchema, async () => {
+    server.setRequestHandler('tools/list', async () => {
       logger.debug('Listing available AutoHotkey tools');
 
       // Check if we're in SSE mode (for ChatGPT compatibility)
@@ -265,36 +582,23 @@ export class AutoHotkeyMcpServer {
         message: useSSE ? 'Including SSE-specific tools' : 'Standard tool listing',
       });
 
-      const standardTools = getStandardToolDefinitions();
-      const metadataIndex = new Map(getToolMetadata().map(entry => [entry.definition.name, entry]));
-      const activeFileAwareNames = new Set(
-        getToolMetadata()
-          .filter(entry => entry.category === 'file')
-          .map(entry => entry.definition.name)
-      );
-      const activeFilePath = getActiveFilePath();
-      const activeFileNote = `\n\n📎 Active File: ${activeFilePath ?? 'Not set. Use AHK_File_Active to select a target.'}`;
-
-      const contextualTools = standardTools.map(tool => {
-        if (!activeFileAwareNames.has(tool.name)) {
-          return tool;
-        }
-
-        const metadata = metadataIndex.get(tool.name);
-        const suffix = metadata?.category === 'file' ? activeFileNote : '';
-
-        return {
-          ...tool,
-          description: `${tool.description}${suffix}`,
-        };
-      });
+      const standardTools = this.getStandardToolsForClient(server);
 
       // Add ChatGPT-compatible tools when in SSE mode
       const chatGPTTools = useSSE
         ? [
             {
               name: 'search',
+              title: 'Search AutoHotkey Documentation',
               description: 'Search AutoHotkey v2 documentation and code examples',
+              annotations: {
+                title: 'Search AutoHotkey Documentation',
+                readOnlyHint: true,
+                destructiveHint: false,
+                idempotentHint: true,
+                openWorldHint: false,
+              },
+              execution: { taskSupport: 'forbidden' as const },
               inputSchema: {
                 type: 'object',
                 properties: {
@@ -308,7 +612,16 @@ export class AutoHotkeyMcpServer {
             },
             {
               name: 'fetch',
+              title: 'Fetch AutoHotkey Documentation',
               description: 'Fetch detailed AutoHotkey documentation for a specific item',
+              annotations: {
+                title: 'Fetch AutoHotkey Documentation',
+                readOnlyHint: true,
+                destructiveHint: false,
+                idempotentHint: true,
+                openWorldHint: false,
+              },
+              execution: { taskSupport: 'forbidden' as const },
               inputSchema: {
                 type: 'object',
                 properties: {
@@ -322,7 +635,12 @@ export class AutoHotkeyMcpServer {
             },
           ]
         : [];
-      const tools = [...contextualTools, ...chatGPTTools];
+      // 2026-07-28 says servers SHOULD return tools in a deterministic order: it lets
+      // clients cache the listing and keeps LLM prompt-cache hit rates up, since an
+      // unstable order invalidates the cached prefix on every call.
+      const tools = [...standardTools, ...chatGPTTools].sort((a, b) =>
+        a.name.localeCompare(b.name)
+      );
       logDebugEvent('tools.list', {
         status: 'success',
         message: `Returned ${tools.length} tools`,
@@ -330,17 +648,35 @@ export class AutoHotkeyMcpServer {
       });
 
       return {
-        tools,
+        // The SDK infers `Tool` from its own Zod schema, whose recursive JSON Schema
+        // node type nests one level deeper than the structurally-identical type this
+        // repo builds. The values are wire-compatible; only the inferred depth differs.
+        tools: tools as unknown as ListToolsResult['tools'],
+        ...this.getDiscoveryCacheHints(),
       };
     });
 
     // Call tool handler
-    server.setRequestHandler(CallToolRequestSchema, async request => {
+    // Returns are cast to CallToolResult at the boundary for two reasons:
+    //  1. this repo's ToolResponse is structurally a CallToolResult but lacks the
+    //     open index signature the SDK's inferred type carries;
+    //  2. a task handle is a valid tools/call result under the
+    //     io.modelcontextprotocol/tasks extension, which has no v2 SDK runtime and so
+    //     is absent from the SDK's HandlerResultTypeMap.
+    server.setRequestHandler('tools/call', async (request, ctx): Promise<CallToolResult> => {
       const params = request.params as typeof request.params & { task?: { ttl?: number } };
       const { name, arguments: args } = params;
       const taskRequest = params.task;
       const startTime = Date.now();
       const toolTimeoutMs = envConfig.getToolTimeoutMs();
+      const progressToken = extractProgressToken(params);
+      const progressNotifier = new ProgressNotifier(server);
+      const previousToolNames =
+        name === 'AHK_Settings'
+          ? getStandardToolDefinitions()
+              .filter(tool => toolSettings.isToolAvailable(tool.name))
+              .map(tool => tool.name)
+          : undefined;
 
       // Unified logging: generate call ID and log start
       const callId = `${name}-${startTime}-${Math.random().toString(36).slice(2, 8)}`;
@@ -358,21 +694,56 @@ export class AutoHotkeyMcpServer {
       }
 
       try {
+        if (taskRequest && !toolSupportsTasks(name)) {
+          throw new ProtocolError(
+            METHOD_NOT_FOUND,
+            `Tool '${name}' does not support task-augmented execution`
+          );
+        }
+
+        const preparedArgs = await this.prepareToolArguments(
+          server,
+          name,
+          args,
+          ctx.mcpReq.signal,
+          ctx
+        );
+
+        // A multi-round-trip handler returns its interim result verbatim; the client
+        // supplies the missing input and re-issues this call (SEP-2322).
+        if (isInputRequiredResult(preparedArgs)) {
+          return preparedArgs as unknown as CallToolResult;
+        }
+
+        const requestRootDirectories = await clientRoots.resolveForRequest(server, ctx);
+        const argsWithContext = this.injectRequestContext(preparedArgs, progressToken);
+
         if (taskRequest) {
-          const ttl =
+          const requestedTtl =
             typeof taskRequest.ttl === 'number' &&
             Number.isFinite(taskRequest.ttl) &&
             taskRequest.ttl > 0
               ? taskRequest.ttl
               : undefined;
+          const maximumTtl = this.getPositiveIntEnv('AHK_MCP_MAX_TASK_TTL_MS', 86_400_000);
+          const defaultTtl = Math.min(
+            this.getPositiveIntEnv('AHK_MCP_DEFAULT_TASK_TTL_MS', 3_600_000),
+            maximumTtl
+          );
+          const ttl = Math.min(requestedTtl ?? defaultTtl, maximumTtl);
           const pollInterval = envConfig.getTaskPollIntervalMs();
-          const taskTimeoutMs = ttl ?? envConfig.getTaskTimeoutMs();
+          // A task's TTL controls result retention, not how long its work may execute.
+          const taskTimeoutMs = envConfig.getTaskTimeoutMs();
 
-          const task = this.taskManager.createTask({
+          const task = this.getTaskManager(server).createTask({
             toolName: name,
             ttl,
             pollInterval,
-            execute: () => this.executeToolWithTimeout(name, args, taskTimeoutMs),
+            execute: taskSignal =>
+              runWithMcpRequestContextAsync(
+                { rootDirectories: requestRootDirectories, abortSignal: taskSignal },
+                () => this.executeToolWithTimeout(name, argsWithContext, taskTimeoutMs, taskSignal)
+              ),
           });
 
           // Unified logging: task queued (execution is async)
@@ -380,38 +751,95 @@ export class AutoHotkeyMcpServer {
             content: [{ type: 'text', text: `task queued: ${task.taskId}` }],
           });
 
-          return { task };
+          // A tools/call body carrying `task` must still carry `content`: the SDK rejects
+          // a task-handle result that would otherwise default into an empty success.
+          return {
+            content: [
+              {
+                type: 'text',
+                text: `Task ${task.taskId} queued for ${name} (status: ${task.status}). Poll tasks/get for progress.`,
+              },
+            ],
+            task,
+          } as unknown as CallToolResult;
         }
 
+        await progressNotifier.reportIndeterminate(progressToken, `${name} started`);
+
         // Execute tool with distributed tracing
-        const result = await tracer.trace(
-          name,
-          async span => {
-            // Add tool metadata to span
-            span.attributes.tool = name;
-            span.attributes.argCount =
-              args && typeof args === 'object'
-                ? Object.keys(args as Record<string, unknown>).length
-                : 0;
+        const result = await runWithMcpRequestContextAsync(
+          { rootDirectories: requestRootDirectories, abortSignal: ctx.mcpReq.signal },
+          () =>
+            tracer.trace(
+              name,
+              async span => {
+                // Add tool metadata to span
+                span.attributes.tool = name;
+                span.attributes.argCount =
+                  argsWithContext && typeof argsWithContext === 'object'
+                    ? Object.keys(argsWithContext as Record<string, unknown>).length
+                    : 0;
 
-            // Execute the tool
-            const toolResult = await this.executeToolWithTimeout(name, args, toolTimeoutMs);
+                // Execute the tool
+                const toolResult = await this.executeToolWithTimeout(
+                  name,
+                  argsWithContext,
+                  toolTimeoutMs,
+                  ctx.mcpReq.signal
+                );
 
-            // Add result metadata to span
-            if (toolResult && toolResult.content) {
-              span.attributes.resultContentCount = toolResult.content.length;
-              span.attributes.isError = toolResult.isError || false;
-            }
+                // Add result metadata to span
+                if (toolResult && toolResult.content) {
+                  span.attributes.resultContentCount = toolResult.content.length;
+                  span.attributes.isError = toolResult.isError || false;
+                }
 
-            return toolResult;
-          },
-          { toolType: name.split('_')[1] || 'unknown' }
+                return toolResult as unknown as CallToolResult;
+              },
+              { toolType: name.split('_')[1] || 'unknown' }
+            )
         );
+
+        await progressNotifier.reportComplete(progressToken, `${name} completed`);
+
+        // Record analytics
+        const duration = Date.now() - startTime;
+        const isError =
+          result && typeof result === 'object' && 'isError' in result && result.isError;
+        const preview =
+          result &&
+          typeof result === 'object' &&
+          'content' in result &&
+          Array.isArray(result.content)
+            ? result.content
+                .map((c: { type: string; text?: string }) =>
+                  c.type === 'text' ? c.text : `[${c.type}]`
+                )
+                .join('\n')
+            : undefined;
+        toolAnalytics.recordCall(name, !isError, duration, undefined, preview);
 
         // Unified logging: log success
         unifiedLog.toolEnd(callId, result);
-        return result;
+        if (previousToolNames) {
+          await this.notifyToolCatalogChanged(previousToolNames);
+        }
+        return result as unknown as CallToolResult;
       } catch (error) {
+        if (error instanceof ProtocolError) {
+          throw error;
+        }
+
+        // Record analytics for failures
+        toolAnalytics.recordCall(
+          name,
+          false,
+          Date.now() - startTime,
+          error instanceof Error ? error : new Error(String(error))
+        );
+
+        await progressNotifier.reportComplete(progressToken, `${name} failed`);
+
         // Unified logging: log error
         unifiedLog.toolError(callId, error instanceof Error ? error : new Error(String(error)));
 
@@ -423,107 +851,126 @@ export class AutoHotkeyMcpServer {
             toolName: request.params.name,
             arguments: request.params.arguments,
           })
-          .build();
+          .build() as unknown as CallToolResult;
       }
     });
   }
 
   /**
-   * Setup MCP task handlers
+   * Setup task handlers for the `io.modelcontextprotocol/tasks` extension.
+   *
+   * As of protocol revision 2026-07-28 tasks moved out of the core protocol into an
+   * official extension, and the v2 SDK ships no runtime for them: `tasks/*` is excluded
+   * from the SDK's typed `RequestMethod` union, so every method here is registered via
+   * the custom-method overload with explicit params schemas.
+   *
+   * Dual-era note: `tasks/list` and `tasks/result` were removed by the 2026-07-28
+   * revision (`tasks/list` cannot be scoped safely without sessions, and `tasks/result`
+   * is replaced by polling `tasks/get`). They stay registered here to serve legacy
+   * 2025-11-25 clients, which still call them.
    */
   private setupTaskHandlers(server: Server): void {
-    const taskStatusValues = ['working', 'completed', 'failed', 'canceled'] as const;
-    const TaskStatusSchema = z.enum(taskStatusValues);
+    const TaskIdParams = z.object({ taskId: z.string() });
 
-    const TaskListRequestSchema = z.object({
-      method: z.literal('tasks/list'),
-      params: z
-        .object({
-          status: TaskStatusSchema.optional(),
-        })
-        .optional(),
-    });
+    // Removed in 2026-07-28; retained for legacy (2025-11-25) clients only.
+    server.setRequestHandler(
+      'tasks/list',
+      { params: z.object({ cursor: z.string().optional() }).optional() },
+      async params => {
+        return this.getTaskManager(server).listTasks(params?.cursor);
+      }
+    );
 
-    const TaskGetRequestSchema = z.object({
-      method: z.literal('tasks/get'),
-      params: z.object({
-        taskId: z.string(),
-      }),
-    });
-
-    const TaskResultRequestSchema = z.object({
-      method: z.literal('tasks/result'),
-      params: z.object({
-        taskId: z.string(),
-      }),
-    });
-
-    const TaskCancelRequestSchema = z.object({
-      method: z.literal('tasks/cancel'),
-      params: z.object({
-        taskId: z.string(),
-      }),
-    });
-
-    server.setRequestHandler(TaskListRequestSchema, async request => {
-      const status = request.params?.status;
-      const tasks = this.taskManager.listTasks(status);
-      return { tasks };
-    });
-
-    server.setRequestHandler(TaskGetRequestSchema, async request => {
-      const { taskId } = request.params;
-      const task = this.taskManager.getTask(taskId);
+    server.setRequestHandler('tasks/get', { params: TaskIdParams }, async params => {
+      const { taskId } = params;
+      const task = this.getTaskManager(server).getTask(taskId);
       if (!task) {
-        throw new Error(`Task not found: ${taskId}`);
+        throw new ProtocolError(INVALID_PARAMS, `Task not found: ${taskId}`);
       }
-      return { task };
+      return task;
     });
 
-    server.setRequestHandler(TaskCancelRequestSchema, async request => {
-      const { taskId } = request.params;
-      const task = this.taskManager.cancelTask(taskId);
+    server.setRequestHandler('tasks/cancel', { params: TaskIdParams }, async params => {
+      const { taskId } = params;
+      const manager = this.getTaskManager(server);
+      const existing = manager.getTask(taskId);
+      if (existing && ['completed', 'failed', 'cancelled'].includes(existing.status)) {
+        throw new ProtocolError(
+          INVALID_PARAMS,
+          `Cannot cancel task ${taskId}: already in terminal status '${existing.status}'`
+        );
+      }
+      const task = manager.cancelTask(taskId);
       if (!task) {
-        throw new Error(`Task not found: ${taskId}`);
+        throw new ProtocolError(INVALID_PARAMS, `Task not found: ${taskId}`);
       }
-      return { task };
+      return task;
     });
 
-    server.setRequestHandler(TaskResultRequestSchema, async request => {
-      const { taskId } = request.params;
-      const outcome = this.taskManager.getTaskResult(taskId);
-      if (!outcome) {
-        throw new Error(`Task not found: ${taskId}`);
+    // Removed in 2026-07-28 (superseded by polling `tasks/get`); legacy clients only.
+    server.setRequestHandler(
+      'tasks/result',
+      { params: TaskIdParams },
+      async (params, ctx: ServerContext) => {
+        const { taskId } = params;
+        const outcome = await this.getTaskManager(server).waitForTaskResult(
+          taskId,
+          ctx.mcpReq.signal
+        );
+        if (!outcome) {
+          throw new ProtocolError(INVALID_PARAMS, `Task not found: ${taskId}`);
+        }
+
+        const response =
+          outcome.result ?? createErrorResponse(outcome.message || 'Task result unavailable');
+        const meta = {
+          ...(response as { _meta?: Record<string, unknown> })._meta,
+          [RELATED_TASK_META_KEY]: { taskId },
+        };
+
+        return {
+          ...response,
+          _meta: meta,
+        };
       }
+    );
+  }
 
-      const response =
-        outcome.result ?? createErrorResponse(outcome.message || 'Task result unavailable');
-      const meta = {
-        ...(response as { _meta?: Record<string, unknown> })._meta,
-        'io.modelcontextprotocol/related-task': { taskId },
-      };
-
-      return {
-        ...response,
-        _meta: meta,
-      };
-    });
+  private getTaskManager(server: Server): TaskManager {
+    const manager = this.taskManagers.get(server);
+    if (!manager) {
+      throw new Error('Task manager is unavailable for this MCP session');
+    }
+    return manager;
   }
 
   private async executeToolWithTimeout(
     toolName: string,
     args: unknown,
-    timeoutMs: number
+    timeoutMs: number,
+    signal?: AbortSignal
   ): Promise<ToolResponse> {
-    if (!timeoutMs || timeoutMs <= 0) {
-      return this.toolRegistry.executeTool(toolName, args);
+    if (signal?.aborted) {
+      throw signal.reason instanceof Error ? signal.reason : new Error('Tool request cancelled');
     }
 
     let timeoutId: NodeJS.Timeout | undefined;
+    let abortHandler: (() => void) | undefined;
     const timeoutPromise = new Promise<never>((_, reject) => {
-      timeoutId = setTimeout(() => {
-        reject(new Error(`Tool '${toolName}' timed out after ${timeoutMs}ms`));
-      }, timeoutMs);
+      if (timeoutMs > 0) {
+        timeoutId = setTimeout(() => {
+          reject(new Error(`Tool '${toolName}' timed out after ${timeoutMs}ms`));
+        }, timeoutMs);
+      }
+
+      if (signal) {
+        abortHandler = () => {
+          reject(
+            signal.reason instanceof Error ? signal.reason : new Error('Tool request cancelled')
+          );
+        };
+        signal.addEventListener('abort', abortHandler, { once: true });
+      }
     });
 
     try {
@@ -531,6 +978,9 @@ export class AutoHotkeyMcpServer {
     } finally {
       if (timeoutId) {
         clearTimeout(timeoutId);
+      }
+      if (signal && abortHandler) {
+        signal.removeEventListener('abort', abortHandler);
       }
     }
   }
@@ -540,7 +990,7 @@ export class AutoHotkeyMcpServer {
    */
   private setupPromptHandlers(server: Server): void {
     // List prompts handler
-    server.setRequestHandler(ListPromptsRequestSchema, async () => {
+    server.setRequestHandler('prompts/list', async () => {
       logger.debug('Listing available AutoHotkey prompts');
       logDebugEvent('prompts.list', { status: 'start', message: 'Gathering prompt catalog' });
       const prompts = await getPromptCatalog();
@@ -565,11 +1015,12 @@ export class AutoHotkeyMcpServer {
 
       return {
         prompts: promptList,
+        ...this.getDiscoveryCacheHints(),
       };
     });
 
     // Get prompt handler
-    server.setRequestHandler(GetPromptRequestSchema, async request => {
+    server.setRequestHandler('prompts/get', async request => {
       const { name } = request.params;
 
       logger.info(`Getting prompt: ${name}`);
@@ -627,6 +1078,55 @@ export class AutoHotkeyMcpServer {
     }
 
     return uri;
+  }
+
+  private createServerCard(): Record<string, unknown> {
+    const authenticationRequired = Boolean(process.env.AHK_MCP_AUTH_TOKEN?.trim());
+    return {
+      $schema: 'https://static.modelcontextprotocol.io/schemas/mcp-server-card/v1.json',
+      version: '1.0',
+      // Dual-era: `protocolVersion` names the preferred revision, `protocolVersions`
+      // every revision this server answers (2026-07-28 statelessly, 2025-11-25 via the
+      // legacy `initialize` handshake).
+      protocolVersion: MODERN_PROTOCOL_VERSIONS[0],
+      protocolVersions: ALL_PROTOCOL_VERSIONS,
+      serverInfo: {
+        name: 'ahk-mcp-server',
+        title: 'AutoHotkey v2 MCP Server',
+        version: '2.0.0',
+      },
+      description:
+        'AutoHotkey v2 development tools for analysis, file workflows, documentation, execution, and debugging.',
+      documentationUrl: 'https://github.com/TrueCrimeAudit/ahk-mcp',
+      transport: {
+        type: 'streamable-http',
+        endpoint: '/mcp',
+      },
+      capabilities: {
+        tools: { listChanged: true },
+        prompts: {},
+        resources: { subscribe: true },
+        completions: {},
+        extensions: {
+          [MCP_APPS_EXTENSION_ID]: {
+            mimeTypes: [MCP_APP_MIME_TYPE],
+          },
+        },
+      },
+      requires: {
+        roots: {},
+      },
+      authentication: {
+        required: authenticationRequired,
+        schemes: authenticationRequired ? ['bearer'] : [],
+      },
+      resources: ['dynamic'],
+      tools: ['dynamic'],
+      prompts: ['dynamic'],
+      _meta: {
+        status: 'draft-sep-1649',
+      },
+    };
   }
 
   private getResourceDefinitions(): Array<{
@@ -703,7 +1203,35 @@ export class AutoHotkeyMcpServer {
         description: 'Current system information and AutoHotkey environment',
         mimeType: 'application/json',
       },
+      {
+        uri: 'mcp://server-card.json',
+        name: 'MCP Server Card',
+        description: 'Draft SEP-1649 discovery metadata for this MCP server',
+        mimeType: 'application/json',
+      },
+      {
+        uri: ANALYTICS_APP_URI,
+        name: 'AutoHotkey Analytics Dashboard',
+        description: 'MCP Apps UI for structured AHK_Analytics results',
+        mimeType: MCP_APP_MIME_TYPE,
+      },
     ];
+  }
+
+  private getResourceTemplateDefinitions(): Array<{
+    uriTemplate: string;
+    name: string;
+    description: string;
+    mimeType: string;
+  }> {
+    return this.getResourceDefinitions()
+      .filter(resource => resource.uri.startsWith('ahk://templates/'))
+      .map(resource => ({
+        uriTemplate: resource.uri,
+        name: resource.name,
+        description: resource.description,
+        mimeType: resource.mimeType,
+      }));
   }
 
   /**
@@ -711,7 +1239,7 @@ export class AutoHotkeyMcpServer {
    */
   private setupResourceHandlers(server: Server): void {
     // List resources handler
-    server.setRequestHandler(ListResourcesRequestSchema, async () => {
+    server.setRequestHandler('resources/list', async () => {
       logger.debug('Listing available AutoHotkey resources');
       logDebugEvent('resources.list', {
         status: 'start',
@@ -727,11 +1255,48 @@ export class AutoHotkeyMcpServer {
 
       return {
         resources,
+        ...this.getDiscoveryCacheHints(),
       };
     });
 
+    server.setRequestHandler('resources/templates/list', async () => {
+      logger.debug('Listing available AutoHotkey resource templates');
+      logDebugEvent('resources.templates.list', {
+        status: 'start',
+        message: 'Enumerating exposed resource templates',
+      });
+
+      const resourceTemplates = this.getResourceTemplateDefinitions();
+
+      logDebugEvent('resources.templates.list', {
+        status: 'success',
+        message: `Returned ${resourceTemplates.length} resource templates`,
+      });
+
+      return {
+        resourceTemplates,
+        ...this.getDiscoveryCacheHints(),
+      };
+    });
+
+    server.setRequestHandler('resources/subscribe', async request => {
+      const normalizedUri = this.normalizeResourceUri(request.params.uri);
+      if (!this.isKnownResourceUri(normalizedUri)) {
+        throw new Error(`Resource not found: ${request.params.uri}`);
+      }
+
+      this.subscribeResource(server, normalizedUri);
+      return {};
+    });
+
+    server.setRequestHandler('resources/unsubscribe', async request => {
+      const normalizedUri = this.normalizeResourceUri(request.params.uri);
+      this.unsubscribeResource(server, normalizedUri);
+      return {};
+    });
+
     // Read resource handler
-    server.setRequestHandler(ReadResourceRequestSchema, async request => {
+    server.setRequestHandler('resources/read', async request => {
       const { uri } = request.params;
       const normalizedUri = this.normalizeResourceUri(uri);
       const baseDetails =
@@ -749,6 +1314,37 @@ export class AutoHotkeyMcpServer {
         details: mergeDetails(),
       });
 
+      if (normalizedUri === 'mcp://server-card.json') {
+        return {
+          contents: [
+            {
+              uri,
+              mimeType: 'application/json',
+              text: JSON.stringify(this.createServerCard(), null, 2),
+            },
+          ],
+          ...this.getDiscoveryCacheHints(),
+        };
+      }
+
+      if (normalizedUri === ANALYTICS_APP_URI) {
+        return {
+          contents: [
+            {
+              uri,
+              mimeType: MCP_APP_MIME_TYPE,
+              text: createAnalyticsAppHtml(),
+              _meta: {
+                ui: {
+                  prefersBorder: true,
+                },
+              },
+            },
+          ],
+          ...this.getDiscoveryCacheHints(),
+        };
+      }
+
       if (normalizedUri === 'ahk://context/auto') {
         // This would normally be triggered by analyzing user input
         // For now, return a placeholder
@@ -765,6 +1361,7 @@ export class AutoHotkeyMcpServer {
               text: '## 🎯 AutoHotkey Context Available\n\nUse the `AHK_Context_Injector` tool to analyze your prompts and get relevant AutoHotkey documentation automatically injected.',
             },
           ],
+          ...this.getDiscoveryCacheHints(),
         };
       }
 
@@ -783,6 +1380,7 @@ export class AutoHotkeyMcpServer {
               text: JSON.stringify(ahkIndex?.functions || [], null, 2),
             },
           ],
+          ...this.getDiscoveryCacheHints(),
         };
       }
 
@@ -801,6 +1399,7 @@ export class AutoHotkeyMcpServer {
               text: JSON.stringify(ahkIndex?.variables || [], null, 2),
             },
           ],
+          ...this.getDiscoveryCacheHints(),
         };
       }
 
@@ -819,6 +1418,7 @@ export class AutoHotkeyMcpServer {
               text: JSON.stringify(ahkIndex?.classes || [], null, 2),
             },
           ],
+          ...this.getDiscoveryCacheHints(),
         };
       }
 
@@ -837,6 +1437,7 @@ export class AutoHotkeyMcpServer {
               text: JSON.stringify(ahkIndex?.methods || [], null, 2),
             },
           ],
+          ...this.getDiscoveryCacheHints(),
         };
       }
 
@@ -911,6 +1512,7 @@ class FileSystemWatcher {
 `,
             },
           ],
+          ...this.getDiscoveryCacheHints(),
         };
       }
 
@@ -987,6 +1589,7 @@ clipManager := ClipboardManager()
 `,
             },
           ],
+          ...this.getDiscoveryCacheHints(),
         };
       }
 
@@ -1052,6 +1655,7 @@ cpuMonitor := CPUMonitor()
 `,
             },
           ],
+          ...this.getDiscoveryCacheHints(),
         };
       }
 
@@ -1159,6 +1763,7 @@ F12::hkManager.ToggleHotkey("F1", (*) => MsgBox("F1 pressed!"), "Example hotkey"
 `,
             },
           ],
+          ...this.getDiscoveryCacheHints(),
         };
       }
 
@@ -1176,6 +1781,7 @@ F12::hkManager.ToggleHotkey("F1", (*) => MsgBox("F1 pressed!"), "Example hotkey"
               text: '(Live clipboard access not available in MCP server context)\nUse AutoHotkey scripts with A_Clipboard variable to access clipboard content.',
             },
           ],
+          ...this.getDiscoveryCacheHints(),
         };
       }
 
@@ -1208,6 +1814,7 @@ F12::hkManager.ToggleHotkey("F1", (*) => MsgBox("F1 pressed!"), "Example hotkey"
               text: JSON.stringify(systemInfo, null, 2),
             },
           ],
+          ...this.getDiscoveryCacheHints(),
         };
       }
 
@@ -1217,7 +1824,7 @@ F12::hkManager.ToggleHotkey("F1", (*) => MsgBox("F1 pressed!"), "Example hotkey"
   }
 
   private setupCompletionHandlers(server: Server): void {
-    server.setRequestHandler(CompleteRequestSchema, async request => {
+    server.setRequestHandler('completion/complete', async request => {
       const { ref, argument, context } = request.params;
       const prefix = argument.value || '';
 
@@ -1822,6 +2429,17 @@ F12::hkManager.ToggleHotkey("F1", (*) => MsgBox("F1 pressed!"), "Example hotkey"
         // Continue even if observability server fails to start
       }
 
+      // Start DAP (Debug Adapter Protocol) server if explicitly enabled.
+      // Default is OFF so existing stdio/SSE behavior is unchanged.
+      if (process.env.AHK_DAP_ENABLED === '1') {
+        try {
+          this.dapServer = await startDapServer();
+          logger.info(`DAP translator listening on port ${this.dapServer.port}`);
+        } catch (error) {
+          logger.warn('Failed to start DAP server:', error);
+        }
+      }
+
       // Check if we should use SSE transport for ChatGPT (via --sse flag or PORT env var)
       const useSSE = envConfig.useSSEMode();
       let shutdownHook: (() => Promise<void>) | undefined;
@@ -1834,10 +2452,14 @@ F12::hkManager.ToggleHotkey("F1", (*) => MsgBox("F1 pressed!"), "Example hotkey"
           message: 'Launching stdio transport (Claude Desktop)',
         });
 
-        // Connect to stdio (for Claude Desktop)
-        const transport = new StdioServerTransport();
-        await this.server.connect(transport);
-        logger.info('AutoHotkey MCP Server started and connected to stdio');
+        // Dual-era stdio (Claude Desktop / Claude Code): `serveStdio` owns the era
+        // decision for the connection. A modern client's `server/discover` probe selects
+        // the 2026-07-28 stateless path; a legacy client's `initialize` selects
+        // 2025-11-25 semantics. One instance per connection comes from the same factory.
+        this.stdioHandle = serveStdio(() => this.createServer());
+        logger.info(
+          `AutoHotkey MCP Server started on stdio (protocol versions: ${ALL_PROTOCOL_VERSIONS.join(', ')})`
+        );
         logDebugEvent('server.start', {
           status: 'success',
           message: 'Stdio transport ready (Claude Desktop)',
@@ -1860,6 +2482,19 @@ F12::hkManager.ToggleHotkey("F1", (*) => MsgBox("F1 pressed!"), "Example hotkey"
 
   private async startHttpMode(): Promise<() => Promise<void>> {
     const port = envConfig.getPort();
+    const host = process.env.AHK_MCP_HTTP_HOST?.trim() || '127.0.0.1';
+    const legacySseEnabled = process.env.AHK_MCP_LEGACY_SSE === '1';
+    const authToken = process.env.AHK_MCP_AUTH_TOKEN?.trim();
+
+    if (
+      !this.isLoopbackHost(host) &&
+      !authToken &&
+      process.env.AHK_MCP_ALLOW_INSECURE_REMOTE !== '1'
+    ) {
+      throw new Error(
+        'Remote HTTP binding requires AHK_MCP_AUTH_TOKEN. Set AHK_MCP_ALLOW_INSECURE_REMOTE=1 only for an explicitly isolated environment.'
+      );
+    }
 
     logDebugEvent('server.start', {
       status: 'start',
@@ -1867,78 +2502,96 @@ F12::hkManager.ToggleHotkey("F1", (*) => MsgBox("F1 pressed!"), "Example hotkey"
     });
 
     const express = await import('express');
+    const { rateLimit } = await import('express-rate-limit');
     const app = express.default();
+    this.configureHostValidation(app, host, port);
+    this.configureOriginValidation(app, port);
+    app.use(
+      rateLimit({
+        windowMs: this.getPositiveIntEnv('AHK_MCP_RATE_LIMIT_WINDOW_MS', 60_000),
+        limit: this.getPositiveIntEnv('AHK_MCP_RATE_LIMIT_MAX', 120),
+        standardHeaders: 'draft-8',
+        legacyHeaders: false,
+      })
+    );
+    this.mountServerCard(app);
+    this.configureHttpAuthentication(app, authToken);
     app.use(express.default.json({ limit: '10mb' }));
     app.use(express.default.urlencoded({ extended: true }));
-    this.configureOriginValidation(app);
+    this.configureRoutingHeaderValidation(app);
 
+    // Protocol revision 2026-07-28 removed protocol-level sessions (SEP-2567): there is no
+    // `initialize` handshake and no `Mcp-Session-Id`. `createMcpHandler` serves the modern
+    // revision per-request and, with `legacy: 'stateless'`, still answers 2025-11-25
+    // `initialize` traffic from the same endpoint (dual-era) — so the session registry,
+    // idle-session reaper and SSE resumability store this server used to maintain are gone.
+    //
+    // The dashboard's session panel is retained but is now always empty by design; tool
+    // analytics and the activity log are unaffected.
     const activeSessions = new Map<string, SessionEntry>();
-    const maxSessions = this.getPositiveIntEnv('AHK_MCP_MAX_SESSIONS', 100);
-    const sessionTimeoutMs = this.getPositiveIntEnv('AHK_MCP_SESSION_TIMEOUT_MS', 30 * 60 * 1000);
-    const cleanupIntervalMs = this.getPositiveIntEnv(
-      'AHK_MCP_SESSION_CLEANUP_INTERVAL_MS',
-      5 * 60 * 1000
-    );
+    mountDashboard(app, activeSessions);
 
-    const cleanupInterval = setInterval(() => {
-      void this.cleanupIdleSessions(activeSessions, sessionTimeoutMs);
-    }, cleanupIntervalMs);
-    cleanupInterval.unref();
-
-    app.all('/mcp', async (req, res) => {
-      await this.handleStreamableRequest(req, res, activeSessions, maxSessions);
+    const mcpHandler = createMcpHandler(() => this.createServer(), {
+      legacy: 'stateless',
+      onerror: (error: Error) => {
+        logger.error('MCP HTTP handler error:', error);
+        logDebugError('server.http', error);
+      },
     });
+    // `express.json()` has already drained the request stream, so the parsed body must be
+    // handed to the adapter explicitly — otherwise it reads an empty stream and every
+    // request fails with `-32700 Parse error`.
+    const nodeMcpHandler = toNodeHandler(mcpHandler);
+    app.all('/mcp', (req: Request, res: Response) => nodeMcpHandler(req, res, req.body));
 
-    app.get('/sse', async (req, res) => {
-      await this.handleLegacySseConnect(req, res, activeSessions, maxSessions);
-    });
-
-    app.post('/message', async (req, res) => {
-      await this.handleLegacySsePost(req, res, activeSessions);
-    });
-
-    app.post('/messages', async (req, res) => {
-      await this.handleLegacySsePost(req, res, activeSessions);
-    });
+    if (legacySseEnabled) {
+      // The HTTP+SSE transport is Deprecated as of 2026-07-28 (SEP-2596) and its
+      // resumability (Last-Event-ID) was removed. Point clients at /mcp instead.
+      logger.warn(
+        'AHK_MCP_LEGACY_SSE=1 is ignored: the deprecated HTTP+SSE transport was removed in this build. Use the Streamable HTTP endpoint at /mcp.'
+      );
+    }
 
     const httpServer = await new Promise<ReturnType<Express['listen']>>((resolve, reject) => {
-      const serverInstance = app.listen(port, () => resolve(serverInstance));
+      const serverInstance = app.listen(port, host, () => resolve(serverInstance));
       serverInstance.once('error', reject);
     });
 
-    logger.info(`AutoHotkey MCP Server started with Streamable HTTP transport on port ${port}`);
-    logger.info(`Primary MCP endpoint: http://localhost:${port}/mcp`);
-    logger.info(`Legacy SSE endpoint: http://localhost:${port}/sse`);
+    logger.info(`AutoHotkey MCP Server started with Streamable HTTP transport on ${host}:${port}`);
+    logger.info(`Primary MCP endpoint: http://${host}:${port}/mcp`);
     logDebugEvent('server.start', {
       status: 'success',
       message: `Transport endpoints ready on port ${port}`,
       details: {
         streamableHttp: '/mcp',
-        legacySse: '/sse',
-        legacyMessage: '/message',
+        protocolVersions: ALL_PROTOCOL_VERSIONS.join(', '),
+        legacySse: 'removed',
       },
     });
 
     return async () => {
-      clearInterval(cleanupInterval);
-      await this.closeAllSessions(activeSessions, 'server shutdown');
       await new Promise<void>(resolve => {
         httpServer.close(() => resolve());
       });
     };
   }
 
-  private configureOriginValidation(app: Express): void {
-    const allowedOrigins = (process.env.AHK_MCP_ALLOWED_ORIGINS || '')
+  private configureOriginValidation(app: Express, port: number): void {
+    const configuredOrigins = (process.env.AHK_MCP_ALLOWED_ORIGINS || '')
       .split(',')
       .map(origin => origin.trim())
       .filter(Boolean);
-
-    if (allowedOrigins.length === 0) {
-      return;
-    }
+    const allowedOrigins =
+      configuredOrigins.length > 0
+        ? configuredOrigins
+        : [`http://localhost:${port}`, `http://127.0.0.1:${port}`, `http://[::1]:${port}`];
 
     app.use((req: Request, res: Response, next: NextFunction) => {
+      if (req.path === '/.well-known/mcp/server-card.json') {
+        next();
+        return;
+      }
+
       const requestOrigin = req.headers.origin;
       if (!requestOrigin) {
         next();
@@ -1960,325 +2613,182 @@ F12::hkManager.ToggleHotkey("F1", (*) => MsgBox("F1 pressed!"), "Example hotkey"
     });
   }
 
-  private async handleStreamableRequest(
-    req: Request,
-    res: Response,
-    activeSessions: Map<string, SessionEntry>,
-    maxSessions: number
-  ): Promise<void> {
-    try {
-      const sessionId = this.getHeaderValue(req.headers['mcp-session-id']);
-      const session = sessionId ? activeSessions.get(sessionId) : undefined;
-
-      if (session && session.protocol !== 'streamable') {
-        this.sendTransportError(res, 400, -32000, 'Session transport mismatch', {
-          phase: 'streamable',
-          sessionId,
-          expectedProtocol: 'streamable',
-          actualProtocol: session.protocol,
-          method: req.method,
-        });
-        return;
-      }
-
-      let streamableTransport: StreamableHTTPServerTransport;
-      if (session) {
-        streamableTransport = session.transport;
-        session.lastActivity = Date.now();
-      } else {
-        if (activeSessions.size >= maxSessions) {
-          this.sendTransportError(res, 503, -32001, 'Server is at session capacity', {
-            phase: 'streamable',
-            maxSessions,
-            activeSessions: activeSessions.size,
-          });
-          return;
-        }
-
-        const isInitialization = req.method === 'POST' && isInitializeRequest(req.body);
-        if (!isInitialization) {
-          this.sendTransportError(res, 400, -32000, 'Invalid or missing session for /mcp request', {
-            phase: 'streamable',
-            method: req.method,
-            hasSessionHeader: Boolean(sessionId),
-            sessionId: sessionId || null,
-            bodyMethod:
-              req.body && typeof req.body === 'object' && 'method' in req.body
-                ? String((req.body as { method?: unknown }).method)
-                : null,
-            hint: 'Send initialize via POST /mcp without mcp-session-id first',
-          });
-          return;
-        }
-
-        const server = this.createServer();
-        streamableTransport = new StreamableHTTPServerTransport({
-          sessionIdGenerator: () => randomUUID(),
-          enableJsonResponse: true,
-          eventStore: new InMemoryEventStore(),
-          onsessioninitialized: initializedSessionId => {
-            const now = Date.now();
-            activeSessions.set(initializedSessionId, {
-              protocol: 'streamable',
-              server,
-              transport: streamableTransport,
-              createdAt: now,
-              lastActivity: now,
-            });
-            logDebugEvent('transport.streamable', {
-              status: 'start',
-              message: `Session ${initializedSessionId} initialized`,
-              details: {
-                activeSessions: activeSessions.size,
-              },
-            });
-          },
-          onsessionclosed: async closedSessionId => {
-            await this.closeSessionById(
-              activeSessions,
-              closedSessionId,
-              'session closed by client'
-            );
-          },
-        });
-
-        streamableTransport.onerror = error => {
-          logDebugError('transport.streamable', error, {
-            details: {
-              phase: 'runtime',
-              sessionId: streamableTransport.sessionId ?? 'pending',
-            },
-          });
-        };
-
-        streamableTransport.onclose = () => {
-          const closedSessionId = streamableTransport.sessionId;
-          if (closedSessionId) {
-            void this.closeSessionById(activeSessions, closedSessionId, 'transport closed');
-          }
-        };
-
-        await server.connect(streamableTransport);
-      }
-
-      await streamableTransport.handleRequest(req, res, req.body);
-
-      if (sessionId) {
-        const trackedSession = activeSessions.get(sessionId);
-        if (trackedSession) {
-          trackedSession.lastActivity = Date.now();
-        }
-      }
-    } catch (error) {
-      logDebugError('transport.streamable', error, {
-        details: {
-          phase: 'request-handler',
-          method: req.method,
-          path: req.path,
-        },
-      });
-
-      const message = error instanceof Error ? error.message : String(error);
-      this.sendTransportError(res, 500, -32603, 'Failed to handle Streamable HTTP request', {
-        phase: 'streamable',
-        method: req.method,
-        path: req.path,
-        error: message,
-      });
-    }
-  }
-
-  private async handleLegacySseConnect(
-    req: Request,
-    res: Response,
-    activeSessions: Map<string, SessionEntry>,
-    maxSessions: number
-  ): Promise<void> {
-    try {
-      if (activeSessions.size >= maxSessions) {
-        this.sendTransportError(res, 503, -32001, 'Server is at session capacity', {
-          phase: 'legacy-sse',
-          maxSessions,
-          activeSessions: activeSessions.size,
-        });
-        return;
-      }
-
-      const server = this.createServer();
-      const transport = new SSEServerTransport('/message', res);
-      const sessionId = transport.sessionId;
-      const now = Date.now();
-      activeSessions.set(sessionId, {
-        protocol: 'sse',
-        server,
-        transport,
-        createdAt: now,
-        lastActivity: now,
-      });
-
-      transport.onerror = error => {
-        logDebugError('transport.sse', error, {
-          details: { sessionId, phase: 'runtime' },
-        });
-      };
-
-      transport.onclose = () => {
-        void this.closeSessionById(activeSessions, sessionId, 'legacy SSE transport closed');
-      };
-
-      req.on('close', () => {
-        void this.closeSessionById(activeSessions, sessionId, 'legacy SSE client disconnected');
-      });
-
-      await server.connect(transport);
-      logDebugEvent('transport.sse', {
-        status: 'start',
-        message: `Legacy SSE session ${sessionId} connected`,
-        details: {
-          activeSessions: activeSessions.size,
-        },
-      });
-    } catch (error) {
-      logDebugError('transport.sse', error, { details: { phase: 'connect' } });
-      const message = error instanceof Error ? error.message : String(error);
-      this.sendTransportError(res, 500, -32603, 'Failed to establish legacy SSE session', {
-        phase: 'legacy-sse',
-        error: message,
-      });
-    }
-  }
-
-  private async handleLegacySsePost(
-    req: Request,
-    res: Response,
-    activeSessions: Map<string, SessionEntry>
-  ): Promise<void> {
-    try {
-      const sessionIdFromQuery = this.getQuerySessionId(req.query.sessionId);
-
-      if (sessionIdFromQuery) {
-        const session = activeSessions.get(sessionIdFromQuery);
-        if (!session) {
-          this.sendTransportError(res, 404, -32004, 'Legacy SSE session not found', {
-            phase: 'legacy-sse-post',
-            sessionId: sessionIdFromQuery,
-          });
-          return;
-        }
-
-        if (session.protocol !== 'sse') {
-          this.sendTransportError(res, 400, -32000, 'Session transport mismatch', {
-            phase: 'legacy-sse-post',
-            sessionId: sessionIdFromQuery,
-            expectedProtocol: 'sse',
-            actualProtocol: session.protocol,
-          });
-          return;
-        }
-
-        session.lastActivity = Date.now();
-        await session.transport.handlePostMessage(req, res, req.body);
-        return;
-      }
-
-      for (const [sessionId, session] of activeSessions.entries()) {
-        if (session.protocol !== 'sse') {
-          continue;
-        }
-
-        try {
-          await session.transport.handlePostMessage(req, res, req.body);
-          session.lastActivity = Date.now();
-          return;
-        } catch (error) {
-          logger.debug(`Legacy SSE session ${sessionId} skipped for message routing`, error);
-        }
-      }
-
-      this.sendTransportError(
-        res,
-        400,
-        -32000,
-        'No matching legacy SSE session for POST /message',
-        {
-          phase: 'legacy-sse-post',
-          hint: 'Use /message?sessionId=<id> after opening /sse',
-        }
-      );
-    } catch (error) {
-      logDebugError('transport.sse', error, { details: { phase: 'post' } });
-      const message = error instanceof Error ? error.message : String(error);
-      this.sendTransportError(res, 500, -32603, 'Failed to handle legacy SSE message', {
-        phase: 'legacy-sse-post',
-        error: message,
-      });
-    }
-  }
-
-  private async cleanupIdleSessions(
-    activeSessions: Map<string, SessionEntry>,
-    sessionTimeoutMs: number
-  ): Promise<void> {
-    const now = Date.now();
-    const staleSessions = [...activeSessions.entries()].filter(
-      ([, session]) => now - session.lastActivity > sessionTimeoutMs
+  private configureHostValidation(app: Express, host: string, port: number): void {
+    const configuredHosts = (process.env.AHK_MCP_ALLOWED_HOSTS || '')
+      .split(',')
+      .map(value => value.trim().toLowerCase())
+      .filter(Boolean);
+    const allowedHosts = new Set(
+      configuredHosts.length > 0
+        ? configuredHosts
+        : [
+            'localhost',
+            `localhost:${port}`,
+            '127.0.0.1',
+            `127.0.0.1:${port}`,
+            '[::1]',
+            `[::1]:${port}`,
+            ...(this.isLoopbackHost(host) || host === '0.0.0.0'
+              ? []
+              : [host.toLowerCase(), `${host.toLowerCase()}:${port}`]),
+          ]
     );
 
-    for (const [sessionId] of staleSessions) {
-      await this.closeSessionById(activeSessions, sessionId, 'idle timeout exceeded');
-    }
+    app.use((req: Request, res: Response, next: NextFunction) => {
+      const requestHost = req.headers.host?.trim().toLowerCase();
+      if (requestHost && allowedHosts.has(requestHost)) {
+        next();
+        return;
+      }
 
-    if (staleSessions.length > 0) {
-      logDebugEvent('transport.cleanup', {
-        status: 'info',
-        message: `Closed ${staleSessions.length} stale sessions`,
-        details: {
-          remainingSessions: activeSessions.size,
-        },
+      this.sendTransportError(res, 403, -32096, 'Host not allowed', {
+        phase: 'host-validation',
+        method: req.method,
+        path: req.path,
+        host: requestHost || null,
+        allowedHosts: [...allowedHosts],
       });
-    }
-  }
-
-  private async closeAllSessions(
-    activeSessions: Map<string, SessionEntry>,
-    reason: string
-  ): Promise<void> {
-    for (const [sessionId] of activeSessions.entries()) {
-      await this.closeSessionById(activeSessions, sessionId, reason);
-    }
-  }
-
-  private async closeSessionById(
-    activeSessions: Map<string, SessionEntry>,
-    sessionId: string,
-    reason: string
-  ): Promise<void> {
-    const session = activeSessions.get(sessionId);
-    if (!session) {
-      return;
-    }
-
-    activeSessions.delete(sessionId);
-
-    try {
-      await session.transport.close();
-    } catch (error) {
-      logDebugError('transport.cleanup', error, {
-        details: {
-          sessionId,
-          protocol: session.protocol,
-          reason,
-        },
-      });
-    }
-
-    logDebugEvent('transport.cleanup', {
-      status: 'info',
-      message: `Closed ${session.protocol} session ${sessionId}`,
-      details: {
-        reason,
-      },
     });
+  }
+
+  private mountServerCard(app: Express): void {
+    app.get('/.well-known/mcp/server-card.json', (_req: Request, res: Response) => {
+      res.setHeader('Access-Control-Allow-Origin', '*');
+      res.setHeader('Access-Control-Allow-Methods', 'GET');
+      res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+      res.setHeader('Cache-Control', 'public, max-age=3600');
+      res.json(this.createServerCard());
+    });
+  }
+
+  private configureHttpAuthentication(app: Express, authToken?: string): void {
+    if (!authToken) return;
+
+    const expected = Buffer.from(authToken, 'utf8');
+    app.use((req: Request, res: Response, next: NextFunction) => {
+      const authorization = req.headers.authorization;
+      const suppliedToken = authorization?.startsWith('Bearer ')
+        ? authorization.slice('Bearer '.length).trim()
+        : '';
+      const supplied = Buffer.from(suppliedToken, 'utf8');
+      const matches = supplied.length === expected.length && timingSafeEqual(supplied, expected);
+
+      if (matches) {
+        next();
+        return;
+      }
+
+      res.setHeader('WWW-Authenticate', 'Bearer realm="ahk-mcp"');
+      this.sendTransportError(res, 401, -32098, 'Authentication required', {
+        phase: 'authentication',
+        method: req.method,
+        path: req.path,
+      });
+    });
+  }
+
+  private configureRoutingHeaderValidation(app: Express): void {
+    const requireHeaders = process.env.AHK_MCP_REQUIRE_ROUTING_HEADERS === '1';
+    app.use('/mcp', (req: Request, res: Response, next: NextFunction) => {
+      if (req.method !== 'POST' || !req.body || Array.isArray(req.body)) {
+        next();
+        return;
+      }
+
+      const body = req.body as {
+        method?: unknown;
+        params?: { name?: unknown; uri?: unknown };
+      };
+      const bodyMethod = typeof body.method === 'string' ? body.method : undefined;
+      const methodHeader = this.getHeaderValue(req.headers['mcp-method']);
+      const nameHeader = this.getHeaderValue(req.headers['mcp-name']);
+
+      if (requireHeaders && !methodHeader) {
+        this.sendTransportError(res, 400, -32001, 'Header mismatch: Mcp-Method is required', {
+          phase: 'routing-header-validation',
+          bodyMethod: bodyMethod || null,
+        });
+        return;
+      }
+
+      if (methodHeader && methodHeader !== bodyMethod) {
+        this.sendTransportError(
+          res,
+          400,
+          -32001,
+          'Header mismatch: Mcp-Method does not match the request body',
+          {
+            phase: 'routing-header-validation',
+            headerMethod: methodHeader,
+            bodyMethod: bodyMethod || null,
+          }
+        );
+        return;
+      }
+
+      const bodyName =
+        bodyMethod === 'resources/read'
+          ? body.params?.uri
+          : bodyMethod === 'tools/call' || bodyMethod === 'prompts/get'
+            ? body.params?.name
+            : undefined;
+      const expectedName = typeof bodyName === 'string' ? bodyName : undefined;
+      if (requireHeaders && expectedName !== undefined && !nameHeader) {
+        this.sendTransportError(res, 400, -32001, 'Header mismatch: Mcp-Name is required', {
+          phase: 'routing-header-validation',
+          bodyMethod,
+          bodyName: expectedName,
+        });
+        return;
+      }
+
+      if (nameHeader) {
+        let decodedName: string;
+        try {
+          decodedName = this.decodeRoutingHeaderValue(nameHeader);
+        } catch (error) {
+          this.sendTransportError(res, 400, -32001, 'Header mismatch: malformed Mcp-Name', {
+            phase: 'routing-header-validation',
+            error: error instanceof Error ? error.message : String(error),
+          });
+          return;
+        }
+
+        if (decodedName !== expectedName) {
+          this.sendTransportError(
+            res,
+            400,
+            -32001,
+            'Header mismatch: Mcp-Name does not match the request body',
+            {
+              phase: 'routing-header-validation',
+              headerName: decodedName,
+              bodyName: expectedName || null,
+            }
+          );
+          return;
+        }
+      }
+
+      next();
+    });
+  }
+
+  private decodeRoutingHeaderValue(value: string): string {
+    const match = /^=\?base64\?([A-Za-z0-9+/]*={0,2})\?=$/.exec(value);
+    if (!match) {
+      return value;
+    }
+
+    const decoded = Buffer.from(match[1], 'base64');
+    if (decoded.toString('base64').replace(/=+$/, '') !== match[1].replace(/=+$/, '')) {
+      throw new Error('Invalid base64 encoding');
+    }
+    return decoded.toString('utf8');
+  }
+
+  private isLoopbackHost(host: string): boolean {
+    return host === 'localhost' || host === '127.0.0.1' || host === '::1';
   }
 
   private getPositiveIntEnv(name: string, fallback: number): number {
@@ -2345,6 +2855,16 @@ F12::hkManager.ToggleHotkey("F1", (*) => MsgBox("F1 pressed!"), "Example hotkey"
     shutdownHook?: () => Promise<void>
   ): Promise<void> {
     logger.info(`Received ${signal}, shutting down gracefully...`);
+    this.disposeServerState(this.server);
+
+    if (this.dapServer) {
+      try {
+        await this.dapServer.close();
+      } catch (error) {
+        logger.warn('DAP server close failed:', error);
+      }
+      this.dapServer = null;
+    }
 
     if (shutdownHook) {
       try {

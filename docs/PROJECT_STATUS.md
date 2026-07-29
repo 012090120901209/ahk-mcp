@@ -6,9 +6,9 @@ Current implementation status and feature completion tracking.
 
 ### ✅ PRODUCTION READY (95% Complete)
 
-**Core MCP Server** - All tools functional
+**Core MCP Server** - Main tool surface functional
 
-- 16 MCP Tools implemented and tested
+- 35 MCP tools currently advertised via `tools/list`
 - JSON-RPC 2.0 communication layer
 - Error handling and validation
 - Resource management system
@@ -66,8 +66,8 @@ Current implementation status and feature completion tracking.
 ## 📊 Feature Statistics
 
 - **32 TypeScript Files** → **32 JavaScript Files**
-- **16 MCP Tools** fully functional
-- **10 MCP Resources** providing live data
+- **35 MCP Tools** advertised in the live MCP surface
+- **11 MCP Resources** providing live data
 - **20+ Prompt Templates** for various use cases
 - **4 Script Templates** ready to use
 - **100% Core Functionality** complete
@@ -110,7 +110,7 @@ Current implementation status and feature completion tracking.
 9. `AHK_Prompts` - Access prompt templates
 10. `AHK_Debug_Agent` - Debug assistance
 11. `AHK_Config` - Configuration management
-12. `AHK_Active_File` - Active file tracking
+12. `AHK_File_Active` - Active file tracking
 13. `AHK_File_Recent` - Recent files tracking
 14. `AHK_VSCode_Problems` - VS Code integration
 

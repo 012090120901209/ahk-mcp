@@ -2,7 +2,7 @@
 
 /**
  * Development Environment Setup Script
- * 
+ *
  * This script sets up a complete development environment for the AutoHotkey v2 MCP Server project.
  * It installs dependencies, configures Git hooks, and verifies the setup.
  */
@@ -14,7 +14,7 @@ const readline = require('readline');
 
 const rl = readline.createInterface({
   input: process.stdin,
-  output: process.stdout
+  output: process.stdout,
 });
 
 // ANSI color codes for better output
@@ -26,7 +26,7 @@ const colors = {
   yellow: '\x1b[33m',
   blue: '\x1b[34m',
   magenta: '\x1b[35m',
-  cyan: '\x1b[36m'
+  cyan: '\x1b[36m',
 };
 
 function log(message, color = 'reset') {
@@ -67,11 +67,11 @@ function runCommand(command, description, options = {}) {
 
 function checkPrerequisites() {
   logStep('1: Checking Prerequisites');
-  
+
   const requiredCommands = [
     { cmd: 'node', version: '--version', minVersion: '18.0.0' },
     { cmd: 'npm', version: '--version', minVersion: '8.0.0' },
-    { cmd: 'git', version: '--version', minVersion: '2.0.0' }
+    { cmd: 'git', version: '--version', minVersion: '2.0.0' },
   ];
 
   let allPrerequisitesMet = true;
@@ -80,9 +80,15 @@ function checkPrerequisites() {
     try {
       const versionOutput = execSync(`${cmd} ${version}`, { encoding: 'utf8' }).trim();
       logInfo(`${cmd}: ${versionOutput}`);
-      
+
       // Simple version check (could be enhanced)
-      if (cmd === 'node' && !versionOutput.includes('v18') && !versionOutput.includes('v19') && !versionOutput.includes('v20') && !versionOutput.includes('v21')) {
+      if (
+        cmd === 'node' &&
+        !versionOutput.includes('v18') &&
+        !versionOutput.includes('v19') &&
+        !versionOutput.includes('v20') &&
+        !versionOutput.includes('v21')
+      ) {
         logWarning(`${cmd} version might be too old. Recommended: ${minVersion}+`);
       }
     } catch (error) {
@@ -101,7 +107,7 @@ function checkPrerequisites() {
 
 function installDependencies() {
   logStep('2: Installing Dependencies');
-  
+
   if (!runCommand('npm ci', 'Installing dependencies')) {
     logError('Failed to install dependencies');
     process.exit(1);
@@ -110,7 +116,7 @@ function installDependencies() {
 
 function setupGitHooks() {
   logStep('3: Setting Up Git Hooks');
-  
+
   // Initialize Husky
   if (!runCommand('npx husky install', 'Initializing Husky')) {
     logWarning('Failed to initialize Husky, continuing...');
@@ -130,7 +136,7 @@ function setupGitHooks() {
 
 function buildProject() {
   logStep('4: Building Project');
-  
+
   if (!runCommand('npm run build', 'Building TypeScript project')) {
     logError('Failed to build project');
     process.exit(1);
@@ -139,7 +145,7 @@ function buildProject() {
 
 function runTests() {
   logStep('5: Running Tests');
-  
+
   if (!runCommand('npm run test', 'Running unit tests')) {
     logWarning('Some tests failed, but continuing setup...');
   }
@@ -147,28 +153,28 @@ function runTests() {
 
 function setupVSCode() {
   logStep('6: Setting Up VS Code Configuration');
-  
+
   const vscodeDir = path.join(process.cwd(), '.vscode');
-  
+
   if (!fs.existsSync(vscodeDir)) {
     fs.mkdirSync(vscodeDir, { recursive: true });
   }
 
   // Create VS Code settings
   const settings = {
-    "typescript.preferences.importModuleSpecifier": "relative",
-    "editor.formatOnSave": true,
-    "editor.defaultFormatter": "esbenp.prettier-vscode",
-    "editor.codeActionsOnSave": {
-      "source.fixAll.eslint": true,
-      "source.organizeImports": true
+    'typescript.preferences.importModuleSpecifier': 'relative',
+    'editor.formatOnSave': true,
+    'editor.defaultFormatter': 'esbenp.prettier-vscode',
+    'editor.codeActionsOnSave': {
+      'source.fixAll.eslint': true,
+      'source.organizeImports': true,
     },
-    "files.associations": {
-      "*.ahk": "autohotkey"
+    'files.associations': {
+      '*.ahk': 'autohotkey',
     },
-    "emmet.includeLanguages": {
-      "ahk": "html"
-    }
+    'emmet.includeLanguages': {
+      ahk: 'html',
+    },
   };
 
   const settingsPath = path.join(vscodeDir, 'settings.json');
@@ -177,16 +183,16 @@ function setupVSCode() {
 
   // Create VS Code extensions recommendation
   const extensions = {
-    "recommendations": [
-      "esbenp.prettier-vscode",
-      "dbaeumer.vscode-eslint",
-      "ms-vscode.vscode-typescript-next",
-      "bradlc.vscode-tailwindcss",
-      "ms-vscode.vscode-json",
-      "redhat.vscode-yaml",
-      "ms-vscode.vscode-markdown",
-      "autohotkey.autohotkey-plus"
-    ]
+    recommendations: [
+      'esbenp.prettier-vscode',
+      'dbaeumer.vscode-eslint',
+      'ms-vscode.vscode-typescript-next',
+      'bradlc.vscode-tailwindcss',
+      'ms-vscode.vscode-json',
+      'redhat.vscode-yaml',
+      'ms-vscode.vscode-markdown',
+      'autohotkey.autohotkey-plus',
+    ],
   };
 
   const extensionsPath = path.join(vscodeDir, 'extensions.json');
@@ -196,7 +202,7 @@ function setupVSCode() {
 
 function createEnvironmentFiles() {
   logStep('7: Creating Environment Files');
-  
+
   // Create .env.example if it doesn't exist
   const envExamplePath = path.join(process.cwd(), '.env.example');
   if (!fs.existsSync(envExamplePath)) {
@@ -215,7 +221,7 @@ AHK_MCP_DATA_MODE=light
 PORT=3000
 
 # AutoHotkey Configuration
-AHK_PATH=C:\\Program Files\\AutoHotkey\\v2\\AutoHotkey64.exe
+AHK_PATH=C:\\Users\\uphol\\Documents\\Design\\Coding\\AutoHotkey\\bin\\AutoHotkey64.exe
 
 # Development Settings
 AHK_MCP_DEV_MODE=true
@@ -251,28 +257,28 @@ PORT=3001
 
 function verifySetup() {
   logStep('8: Verifying Setup');
-  
+
   const checks = [
     {
       name: 'Node modules installed',
-      check: () => fs.existsSync(path.join(process.cwd(), 'node_modules'))
+      check: () => fs.existsSync(path.join(process.cwd(), 'node_modules')),
     },
     {
       name: 'TypeScript build successful',
-      check: () => fs.existsSync(path.join(process.cwd(), 'dist', 'index.js'))
+      check: () => fs.existsSync(path.join(process.cwd(), 'dist', 'index.js')),
     },
     {
       name: 'Git hooks installed',
-      check: () => fs.existsSync(path.join(process.cwd(), '.husky', 'pre-commit'))
+      check: () => fs.existsSync(path.join(process.cwd(), '.husky', 'pre-commit')),
     },
     {
       name: 'Environment files created',
-      check: () => fs.existsSync(path.join(process.cwd(), '.env'))
+      check: () => fs.existsSync(path.join(process.cwd(), '.env')),
     },
     {
       name: 'VS Code configuration created',
-      check: () => fs.existsSync(path.join(process.cwd(), '.vscode', 'settings.json'))
-    }
+      check: () => fs.existsSync(path.join(process.cwd(), '.vscode', 'settings.json')),
+    },
   ];
 
   let allChecksPassed = true;

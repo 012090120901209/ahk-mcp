@@ -13,6 +13,8 @@ import type { Diagnostic } from '../types/index.js';
 import { DiagnosticSeverity } from '../types/index.js';
 import type { McpToolResponse } from '../types/mcp-types.js';
 
+// Legacy unregistered tool preserved for reference and possible future reactivation.
+
 export const AhkAnalyzeUnifiedArgsSchema = z.object({
   code: z.string().min(1, 'AutoHotkey code is required').optional(),
   filePath: z

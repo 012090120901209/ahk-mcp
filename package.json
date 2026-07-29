@@ -4,19 +4,24 @@
   "description": "AutoHotkey v2 MCP Server with LSP-like capabilities",
   "main": "dist/index.js",
   "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
     "start": "node dist/index.js",
     "start:sse": "cross-env PORT=3000 node dist/index.js --sse",
     "start:chatgpt": "cross-env PORT=3000 node dist/index.js --sse",
     "dev": "set NODE_ENV=development && node dist/index.js",
-    "build": "npm run clean && tsc -p tsconfig.build.json",
+    "build": "npm run clean && node node_modules/typescript/bin/tsc -p tsconfig.build.json",
     "build:restart": "npm run build && npm run claude:restart",
-    "watch": "tsc -w",
+    "watch": "node node_modules/typescript/bin/tsc -w",
     "watch:restart": "npm run build:restart && npm run claude:watch",
     "clean": "rimraf dist",
-    "lint": "eslint src --ext .ts",
-    "lint:fix": "eslint src --ext .ts --fix",
-    "check:types": "tsc -p tsconfig.json --noEmit",
+    "lint": "npm run lint:maintained",
+    "lint:maintained": "eslint src --ext .ts --ignore-path .eslint.maintained.ignore",
+    "lint:fix": "eslint src --ext .ts --ignore-path .eslint.maintained.ignore --fix",
+    "lint:all": "eslint src --ext .ts",
+    "check:types": "node node_modules/typescript/bin/tsc -p tsconfig.json --noEmit",
     "lint-staged": "lint-staged",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
@@ -30,6 +35,8 @@
     "test:coverage:report": "npm run test:coverage && open coverage/index.html",
     "test:all": "npm run test:unit && npm run test:integration",
     "test:mcp": "node scripts/test-mcp-run.js",
+    "smoke:mcp": "node scripts/smoke-mcp.js",
+    "smoke:http": "node scripts/smoke-http-mcp.js",
     "debug:scan": "node scripts/scan-debug.js",
     "debug:start": "node scripts/start-debug.js",
     "claude:restart": "pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/restart-claude-hook.ps1 -Once",
@@ -37,17 +44,21 @@
     "spec:new": "node -e \"console.log('Create new spec from .specify/templates/spec-template.md')\"",
     "spec:plan": "node -e \"console.log('Create implementation plan from .specify/templates/plan-template.md')\"",
     "spec:tasks": "node -e \"console.log('Create task breakdown from .specify/templates/tasks-template.md')\"",
-    "spec:review": "node -e \"console.log('Review .specify/memory/constitution.md for compliance')\""
+    "spec:review": "node -e \"console.log('Review .specify/memory/constitution.md for compliance')\"",
+    "smoke:mcp:2026": "node scripts/smoke-mcp-2026.js"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^0.5.0",
+    "@modelcontextprotocol/node": "^2.0.0",
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "@modelcontextprotocol/server": "^2.0.0",
     "antlr4ng": "^3.0.16",
     "cors": "^2.8.5",
     "cross-spawn": "7.0.6",
-    "express": "^5.1.0",
+    "express": "^5.2.1",
+    "express-rate-limit": "^8.5.2",
     "flexsearch": "^0.7.43",
     "prom-client": "^15.1.1",
-    "zod": "^3.22.4",
+    "zod": "^3.25.76",
     "zod-to-json-schema": "^3.25.0"
   },
   "devDependencies": {
@@ -56,8 +67,8 @@
     "@types/express": "^5.0.3",
     "@types/jest": "^29.5.11",
     "@types/node": "^20.10.5",
-    "@typescript-eslint/eslint-plugin": "^6.15.0",
-    "@typescript-eslint/parser": "^6.15.0",
+    "@typescript-eslint/eslint-plugin": "^8.38.0",
+    "@typescript-eslint/parser": "^8.38.0",
     "cross-env": "^10.0.0",
     "dotenv": "^17.2.3",
     "eslint": "^8.56.0",
@@ -70,6 +81,6 @@
     "ts-jest": "^29.1.1",
     "ts-node": "^10.9.2",
     "tsx": "^4.20.6",
-    "typescript": "^5.3.3"
+    "typescript": "^5.8.3"
   }
 }

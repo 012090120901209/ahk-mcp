@@ -156,3 +156,15 @@ test-output/
 # Spec Kit - Archive remains in git
 # .specify/archive/ is tracked for historical reference.mcp.json
 memories.md
+
+# Vendored third-party checkouts.
+# Previously tracked as gitlinks (mode 160000) with no .gitmodules entry, so a fresh
+# clone got empty directories and `git submodule update --init` did nothing. Kept
+# locally, not tracked.
+#   CloudAHK              - unused; AHK_Cloud_Validate talks to CLOUDAHK_URL over HTTP
+#                           (docker run -p 8000:8000 cloudahk/cloudahk), never this dir.
+#   vscode-autohotkey2-lsp - server/dist/server.js was never built, so the LSP fallback
+#                           in resolveDefaultServerPath() always returned null. Point
+#                           AHK_THQBY_LSP_SERVER or thqbyLspServerPath at a real build.
+CloudAHK/
+vscode-autohotkey2-lsp/

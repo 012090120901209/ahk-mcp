@@ -2,6 +2,7 @@ export * from './BlockScope';
 export * from './CatchScope';
 export * from './ClassFieldInitializerScope';
 export * from './ClassScope';
+export * from './ClassStaticBlockScope';
 export * from './ConditionalTypeScope';
 export * from './ForScope';
 export * from './FunctionExpressionNameScope';
@@ -17,4 +18,3 @@ export * from './TSEnumScope';
 export * from './TSModuleScope';
 export * from './TypeScope';
 export * from './WithScope';
-//# sourceMappingURL=index.d.ts.map

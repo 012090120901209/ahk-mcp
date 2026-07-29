@@ -3,6 +3,8 @@ import path from 'path';
 import os from 'os';
 import logger from '../logger.js';
 
+const RETIRED_TOOL_NAMES = new Set(['AHK_Analyze_Unified', 'AHK_Memory_Context']);
+
 /**
  * Tool settings configuration
  * Controls which tools are enabled/disabled
@@ -15,10 +17,10 @@ export interface ToolSettings {
     AHK_File_Edit_Advanced: boolean;
     AHK_File_Edit_Small: boolean;
     AHK_File_View: boolean;
+    AHK_File_List: boolean;
     AHK_File_Detect: boolean;
     AHK_File_Active: boolean;
     AHK_File_Create: boolean;
-    AHK_Active_File: boolean;
     AHK_Process_Request: boolean;
     AHK_Alpha: boolean;
     AHK_VSCode_Open: boolean;
@@ -94,14 +96,12 @@ class ToolSettingsManager {
         AHK_File_Detect: true,
         AHK_File_Active: true,
         AHK_File_Create: true,
-        AHK_Active_File: true,
         AHK_Process_Request: true,
         AHK_Alpha: true,
 
         // Core tools - always enabled
         AHK_Diagnostics: true,
         AHK_Analyze: true,
-        AHK_Analyze_Unified: true,
         AHK_Run: true,
         AHK_Summary: true,
         AHK_Prompts: true,
@@ -148,6 +148,16 @@ class ToolSettingsManager {
           ...defaults.enabledTools,
           ...(loaded.enabledTools || {}),
         };
+        if (
+          loaded.enabledTools?.AHK_Active_File !== undefined &&
+          loaded.enabledTools?.AHK_File_Active === undefined
+        ) {
+          mergedEnabled.AHK_File_Active = Boolean(loaded.enabledTools.AHK_Active_File);
+        }
+        delete mergedEnabled.AHK_Active_File;
+        for (const retiredToolName of RETIRED_TOOL_NAMES) {
+          delete mergedEnabled[retiredToolName];
+        }
 
         return {
           ...defaults,
@@ -175,6 +185,10 @@ class ToolSettingsManager {
    * Check if a tool is enabled
    */
   isToolEnabled(toolName: string): boolean {
+    if (toolName === 'AHK_Active_File') {
+      return this.settings.enabledTools.AHK_File_Active;
+    }
+
     // Check specific tool setting
     if (toolName in this.settings.enabledTools) {
       return this.settings.enabledTools[toolName];
@@ -184,13 +198,22 @@ class ToolSettingsManager {
     return true;
   }
 
+  isToolAvailable(toolName: string): boolean {
+    if (toolName === 'AHK_Settings') {
+      return true;
+    }
+
+    return this.getDisabledMessage(toolName) === '';
+  }
+
   /**
    * Enable or disable a tool
    */
   setToolEnabled(toolName: string, enabled: boolean): void {
-    this.settings.enabledTools[toolName] = enabled;
+    const settingsToolName = toolName === 'AHK_Active_File' ? 'AHK_File_Active' : toolName;
+    this.settings.enabledTools[settingsToolName] = enabled;
     this.saveSettings();
-    logger.info(`Tool ${toolName} ${enabled ? 'enabled' : 'disabled'}`);
+    logger.info(`Tool ${settingsToolName} ${enabled ? 'enabled' : 'disabled'}`);
   }
 
   /**
@@ -211,7 +234,10 @@ class ToolSettingsManager {
    * Get all settings
    */
   getSettings(): ToolSettings {
-    return { ...this.settings };
+    return {
+      ...this.settings,
+      enabledTools: { ...this.settings.enabledTools },
+    };
   }
 
   /**
@@ -314,7 +340,7 @@ export function isToolEnabled(toolName: string): boolean {
 }
 
 export function checkToolAvailability(toolName: string): { enabled: boolean; message?: string } {
-  const enabled = toolSettings.isToolEnabled(toolName);
+  const enabled = toolSettings.isToolAvailable(toolName);
   if (!enabled) {
     return {
       enabled: false,

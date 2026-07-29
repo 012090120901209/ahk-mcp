@@ -73,7 +73,7 @@ Use when you want to:
 - See all detected paths in a message
 - Manually control active file setting
 
-### 3. `AHK_Active_File`
+### 3. `AHK_File_Active`
 
 **Get or set the current active file**
 

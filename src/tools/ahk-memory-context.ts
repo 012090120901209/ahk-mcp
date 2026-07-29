@@ -4,6 +4,8 @@ import * as path from 'path';
 import { McpToolResponse } from '../types/mcp-types.js';
 import { safeParse } from '../core/validation-middleware.js';
 
+// Legacy unregistered tool preserved for reference and possible future reactivation.
+
 export const MemoryContextArgsSchema = z.object({
   memory_type: z
     .enum(['common-issues', 'all'])

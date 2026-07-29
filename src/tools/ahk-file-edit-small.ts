@@ -449,7 +449,13 @@ export class AhkSmallEditTool {
         }
 
         try {
-          await fs.writeFile(absolutePath, result.newContent, 'utf-8');
+          // Preserve the file's original line endings (don't rewrite CRLF as LF),
+          // and write atomically via temp + rename.
+          const eol = original.includes('\r\n') ? '\r\n' : '\n';
+          const outContent = result.newContent.replace(/\r\n/g, '\n').replace(/\n/g, eol);
+          const tmpPath = `${absolutePath}.tmp-${process.pid}`;
+          await fs.writeFile(tmpPath, outContent, 'utf-8');
+          await fs.rename(tmpPath, absolutePath);
           reports.push(
             `[OK] ${absolutePath}: ${result.summary}${args.backup ? ' (backup saved as .bak)' : ''}`
           );

@@ -1,9 +1,4 @@
-import type {
-  EventId,
-  EventStore,
-  StreamId,
-} from '@modelcontextprotocol/sdk/server/streamableHttp.js';
-import type { JSONRPCMessage } from '@modelcontextprotocol/sdk/types.js';
+import type { EventId, EventStore, StreamId, JSONRPCMessage } from '@modelcontextprotocol/server';
 
 interface StoredEvent {
   streamId: StreamId;

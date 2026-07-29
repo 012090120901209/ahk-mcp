@@ -7,7 +7,7 @@
 
 import { z } from 'zod';
 import { LibraryCatalog, type SymbolSearchResult } from '../core/library-catalog.js';
-import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
+import type { CallToolResult } from '@modelcontextprotocol/server';
 import { safeParse } from '../core/validation-middleware.js';
 
 /**

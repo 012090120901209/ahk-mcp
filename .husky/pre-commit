@@ -4,7 +4,11 @@ echo "🔍 Running pre-commit checks..."
 echo "📝 Running lint-staged..."
 
 # Prefer local install, but still works via npx if needed
-npx lint-staged
+# --config pins lint-staged to this repo's config. Without it, lint-staged v16
+# discovers per-directory configs shipped inside node_modules packages and runs
+# their tasks over vendored files, which SIGKILLs when node_modules is staged
+# (this repo vendors node_modules).
+npx lint-staged --config .lintstagedrc.cjs
 
 # Run type checking
 echo "🔷 Running TypeScript type checking..."

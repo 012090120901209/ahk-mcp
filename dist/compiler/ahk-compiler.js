@@ -51,16 +51,16 @@ export class AhkCompiler {
             };
         }
         catch (error) {
-            const parseError = error;
+            const message = error instanceof Error ? error.message : 'Parse error';
+            const line = error instanceof Error && 'line' in error && typeof error.line === 'number'
+                ? error.line
+                : 1;
+            const column = error instanceof Error && 'column' in error && typeof error.column === 'number'
+                ? error.column
+                : 1;
             return {
                 success: false,
-                errors: [
-                    {
-                        message: parseError.message || 'Parse error',
-                        line: parseError.line || 1,
-                        column: parseError.column || 1,
-                    },
-                ],
+                errors: [{ message, line, column }],
             };
         }
     }
@@ -236,7 +236,7 @@ export class AhkCompiler {
                     }
                     if (stmt.cases && Array.isArray(stmt.cases)) {
                         // Handle switch cases if they have bodies
-                        stmt.cases.forEach((c) => {
+                        stmt.cases.forEach(c => {
                             if (c.body)
                                 countNodes(c.body);
                         });
