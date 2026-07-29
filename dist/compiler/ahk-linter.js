@@ -3,7 +3,7 @@
  * Detects semantic errors, style issues, and potential problems
  */
 import { AhkLexer, TokenType } from './ahk-lexer.js';
-import { AhkParser, ParseError } from './ahk-parser.js';
+import { AhkParser, ParseError, } from './ahk-parser.js';
 export class AhkLinter {
     constructor(source) {
         this.ast = null;

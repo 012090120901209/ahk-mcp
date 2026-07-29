@@ -110,9 +110,11 @@ disable individual tools** and control various features of the MCP server.
 - `AHK_File_Edit_Diff` - Diff patch application
 - `AHK_File_Active` - Active file management
 - `AHK_File_Detect` - Automatic file detection
-- `AHK_Active_File` - Legacy active file tool
 - `AHK_Process_Request` - Multi-line request processing
 - `AHK_File_Edit_Small` - Lightweight line/pattern edits
+
+Legacy compatibility note: `AHK_Active_File` is still accepted as a hidden alias
+for `AHK_File_Active`, but it is no longer advertised in tool discovery.
 
 ### Core Tools (Always enabled)
 
@@ -169,7 +171,6 @@ Settings are persisted in:
     "AHK_File_Edit_Diff": true,
     "AHK_File_Active": true,
     "AHK_File_Detect": true,
-    "AHK_Active_File": true,
     "AHK_Process_Request": true,
     "AHK_File_Edit_Small": true
   },

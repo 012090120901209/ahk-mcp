@@ -1,0 +1,4 @@
+node_modules/
+dist/
+CloudAHK/
+vscode-autohotkey2-lsp/

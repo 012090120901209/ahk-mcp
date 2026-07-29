@@ -10,6 +10,7 @@ import { activeFile, autoDetect } from '../core/active-file.js';
 import { loadConfig, resolveAutoHotkeyPath } from '../core/config.js';
 import { createErrorResponse } from '../utils/response-helpers.js';
 import { processManager } from '../core/process-manager.js';
+import { getCurrentAbortSignal } from '../core/mcp-request-context.js';
 import { safeParse } from '../core/validation-middleware.js';
 import type { McpToolResponse } from '../types/mcp-types.js';
 
@@ -174,7 +175,7 @@ export class AhkRunTool {
               },
             });
           }
-        } catch (err) {
+        } catch {
           // Process might not exist or have no window yet
         }
 
@@ -438,6 +439,7 @@ export class AhkRunTool {
             cwd: options.cwd || path.dirname(scriptPath),
             windowsHide: false,
             stdio: ['ignore', 'pipe', 'pipe'],
+            signal: getCurrentAbortSignal(),
           });
 
           // Register process with global manager
@@ -520,6 +522,7 @@ export class AhkRunTool {
           cwd: options.cwd || path.dirname(scriptPath),
           windowsHide: true,
           stdio: ['ignore', 'pipe', 'pipe'],
+          signal: getCurrentAbortSignal(),
         });
 
         // Register process with global manager

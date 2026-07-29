@@ -1,5 +1,8 @@
 # Tool Chain Renaming Plan
 
+> Historical note: this plan predates the current tool naming cleanup. Treat it
+> as design history, not as the authoritative live tool map.
+
 ## 🎯 **Proposed File & Tool Renaming Strategy**
 
 ### **PHASE 1: File Operations Chain** (`ahk-file-*`)

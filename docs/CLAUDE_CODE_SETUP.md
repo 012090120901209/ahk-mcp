@@ -21,7 +21,7 @@ cd "C:\path\to\ahk-mcp"
 # Add the MCP server to Claude Code
 claude mcp add autohotkey-v2 \
   --env NODE_ENV=production \
-  --env AHK_MCP_DATA_McsffafODE=full \
+  --env AHK_MCP_DATA_MODE=full \
   --env AHK_MCP_LIGHT=0 \
   -- node dist/index.js
 ```
@@ -74,7 +74,7 @@ Once configured, Claude Code will have access to these AutoHotkey tools:
 
 - `AHK_Run` - Run AutoHotkey scripts (with window detection!)
 - `AHK_Analyze` - Analyze AutoHotkey code syntax
-- `ahk_complete` - Get code completion suggestions
+- `AHK_LSP` - Get language-server style completions and diagnostics
 - `AHK_Diagnostics` - Check for code issues
 
 ### 📝 Documentation Tools
@@ -88,7 +88,7 @@ Once configured, Claude Code will have access to these AutoHotkey tools:
 - `AHK_Debug_Agent` - Debug assistance
 - `AHK_VSCode_Problems` - VS Code integration
 - `AHK_Config` - Configuration management
-- `AHK_Active_File` - Active file tracking
+- `AHK_File_Active` - Active file tracking
 
 ### 📋 Utility Tools
 
@@ -117,8 +117,8 @@ Once configured, Claude Code will have access to these AutoHotkey tools:
     "wait": false,
     "detectWindow": true,
     "windowDetectTimeout": 5000
+  }
 }
-
 ```
 
 ## Troubleshooting

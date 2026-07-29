@@ -18,6 +18,7 @@ import { activeFile } from '../core/active-file.js';
 import { resolveAutoHotkeyPath } from '../core/config.js';
 import { safeParse } from '../core/validation-middleware.js';
 import { createErrorResponse } from '../utils/response-helpers.js';
+import { checkCache, type CachedCheckResult } from '../core/check-cache.js';
 
 const execAsync = promisify(exec);
 
@@ -49,6 +50,11 @@ export const AhkCloudValidateArgsSchema = z.object({
     .max(60000)
     .default(5000)
     .describe('Execution timeout in milliseconds (default: 5000)'),
+
+  bypassCache: z
+    .boolean()
+    .optional()
+    .describe('Skip the check-result cache and force a fresh AutoHotkey spawn.'),
 });
 
 export type AhkCloudValidateArgs = z.infer<typeof AhkCloudValidateArgsSchema>;
@@ -106,6 +112,10 @@ export const ahkCloudValidateToolDefinition = {
         minimum: 1000,
         maximum: 60000,
         description: 'Execution timeout in milliseconds',
+      },
+      bypassCache: {
+        type: 'boolean',
+        description: 'Skip the check-result cache and force a fresh spawn',
       },
     },
   },
@@ -544,7 +554,15 @@ export class AhkCloudValidateTool {
       return parsed.error;
     }
 
-    const { mode, code, filePath, enabled, ahkPath: providedAhkPath, timeout } = parsed.data;
+    const {
+      mode,
+      code,
+      filePath,
+      enabled,
+      ahkPath: providedAhkPath,
+      timeout,
+      bypassCache,
+    } = parsed.data;
 
     // Find AHK executable
     let ahkPath = providedAhkPath;
@@ -626,6 +644,7 @@ export class AhkCloudValidateTool {
 
     // Handle validate mode (one-shot)
     let codeToValidate = code;
+    let cacheablePath: string | undefined;
     if (!codeToValidate) {
       const fallbackPath = filePath || activeFile.getActiveFile();
       if (!fallbackPath) {
@@ -643,11 +662,42 @@ export class AhkCloudValidateTool {
         return createErrorResponse(`File not found: ${resolvedPath}`);
       }
 
+      cacheablePath = resolvedPath;
       codeToValidate = await fs.readFile(resolvedPath, 'utf-8');
+    }
+
+    // Cache hit: rebuild a ValidateResult envelope from the cached check
+    // result so the tool's response shape stays stable.
+    if (cacheablePath && !bypassCache) {
+      const cached = checkCache.get(cacheablePath);
+      if (cached) {
+        const cachedResult = this.buildValidateResultFromCache(cached);
+        const textOutput = this.formatResult(cachedResult);
+        logger.info(`Validate (cached): ${cachedResult.summary}`);
+        return {
+          content: [
+            { type: 'text', text: textOutput },
+            {
+              type: 'text',
+              text: `\n**Details:**\n\`\`\`json\n${JSON.stringify(cachedResult, null, 2)}\n\`\`\``,
+            },
+          ],
+        };
+      }
     }
 
     const result = await this.validateCode(codeToValidate, ahkPath, timeout ?? 5000);
     const textOutput = this.formatResult(result);
+
+    if (cacheablePath) {
+      const entry: CachedCheckResult = {
+        ok: result.success,
+        stdout: result.output,
+        stderr: result.stderr,
+        exitCode: result.exitCode ?? -1,
+      };
+      checkCache.set(cacheablePath, entry);
+    }
 
     logger.info(`Validate: ${result.summary}`);
 
@@ -659,6 +709,35 @@ export class AhkCloudValidateTool {
           text: `\n**Details:**\n\`\`\`json\n${JSON.stringify(result, null, 2)}\n\`\`\``,
         },
       ],
+    };
+  }
+
+  /**
+   * Reconstruct a `ValidateResult` envelope from a cached check so cache
+   * hits return the same response shape as fresh spawns.
+   */
+  private buildValidateResultFromCache(cached: CachedCheckResult): ValidateResult {
+    const combinedOutput = (cached.stdout + '\n' + cached.stderr).trim();
+    const errors = parseErrors(combinedOutput);
+    const success = cached.ok && cached.exitCode === 0 && errors.length === 0;
+    let summary: string;
+    if (success) {
+      summary = 'Code validated successfully (cached)';
+    } else if (errors.length > 0) {
+      const errorTypes = [...new Set(errors.map(e => e.type))];
+      summary = `Found ${errors.length} error(s): ${errorTypes.join(', ')} (cached)`;
+    } else {
+      summary = `Exited with code ${cached.exitCode} (cached)`;
+    }
+    return {
+      success,
+      output: cached.stdout.slice(0, 5000),
+      stderr: cached.stderr.slice(0, 5000),
+      exitCode: cached.exitCode,
+      executionTime: 0,
+      timedOut: false,
+      errors,
+      summary,
     };
   }
 

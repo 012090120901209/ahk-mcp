@@ -8,6 +8,7 @@ const INTEGRATION_TEST_TIMEOUT = 60000;
 
 // Global test server instance
 let testServer: ChildProcess | null = null;
+const streamableSessions = new Map<string, string>();
 
 // Extend global interface for integration test helpers
 declare global {
@@ -39,16 +40,16 @@ global.integrationHelpers = {
           ...process.env,
           NODE_ENV: 'test',
           PORT: INTEGRATION_TEST_PORT.toString(),
-          AHK_MCP_LOG_LEVEL: 'error'
+          AHK_MCP_LOG_LEVEL: 'error',
         },
-        stdio: 'pipe'
+        stdio: 'pipe',
       });
 
-      testServer.on('error', (error) => {
+      testServer.on('error', error => {
         reject(new Error(`Failed to start test server: ${error.message}`));
       });
 
-      testServer.on('exit', (code) => {
+      testServer.on('exit', code => {
         if (code !== 0) {
           console.error(`Test server exited with code ${code}`);
         }
@@ -81,23 +82,27 @@ global.integrationHelpers = {
 
   stopTestServer: async () => {
     if (testServer) {
-      return new Promise((resolve) => {
+      return new Promise(resolve => {
         testServer!.on('exit', () => {
           testServer = null;
+          streamableSessions.clear();
           resolve();
         });
         testServer!.kill('SIGTERM');
-        
+
         // Force kill if it doesn't exit gracefully
         setTimeout(() => {
           if (testServer) {
             testServer.kill('SIGKILL');
             testServer = null;
           }
+          streamableSessions.clear();
           resolve();
         }, 5000);
       });
     }
+
+    streamableSessions.clear();
   },
 
   createTestAHKFile: (content: string, filename?: string) => {
@@ -120,20 +125,20 @@ global.integrationHelpers = {
 
   waitForServer: async (url: string, timeout = 5000) => {
     const startTime = Date.now();
-    
+
     while (Date.now() - startTime < timeout) {
       try {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 1000);
-        
-        const response = await fetch(`${url}/health`, {
+
+        const response = await fetch(`${url}/mcp`, {
           method: 'GET',
-          signal: controller.signal
+          signal: controller.signal,
         });
-        
+
         clearTimeout(timeoutId);
-        
-        if (response.ok) {
+
+        if (response.ok || response.status === 400) {
           return true;
         }
       } catch {
@@ -145,20 +150,32 @@ global.integrationHelpers = {
   },
 
   makeMCPRequest: async (url: string, request: any) => {
+    const sessionId = streamableSessions.get(url);
     const response = await fetch(`${url}/mcp`, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json'
+        Accept: 'application/json, text/event-stream',
+        'Content-Type': 'application/json',
+        ...(sessionId ? { 'mcp-session-id': sessionId } : {}),
       },
-      body: JSON.stringify(request)
+      body: JSON.stringify(request),
     });
 
-    if (!response.ok) {
-      throw new Error(`MCP request failed: ${response.status} ${response.statusText}`);
+    const nextSessionId = response.headers.get('mcp-session-id');
+    if (nextSessionId) {
+      streamableSessions.set(url, nextSessionId);
     }
 
-    return response.json();
-  }
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(
+        `MCP request failed: ${response.status} ${response.statusText} ${errorText}`.trim()
+      );
+    }
+
+    const text = await response.text();
+    return text ? JSON.parse(text) : {};
+  },
 };
 
 // Setup and teardown

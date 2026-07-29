@@ -37,6 +37,27 @@ export const ahkAnalyticsToolDefinition = {
       },
     },
   },
+  outputSchema: {
+    type: 'object',
+    properties: {
+      kind: {
+        type: 'string',
+        enum: ['summary', 'tool_stats', 'recent', 'export', 'clear', 'error'],
+      },
+      action: { type: 'string' },
+      message: { type: 'string' },
+      totalCalls: { type: 'number' },
+      uniqueTools: { type: 'number' },
+      overallSuccessRate: { type: 'number' },
+      averageDuration: { type: 'number' },
+      topTools: { type: 'array', items: { type: 'object' } },
+      problematicTools: { type: 'array', items: { type: 'object' } },
+      stats: { type: 'object' },
+      metrics: { type: 'array', items: { type: 'object' } },
+      data: { type: 'object' },
+    },
+    required: ['kind', 'action'],
+  },
 };
 
 export class AhkAnalyticsTool {
@@ -50,10 +71,19 @@ export class AhkAnalyticsTool {
       logger.info(`Analytics action: ${action}`);
 
       let response = '';
+      let structuredContent: Record<string, unknown> = {
+        kind: action,
+        action,
+      };
 
       switch (action) {
         case 'summary': {
           const summary = toolAnalytics.getSummary();
+          structuredContent = {
+            kind: 'summary',
+            action,
+            ...summary,
+          };
           response = `# Tool Usage Analytics Summary\n\n`;
           response += `## Overall Statistics\n`;
           response += `- **Total Calls:** ${summary.totalCalls}\n`;
@@ -88,6 +118,12 @@ export class AhkAnalyticsTool {
                   text: 'Error: toolName parameter required for tool_stats action',
                 },
               ],
+              structuredContent: {
+                kind: 'error',
+                action,
+                message: 'toolName parameter required for tool_stats action',
+              },
+              isError: true,
             };
           }
 
@@ -100,9 +136,29 @@ export class AhkAnalyticsTool {
                   text: `No statistics found for tool: ${toolName}`,
                 },
               ],
+              structuredContent: {
+                kind: 'tool_stats',
+                action,
+                message: `No statistics found for tool: ${toolName}`,
+                stats: {},
+              },
             };
           }
 
+          structuredContent = {
+            kind: 'tool_stats',
+            action,
+            stats: {
+              toolName,
+              totalCalls: stats.totalCalls,
+              successfulCalls: stats.successfulCalls,
+              failedCalls: stats.failedCalls,
+              successRate: (stats.successfulCalls / stats.totalCalls) * 100,
+              averageDuration: stats.averageDuration,
+              lastUsed: stats.lastUsed,
+              commonErrors: Object.fromEntries(stats.commonErrors),
+            },
+          };
           response = `# Statistics for ${toolName}\n\n`;
           response += `## Usage Metrics\n`;
           response += `- **Total Calls:** ${stats.totalCalls}\n`;
@@ -125,9 +181,14 @@ export class AhkAnalyticsTool {
 
         case 'recent': {
           const recent = toolAnalytics.getRecentMetrics(limit);
+          structuredContent = {
+            kind: 'recent',
+            action,
+            metrics: [...recent].reverse(),
+          };
           response = `# Recent Tool Calls (Last ${recent.length})\n\n`;
 
-          recent.reverse().forEach((metric, index) => {
+          [...recent].reverse().forEach((metric, index) => {
             const status = metric.success ? '[OK]' : '[ERROR]';
             const timestamp = new Date(metric.timestamp).toISOString();
             response += `${index + 1}. ${status} **${metric.toolName}** - ${metric.duration}ms (${timestamp})\n`;
@@ -139,14 +200,24 @@ export class AhkAnalyticsTool {
         }
 
         case 'export': {
-          const exportData = toolAnalytics.exportMetrics();
+          const exportData = JSON.parse(toolAnalytics.exportMetrics()) as Record<string, unknown>;
+          structuredContent = {
+            kind: 'export',
+            action,
+            data: exportData,
+          };
           response = `# Exported Analytics Data\n\n`;
-          response += `\`\`\`json\n${exportData}\n\`\`\``;
+          response += `\`\`\`json\n${JSON.stringify(exportData, null, 2)}\n\`\`\``;
           break;
         }
 
         case 'clear': {
           toolAnalytics.clear();
+          structuredContent = {
+            kind: 'clear',
+            action,
+            message: 'All tool usage analytics have been cleared.',
+          };
           response = `# Analytics Cleared\n\nAll tool usage analytics have been cleared.`;
           break;
         }
@@ -159,16 +230,24 @@ export class AhkAnalyticsTool {
             text: response,
           },
         ],
+        structuredContent,
       };
     } catch (error) {
       logger.error('Error in analytics tool:', error);
+      const message = error instanceof Error ? error.message : 'Unknown error';
       return {
         content: [
           {
             type: 'text',
-            text: `Error: ${error instanceof Error ? error.message : 'Unknown error'}`,
+            text: `Error: ${message}`,
           },
         ],
+        structuredContent: {
+          kind: 'error',
+          action: 'unknown',
+          message,
+        },
+        isError: true,
       };
     }
   }

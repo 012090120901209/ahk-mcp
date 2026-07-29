@@ -235,7 +235,7 @@ export class AhkWorkflowAnalyzeFixRunTool {
         const fixedCode = fixedCodeMatch ? fixedCodeMatch[1] : fileContent;
 
         // Count fixes from LSP output
-        const fixesMatch = lspText.match(/Fixes applied: (\d+)/);
+        const fixesMatch = lspText.match(/Applied (\d+) fixes/);
         const fixesCount = fixesMatch ? parseInt(fixesMatch[1], 10) : 0;
 
         if (fixesCount > 0 && !dryRun) {

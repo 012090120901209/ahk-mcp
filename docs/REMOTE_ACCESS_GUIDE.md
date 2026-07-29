@@ -1,5 +1,11 @@
 # Remote Access Guide - AHK MCP Server
 
+> **Protocol update (July 2026):** Streamable HTTP at `/mcp` is the supported
+> remote transport. The SSE instructions below are retained only for legacy
+> clients and require `AHK_MCP_LEGACY_SSE=1`. For current host binding, Origin,
+> bearer-token, and rate-limit settings, use
+> [MCP Transport Compatibility](MCP_TRANSPORT_COMPATIBILITY.md).
+
 **Date:** October 20, 2025 **Purpose:** Configure Claude Desktop and remote
 access via SSE/HTTPS
 

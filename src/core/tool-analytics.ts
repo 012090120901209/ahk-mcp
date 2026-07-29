@@ -10,6 +10,7 @@ export interface ToolCallMetrics {
   errorMessage?: string;
   traceId?: string;
   spanId?: string;
+  resultPreview?: string;
 }
 
 export interface ToolStats {
@@ -29,7 +30,13 @@ class ToolAnalytics {
   /**
    * Record a tool call
    */
-  recordCall(toolName: string, success: boolean, duration: number, error?: Error): void {
+  recordCall(
+    toolName: string,
+    success: boolean,
+    duration: number,
+    error?: Error,
+    resultPreview?: string
+  ): void {
     // Capture current trace context
     const context = tracer.getCurrentContext();
 
@@ -42,6 +49,7 @@ class ToolAnalytics {
       errorMessage: error?.message,
       traceId: context?.traceId,
       spanId: context?.spanId,
+      resultPreview: resultPreview?.slice(0, 500),
     };
 
     this.metrics.push(metric);

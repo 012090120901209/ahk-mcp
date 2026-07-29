@@ -1,14 +1,24 @@
 import { spawn } from 'node:child_process';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const repoRoot = path.resolve(__dirname, '..');
 
 function nextId() {
   return Math.random().toString(36).slice(2);
 }
 
 async function main() {
-  const ahkExe = 'C\\\\Program Files\\\\AutoHotkey\\\\v2\\\\AutoHotkey64.exe';
-  const script = 'C:\\\\path\\\\to\\\\your\\\\test-script.ahk';
+  const ahkExe =
+    'C:\\\\Users\\\\uphol\\\\Documents\\\\Design\\\\Coding\\\\AutoHotkey\\\\bin\\\\AutoHotkey64.exe';
+  const script = path.join(repoRoot, 'Tests', 'manual', 'test-run-ok.ahk');
 
-  const child = spawn('node', ['dist/index.js'], { stdio: ['pipe', 'pipe', 'inherit'] });
+  const child = spawn('node', ['dist/index.js'], {
+    cwd: repoRoot,
+    stdio: ['pipe', 'pipe', 'inherit'],
+  });
 
   function send(msg) {
     child.stdin.write(JSON.stringify(msg) + '\n');
@@ -36,9 +46,14 @@ async function main() {
     jsonrpc: '2.0',
     id: initId,
     method: 'initialize',
-    params: { clientInfo: { name: 'local-test', version: '0.0.0' } },
+    params: {
+      protocolVersion: '2025-11-25',
+      capabilities: {},
+      clientInfo: { name: 'local-test', version: '0.0.0' },
+    },
   });
   await onceMessage();
+  send({ jsonrpc: '2.0', method: 'notifications/initialized', params: {} });
 
   // List tools
   const listId = nextId();
@@ -55,7 +70,7 @@ async function main() {
     jsonrpc: '2.0',
     id: setActId,
     method: 'tools/call',
-    params: { name: 'AHK_Active_File', arguments: { action: 'set', filePath: script } },
+    params: { name: 'AHK_File_Active', arguments: { action: 'set', path: script } },
   });
   await onceMessage();
 

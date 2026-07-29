@@ -1,5 +1,9 @@
 # MCP Tool Reliability Improvements
 
+> Historical note: this is a dated implementation record. Some file names and
+> tool names below refer to earlier compatibility layers rather than the current
+> live MCP surface.
+
 **Date:** 2025-10-01 **Status:** Completed
 
 ## Summary

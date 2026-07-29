@@ -81,43 +81,45 @@
 ```
 AUTOHOTKEY MCP SERVER
 │
-├─ 📊 ANALYSIS (7 tools)
+├─ 📊 ANALYSIS
 │  ├─ AHK_Analyze ........................ Break down code structure
 │  ├─ AHK_Diagnostics ................... Find errors & issues
 │  ├─ AHK_LSP ........................... Language server features
+│  ├─ AHK_Lint .......................... Fast linting and auto-fix support
 │  ├─ AHK_Summary ....................... Quick overview
 │  ├─ AHK_VSCode_Problems ............... Format for VS Code
-│  ├─ AHK_Analyze_Complete .............. Comprehensive analysis
-│  └─ AHK_Analyze_Diagnostics ........... Detailed error checking
+│  └─ AHK_THQBY_Document_Symbols ........ External LSP symbol extraction
 │
-├─ 📚 DOCUMENTATION (6 tools)
+├─ 📚 DOCUMENTATION
 │  ├─ AHK_Doc_Search .................... Find function docs
-│  ├─ AHK_Docs_Samples .................. Show code examples
-│  ├─ AHK_Docs_Prompts .................. Pre-made prompts
-│  ├─ AHK_Docs_Context .................. Inject context
-│  ├─ AHK_Memory_Context ................ Remember patterns
-│  └─ AHK_Context_Injector .............. Smart context selection
+│  ├─ AHK_Sampling_Enhancer ............. Show richer code examples
+│  ├─ AHK_Prompts ....................... Pre-made prompts
+│  └─ AHK_Context_Injector .............. Inject relevant context
 │
-├─ 📁 FILE MANAGEMENT (7 tools)
+├─ 📁 FILE MANAGEMENT
 │  ├─ AHK_File_View ..................... Read file contents
 │  ├─ AHK_File_Edit ..................... Modify files
-│  ├─ AHK_File_Create ................... Create new scripts
+│  ├─ AHK_File_Edit_Small ............... Lightweight edits
 │  ├─ AHK_File_Edit_Advanced ............ Smart editing
-│  ├─ AHK_File_Edit_Diff ................ Apply patches
+│  ├─ AHK_File_Create ................... Create new scripts
+│  ├─ AHK_File_List ..................... Enumerate files
+│  ├─ AHK_File_Detect ................... Detect file paths
 │  ├─ AHK_File_Recent ................... List recent files
-│  └─ AHK_Active_File ................... Track current file
+│  └─ AHK_File_Active ................... Track current file
 │
-├─ ⚙️ SCRIPT EXECUTION (4 tools)
+├─ ⚙️ SCRIPT EXECUTION
 │  ├─ AHK_Run ........................... Execute & test
-│  ├─ AHK_Run_Debug ..................... Debug mode
-│  ├─ AHK_Run_Process ................... Process management
+│  ├─ AHK_Debug_Agent ................... Debug adapter capture
+│  ├─ AHK_Debug_DBGp .................... Step debugger
+│  ├─ AHK_Cloud_Validate ................ Validate scripts remotely
 │  └─ AHK_Test_Interactive .............. Interactive testing
 │
-└─ 🔧 SYSTEM & CONFIG (5+ tools)
+└─ 🔧 SYSTEM & WORKFLOW
    ├─ AHK_Config ........................ Show settings
-   ├─ AHK_System_Settings ............... Configure behavior
-   ├─ AHK_System_Analytics .............. Track usage
-   ├─ AHK_System_Alpha .................. Experimental features
+   ├─ AHK_Settings ...................... Configure behavior
+   ├─ AHK_Analytics ..................... Track usage
+   ├─ AHK_Tools_Search .................. Discover tools
+   ├─ AHK_Workflow_Analyze_Fix_Run ...... Analyze/fix/run workflow
    ├─ AHK_Library_List .................. Browse libraries
    └─ AHK_Smart_Orchestrator ............ Auto-select tools
 ```
@@ -141,7 +143,7 @@ Step 2: CLAUDE GATHERS CONTEXT
    ├─→ Uses AHK_Doc_Search
    │   └─ Finds "OnClipboardChanged" function
    │
-   ├─→ Uses AHK_Docs_Samples
+   ├─→ Uses AHK_Sampling_Enhancer
    │   └─ Gets example code for clipboard monitoring
    │
    ├─→ Uses AHK_Context_Injector

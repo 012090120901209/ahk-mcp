@@ -89,7 +89,7 @@ const summarizers: Record<string, Summarizer> = {
     resultLine: extractRunSummary(result),
   }),
 
-  AHK_Run_Debug: (args, result) => ({
+  AHK_Debug_Agent: (args, result) => ({
     argLines: [args.filePath ? `file: ${path.basename(String(args.filePath))}` : ''],
     resultLine: extractRunSummary(result),
   }),
@@ -100,7 +100,7 @@ const summarizers: Record<string, Summarizer> = {
     resultLine: extractAnalyzeSummary(result),
   }),
 
-  AHK_Analyze_Complete: (args, result) => ({
+  AHK_Workflow_Analyze_Fix_Run: (args, result) => ({
     argLines: [args.filePath ? `file: ${path.basename(String(args.filePath))}` : ''],
     resultLine: extractAnalyzeSummary(result),
   }),
@@ -111,8 +111,8 @@ const summarizers: Record<string, Summarizer> = {
     resultLine: extractDocSummary(result),
   }),
 
-  AHK_Docs_Context: (args, result) => ({
-    argLines: [args.topic ? `topic: "${args.topic}"` : ''],
+  AHK_Context_Injector: (args, result) => ({
+    argLines: [args.userPrompt ? `prompt: "${String(args.userPrompt).slice(0, 40)}"` : ''],
     resultLine: extractDocSummary(result),
   }),
 

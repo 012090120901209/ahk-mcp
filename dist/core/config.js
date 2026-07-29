@@ -2,6 +2,37 @@ import fs from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
 import logger from '../logger.js';
+import { getCurrentRootDirectories } from './mcp-request-context.js';
+const NOISY_PROJECT_DIRECTORIES = new Set([
+    'node_modules',
+    '.git',
+    '.history',
+    'dist',
+    'build',
+    'coverage',
+    'logs',
+    'tmp',
+    'temp',
+]);
+const MIN_HINT_TOKEN_LENGTH = 3;
+const PROJECT_MATCH_LIMIT = 6;
+const PREFERRED_LOCAL_AHK_EXECUTABLES = [
+    'C:\\Users\\uphol\\Documents\\Design\\Coding\\AutoHotkey\\bin\\AutoHotkey64.exe',
+    'C:\\Users\\uphol\\Documents\\Design\\Coding\\AutoHotkey\\bin\\AutoHotkey32.exe',
+    'C:\\Users\\uphol\\Documents\\Design\\Coding\\AutoHotkey\\bin\\AutoHotkey_L.exe',
+];
+const PROGRAM_FILES_AHK_EXECUTABLES = [
+    'C:\\Program Files\\AutoHotkey\\v2\\AutoHotkey64.exe',
+    'C:\\Program Files\\AutoHotkey\\v2\\AutoHotkey.exe',
+    'C:\\Program Files (x86)\\AutoHotkey\\v2\\AutoHotkey64.exe',
+    'C:\\Program Files (x86)\\AutoHotkey\\v2\\AutoHotkey.exe',
+];
+const LOCAL_AHK_BIN_RELATIVE_CANDIDATES = [
+    ['AutoHotkey', 'bin', 'AutoHotkey64.exe'],
+    ['AutoHotkey', 'bin', 'AutoHotkey.exe'],
+    ['Autohotkey', 'bin', 'Autohotkey64.exe'],
+    ['Autohotkey', 'bin', 'Autohotkey.exe'],
+];
 function getConfigDir() {
     const override = process.env.AHK_MCP_CONFIG_DIR;
     if (override && override.trim().length > 0) {
@@ -54,6 +85,7 @@ export function normalizeDir(input) {
 export function resolveSearchDirs(argsScriptDir, argsExtraDirs) {
     const cfg = loadConfig();
     const envDir = process.env.AHK_MCP_SCRIPT_DIR;
+    const requestRoots = getCurrentRootDirectories();
     const dirs = [];
     const add = (d) => {
         const nd = normalizeDir(d);
@@ -65,6 +97,7 @@ export function resolveSearchDirs(argsScriptDir, argsExtraDirs) {
     add(argsScriptDir);
     add(cfg.scriptDir);
     add(envDir);
+    requestRoots.forEach(add);
     // Additional search directories
     (argsExtraDirs || []).forEach(add);
     (cfg.searchDirs || []).forEach(add);
@@ -73,6 +106,253 @@ export function resolveSearchDirs(argsScriptDir, argsExtraDirs) {
         add(process.cwd());
     }
     return dirs;
+}
+function isExistingDirectory(candidate) {
+    const normalized = normalizeDir(candidate);
+    if (!normalized || !fs.existsSync(normalized)) {
+        return false;
+    }
+    try {
+        return fs.statSync(normalized).isDirectory();
+    }
+    catch {
+        return false;
+    }
+}
+function isExistingFile(candidate) {
+    const normalized = normalizeDir(candidate);
+    if (!normalized || !fs.existsSync(normalized)) {
+        return false;
+    }
+    try {
+        return fs.statSync(normalized).isFile();
+    }
+    catch {
+        return false;
+    }
+}
+function pushUniqueDirectory(directories, candidate) {
+    if (!isExistingDirectory(candidate)) {
+        return;
+    }
+    const normalized = path.resolve(candidate);
+    if (!directories.includes(normalized)) {
+        directories.push(normalized);
+    }
+}
+function pushUniqueFile(paths, candidate) {
+    const normalized = normalizeDir(candidate);
+    if (!normalized) {
+        return;
+    }
+    const resolved = path.resolve(normalized);
+    if (!paths.includes(resolved)) {
+        paths.push(resolved);
+    }
+}
+function pushLocalAhkBinCandidates(paths, baseDir) {
+    for (const candidateParts of LOCAL_AHK_BIN_RELATIVE_CANDIDATES) {
+        pushUniqueFile(paths, path.join(baseDir, ...candidateParts));
+    }
+}
+export function getAutoHotkeyExecutableCandidates(options = {}) {
+    const candidates = [];
+    const cwd = normalizeDir(options.cwd) || process.cwd();
+    const includeConfiguredPath = options.includeConfiguredPath ?? true;
+    const cfg = includeConfiguredPath ? loadConfig() : undefined;
+    pushUniqueFile(candidates, process.env.AHK_PATH_WIN);
+    pushUniqueFile(candidates, process.env.AHK_PATH);
+    if (cfg?.ahkPath) {
+        pushUniqueFile(candidates, cfg.ahkPath);
+    }
+    pushLocalAhkBinCandidates(candidates, cwd);
+    pushLocalAhkBinCandidates(candidates, path.dirname(cwd));
+    for (const executablePath of PREFERRED_LOCAL_AHK_EXECUTABLES) {
+        pushUniqueFile(candidates, executablePath);
+    }
+    for (const executablePath of PROGRAM_FILES_AHK_EXECUTABLES) {
+        pushUniqueFile(candidates, executablePath);
+    }
+    return candidates;
+}
+export function resolveAutoHotkeyPath(options = {}) {
+    const candidates = getAutoHotkeyExecutableCandidates(options);
+    for (const candidate of candidates) {
+        if (isExistingFile(candidate)) {
+            return candidate;
+        }
+    }
+    return undefined;
+}
+function sanitizeFileHint(pathOrName) {
+    return pathOrName.trim().replace(/^['"]+|['"]+$/g, '');
+}
+function normalizeSearchKey(value) {
+    return value.toLowerCase().replace(/[^a-z0-9]/g, '');
+}
+function tokenizeSearchHint(value) {
+    const withoutWildcards = value.replace(/[*?]/g, ' ');
+    const baseName = path.parse(withoutWildcards).name || withoutWildcards;
+    const withCamelSpacing = baseName.replace(/([a-z0-9])([A-Z])/g, '$1 $2');
+    const tokens = withCamelSpacing
+        .toLowerCase()
+        .split(/[^a-z0-9]+/)
+        .map(token => token.trim())
+        .filter(token => token.length >= MIN_HINT_TOKEN_LENGTH);
+    return [...new Set(tokens)];
+}
+function scoreProjectDirectoryName(directoryName, normalizedHint, hintTokens) {
+    const normalizedDirectoryName = normalizeSearchKey(directoryName);
+    if (!normalizedDirectoryName) {
+        return 0;
+    }
+    if (normalizedHint.length >= 4 && normalizedDirectoryName.includes(normalizedHint)) {
+        return 1;
+    }
+    if (hintTokens.length === 0) {
+        return 0;
+    }
+    const tokenMatches = hintTokens.filter(token => normalizedDirectoryName.includes(token)).length;
+    if (tokenMatches === 0) {
+        return 0;
+    }
+    return tokenMatches / hintTokens.length;
+}
+function findProjectLikeDirectories(baseDir, projectHint) {
+    if (!isExistingDirectory(baseDir)) {
+        return [];
+    }
+    const normalizedHintSource = path.parse(projectHint.replace(/[*?]/g, '')).name || projectHint;
+    const normalizedHint = normalizeSearchKey(normalizedHintSource);
+    const hintTokens = tokenizeSearchHint(projectHint);
+    if (!normalizedHint && hintTokens.length === 0) {
+        return [];
+    }
+    let entries;
+    try {
+        entries = fs.readdirSync(baseDir, { withFileTypes: true });
+    }
+    catch {
+        return [];
+    }
+    const scored = [];
+    for (const entry of entries) {
+        if (!entry.isDirectory()) {
+            continue;
+        }
+        if (entry.name.startsWith('.')) {
+            continue;
+        }
+        const lowerName = entry.name.toLowerCase();
+        if (lowerName === 'lib' || NOISY_PROJECT_DIRECTORIES.has(lowerName)) {
+            continue;
+        }
+        const score = scoreProjectDirectoryName(entry.name, normalizedHint, hintTokens);
+        if (score < 0.5) {
+            continue;
+        }
+        scored.push({
+            dir: path.join(baseDir, entry.name),
+            score,
+        });
+    }
+    scored.sort((a, b) => {
+        if (b.score !== a.score) {
+            return b.score - a.score;
+        }
+        if (a.dir.length !== b.dir.length) {
+            return a.dir.length - b.dir.length;
+        }
+        return a.dir.localeCompare(b.dir);
+    });
+    return scored.slice(0, PROJECT_MATCH_LIMIT).map(match => match.dir);
+}
+function getPrimaryScriptDirectories(overrideScriptDir) {
+    const cfg = loadConfig();
+    const envDir = process.env.AHK_MCP_SCRIPT_DIR;
+    const requestRoots = getCurrentRootDirectories();
+    const activeFile = getActiveFile();
+    const activeDir = activeFile ? path.dirname(activeFile) : undefined;
+    const directories = [];
+    pushUniqueDirectory(directories, overrideScriptDir);
+    pushUniqueDirectory(directories, cfg.scriptDir);
+    pushUniqueDirectory(directories, envDir);
+    requestRoots.forEach(dir => pushUniqueDirectory(directories, dir));
+    pushUniqueDirectory(directories, activeDir);
+    if (directories.length === 0) {
+        pushUniqueDirectory(directories, process.cwd());
+    }
+    return directories;
+}
+export function getPrioritizedFileSearchPlan(options = {}) {
+    const cfg = loadConfig();
+    const includeConfiguredSearchDirs = options.includeConfiguredSearchDirs ?? false;
+    const includeCwdFallback = options.includeCwdFallback ?? false;
+    const strategy = includeConfiguredSearchDirs || includeCwdFallback ? 'expanded' : 'focused';
+    const prioritized = [];
+    const breakdown = {
+        primary: [],
+        lib: [],
+        projectLike: [],
+        extra: [],
+        fallback: [],
+    };
+    const addToBucket = (bucket, candidate) => {
+        if (!isExistingDirectory(candidate)) {
+            return;
+        }
+        const normalized = path.resolve(candidate);
+        if (!prioritized.includes(normalized)) {
+            prioritized.push(normalized);
+        }
+        if (!breakdown[bucket].includes(normalized)) {
+            breakdown[bucket].push(normalized);
+        }
+    };
+    const primaryDirs = getPrimaryScriptDirectories(options.scriptDir);
+    // Priority 1: script directories
+    primaryDirs.forEach(dir => addToBucket('primary', dir));
+    // Priority 2: Lib folders for each script directory
+    primaryDirs.forEach(dir => addToBucket('lib', path.join(dir, 'Lib')));
+    // Priority 3: directories with names similar to the target project/script hint
+    if (options.projectHint && options.projectHint.trim().length > 0) {
+        const projectSearchBases = [];
+        primaryDirs.forEach(dir => {
+            pushUniqueDirectory(projectSearchBases, dir);
+            pushUniqueDirectory(projectSearchBases, path.dirname(dir));
+        });
+        for (const base of projectSearchBases) {
+            const candidates = findProjectLikeDirectories(base, options.projectHint);
+            candidates.forEach(dir => {
+                addToBucket('projectLike', dir);
+                addToBucket('projectLike', path.join(dir, 'Lib'));
+            });
+        }
+    }
+    // Explicitly requested extras are included before optional fallback tiers.
+    (options.extraDirs || []).forEach(dir => addToBucket('extra', dir));
+    if (includeConfiguredSearchDirs) {
+        (cfg.searchDirs || []).forEach(dir => addToBucket('fallback', dir));
+    }
+    if (includeCwdFallback) {
+        addToBucket('fallback', process.cwd());
+    }
+    return {
+        directories: prioritized,
+        strategy,
+        breakdown,
+    };
+}
+export function getPrioritizedFileSearchDirs(options = {}) {
+    return getPrioritizedFileSearchPlan(options).directories;
+}
+function buildPathCandidates(pathOrName) {
+    const candidates = [pathOrName];
+    const hasExtension = path.extname(pathOrName).length > 0;
+    if (!hasExtension && !pathOrName.endsWith(path.sep)) {
+        candidates.push(`${pathOrName}.ahk`);
+    }
+    return [...new Set(candidates)];
 }
 /**
  * Update the active file path and save to config
@@ -242,31 +522,74 @@ export function getAllLibraryPaths() {
     }
     return allPaths;
 }
-export function resolveFilePath(pathOrName) {
-    // If it's already an absolute path that exists, return it
-    if (path.isAbsolute(pathOrName) && fs.existsSync(pathOrName)) {
-        return path.resolve(pathOrName);
-    }
-    // Check if it exists relative to current directory
-    const fromCwd = path.resolve(process.cwd(), pathOrName);
-    if (fs.existsSync(fromCwd)) {
-        return fromCwd;
-    }
-    // Check in configured directories
-    const searchDirs = resolveSearchDirs();
-    for (const dir of searchDirs) {
-        const fullPath = path.resolve(dir, pathOrName);
-        if (fs.existsSync(fullPath)) {
-            return fullPath;
-        }
-    }
-    // Check if there's a script directory set
-    const cfg = loadConfig();
-    if (cfg.scriptDir) {
-        const fromScriptDir = path.resolve(cfg.scriptDir, pathOrName);
-        if (fs.existsSync(fromScriptDir)) {
-            return fromScriptDir;
+function searchFileInDirectories(candidatePaths, directories, attemptedPaths) {
+    for (const dir of directories) {
+        for (const candidate of candidatePaths) {
+            const fullPath = path.resolve(dir, candidate);
+            if (attemptedPaths.includes(fullPath)) {
+                continue;
+            }
+            attemptedPaths.push(fullPath);
+            if (isExistingFile(fullPath)) {
+                return fullPath;
+            }
         }
     }
     return undefined;
+}
+export function resolveFilePathDetailed(pathOrName, options = {}) {
+    const requested = sanitizeFileHint(pathOrName);
+    const result = {
+        requested,
+        candidates: [],
+        searchDirectories: [],
+        attemptedPaths: [],
+        strategy: 'focused',
+    };
+    if (!requested) {
+        return result;
+    }
+    const projectHint = options.projectHint ?? requested;
+    const candidatePaths = buildPathCandidates(requested);
+    result.candidates = candidatePaths;
+    // If it's already an absolute path that exists, return it immediately.
+    if (path.isAbsolute(requested) && isExistingFile(requested)) {
+        const absolutePath = path.resolve(requested);
+        result.attemptedPaths.push(absolutePath);
+        result.resolvedPath = absolutePath;
+        return result;
+    }
+    const focusedPlan = getPrioritizedFileSearchPlan({
+        ...options,
+        projectHint,
+        includeConfiguredSearchDirs: false,
+        includeCwdFallback: false,
+    });
+    result.searchDirectories.push(...focusedPlan.directories);
+    const focusedMatch = searchFileInDirectories(candidatePaths, focusedPlan.directories, result.attemptedPaths);
+    if (focusedMatch) {
+        result.resolvedPath = focusedMatch;
+        return result;
+    }
+    const includeConfiguredSearchDirs = options.includeConfiguredSearchDirs ?? true;
+    const includeCwdFallback = options.includeCwdFallback ?? true;
+    if (includeConfiguredSearchDirs || includeCwdFallback) {
+        const expandedPlan = getPrioritizedFileSearchPlan({
+            ...options,
+            projectHint,
+            includeConfiguredSearchDirs,
+            includeCwdFallback,
+        });
+        const expandedOnlyDirectories = expandedPlan.directories.filter(dir => !result.searchDirectories.includes(dir));
+        result.searchDirectories.push(...expandedOnlyDirectories);
+        const expandedMatch = searchFileInDirectories(candidatePaths, expandedOnlyDirectories, result.attemptedPaths);
+        if (expandedMatch) {
+            result.resolvedPath = expandedMatch;
+        }
+        result.strategy = expandedPlan.strategy;
+    }
+    return result;
+}
+export function resolveFilePath(pathOrName, options = {}) {
+    return resolveFilePathDetailed(pathOrName, options).resolvedPath;
 }

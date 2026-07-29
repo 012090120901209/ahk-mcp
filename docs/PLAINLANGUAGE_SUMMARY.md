@@ -70,9 +70,8 @@ These tools help you understand AutoHotkey's built-in capabilities:
 - **AHK_Doc_Search**: Find documentation for any AutoHotkey function or class
 - **AHK_Context_Injector**: Automatically inject relevant documentation into
   Claude's context based on what you're working on
-- **AHK_Docs_Samples**: Show code examples of how to use specific features
-- **AHK_Docs_Prompts**: Provide ready-made prompts for common AutoHotkey tasks
-- **AHK_Memory_Context**: Remember your coding patterns and preferences
+- **AHK_Sampling_Enhancer**: Show richer code samples and usage ideas
+- **AHK_Prompts**: Provide ready-made prompts for common AutoHotkey tasks
 
 **Example**: You ask "How do I detect mouse clicks?" and it instantly shows you
 the `OnClick` method with working code examples.
@@ -86,7 +85,7 @@ These tools help you work with AutoHotkey script files:
 - **AHK_File_Create**: Create new .ahk script files
 - **AHK_File_Detect**: Automatically find and detect .ahk files in your project
 - **AHK_File_Recent**: List recently modified scripts
-- **AHK_Active_File**: Track which file you're currently working on
+- **AHK_File_Active**: Track which file you're currently working on
 
 **Example**: "Show me my main.ahk file" - it reads and displays it formatted and
 syntax-highlighted.
@@ -96,10 +95,9 @@ syntax-highlighted.
 These tools actually execute AutoHotkey scripts and show you the results:
 
 - **AHK_Run**: Execute AutoHotkey scripts and capture output
-- **AHK_Run_Debug**: Run scripts with debugger support for step-by-step
-  execution
+- **AHK_Debug_Agent**: Capture debug traffic and diagnose runtime issues
 - **AHK_Test_Interactive**: Run scripts with GUI feedback (PASS/FAIL buttons)
-- **AHK_Test_Analytics**: Track performance metrics and usage patterns
+- **AHK_Cloud_Validate**: Validate scripts using the cloud-backed runner
 
 **Example**: You ask Claude to write a script, Claude creates it, and this tool
 runs it to verify it works before giving it to you.
@@ -109,10 +107,9 @@ runs it to verify it works before giving it to you.
 These tools help you manage the server itself:
 
 - **AHK_Config**: Show current settings and configuration
-- **AHK_System_Settings**: Enable/disable tools, configure behavior
-- **AHK_System_Analytics**: Track which tools are used most and performance
-  metrics
-- **AHK_System_Alpha**: Test experimental features
+- **AHK_Settings**: Enable/disable tools and configure behavior
+- **AHK_Analytics**: Track which tools are used most and performance metrics
+- **AHK_Alpha**: Test experimental features
 - **AHK_Library_List**: Browse available code libraries
 
 **Example**: "What tools are available?" or "Enable debug logging."
@@ -137,7 +134,7 @@ Create an AutoHotkey v2 script that:
 
 - **AHK_Doc_Search**: Looks up GUI creation, window detection, window control
   functions
-- **AHK_Docs_Samples**: Gets code examples for creating GUIs and detecting
+- **AHK_Sampling_Enhancer**: Gets code examples for creating GUIs and detecting
   windows
 - **AHK_Context_Injector**: Gets your coding style and standards
 

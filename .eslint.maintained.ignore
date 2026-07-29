@@ -1,0 +1,24 @@
+# Generated parser output (never hand-edited)
+src/compiler/antlr/generated/**
+
+# Legacy/experimental modules currently excluded from maintained CI lint scope
+src/core/dbgp-client.ts
+src/core/dependency-resolver.ts
+src/core/linting/**
+src/core/metrics.ts
+src/core/orchestration-engine.ts
+src/core/path-interceptor.ts
+src/core/tool-factory.ts
+src/core/tool-metadata.ts
+src/tools/ahk-debug-dbgp.ts
+src/tools/ahk-file-edit.ts
+src/tools/ahk-library-import.ts
+src/tools/ahk-library-info.ts
+src/tools/ahk-library-list.ts
+src/tools/ahk-run-script.ts
+src/tools/ahk-system-analytics.ts
+src/tools/ahk-system-config.ts
+src/tools/ahk-thqby-document-symbols.ts
+src/tools/ahk-workflow-analyze-fix-run.ts
+src/utils/path-converter.ts
+src/utils/thqby-lsp-client.ts

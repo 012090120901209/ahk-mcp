@@ -1,6 +1,6 @@
 param(
-    [string]$AhkExe = 'C:\Program Files\AutoHotkey\v2\AutoHotkey64.exe',
-    [string]$Script = 'C:\path\to\your\test-script.ahk',
+    [string]$AhkExe = 'C:\Users\uphol\Documents\Design\Coding\AutoHotkey\bin\AutoHotkey64.exe',
+    [string]$Script = 'C:\Users\uphol\Documents\Design\Coding\ahk-mcp\Tests\manual\test-run-ok.ahk',
     [switch]$Wait
 )
 

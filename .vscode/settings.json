@@ -2,7 +2,11 @@
   "workbench.colorCustomizations": {
     "debugConsole.infoForeground": "#00FF00",
     "debugConsole.warningForeground": "#fdec34ff",
-    "debugConsole.errorForeground": "#ff2828ff"
+    "debugConsole.errorForeground": "#ff2828ff",
+    "titleBar.activeBackground": "#7a3000",
+    "titleBar.activeForeground": "#ffffff",
+    "commandCenter.background": "#7a3000",
+    "commandCenter.border": "#a84200"
   },
   "files.exclude": {
     "**/.history": true

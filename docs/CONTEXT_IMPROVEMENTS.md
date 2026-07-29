@@ -1,5 +1,9 @@
 # AHK MCP Context Management Improvements
 
+> Historical note: this document captures an earlier improvement pass. Tool and
+> resource names mentioned here may describe pre-2026 surfaces and should be
+> cross-checked against the current live MCP metadata before reuse.
+
 ## Summary
 
 Comprehensive improvements to AutoHotkey v2 MCP server context management for

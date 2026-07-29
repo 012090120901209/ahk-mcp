@@ -105,7 +105,7 @@ Once installed, Claude will have access to these AutoHotkey tools:
 - `AHK_Prompts` - Access prompt templates
 - `AHK_Debug_Agent` - Debug assistance
 - `AHK_Config` - Configuration management
-- `AHK_Active_File` - Active file tracking
+- `AHK_File_Active` - Active file tracking
 - `AHK_File_Recent` - Recent files tracking
 - `AHK_VSCode_Problems` - VS Code integration
 

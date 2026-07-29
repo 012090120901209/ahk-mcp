@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
 import logger from '../logger.js';
+import { getCurrentRootDirectories } from './mcp-request-context.js';
 
 export interface AhkMcpConfig {
   scriptDir?: string;
@@ -59,6 +60,11 @@ const NOISY_PROJECT_DIRECTORIES = new Set([
 
 const MIN_HINT_TOKEN_LENGTH = 3;
 const PROJECT_MATCH_LIMIT = 6;
+const PREFERRED_LOCAL_AHK_EXECUTABLES = [
+  'C:\\Users\\uphol\\Documents\\Design\\Coding\\AutoHotkey\\bin\\AutoHotkey64.exe',
+  'C:\\Users\\uphol\\Documents\\Design\\Coding\\AutoHotkey\\bin\\AutoHotkey32.exe',
+  'C:\\Users\\uphol\\Documents\\Design\\Coding\\AutoHotkey\\bin\\AutoHotkey_L.exe',
+];
 const PROGRAM_FILES_AHK_EXECUTABLES = [
   'C:\\Program Files\\AutoHotkey\\v2\\AutoHotkey64.exe',
   'C:\\Program Files\\AutoHotkey\\v2\\AutoHotkey.exe',
@@ -130,6 +136,7 @@ export function normalizeDir(input?: string): string | undefined {
 export function resolveSearchDirs(argsScriptDir?: string, argsExtraDirs?: string[]): string[] {
   const cfg = loadConfig();
   const envDir = process.env.AHK_MCP_SCRIPT_DIR;
+  const requestRoots = getCurrentRootDirectories();
 
   const dirs: string[] = [];
   const add = (d?: string) => {
@@ -141,6 +148,7 @@ export function resolveSearchDirs(argsScriptDir?: string, argsExtraDirs?: string
   add(argsScriptDir);
   add(cfg.scriptDir);
   add(envDir);
+  requestRoots.forEach(add);
 
   // Additional search directories
   (argsExtraDirs || []).forEach(add);
@@ -216,12 +224,19 @@ export function getAutoHotkeyExecutableCandidates(
   const includeConfiguredPath = options.includeConfiguredPath ?? true;
   const cfg = includeConfiguredPath ? loadConfig() : undefined;
 
+  pushUniqueFile(candidates, process.env.AHK_PATH_WIN);
+  pushUniqueFile(candidates, process.env.AHK_PATH);
+
   if (cfg?.ahkPath) {
     pushUniqueFile(candidates, cfg.ahkPath);
   }
 
   pushLocalAhkBinCandidates(candidates, cwd);
   pushLocalAhkBinCandidates(candidates, path.dirname(cwd));
+
+  for (const executablePath of PREFERRED_LOCAL_AHK_EXECUTABLES) {
+    pushUniqueFile(candidates, executablePath);
+  }
 
   for (const executablePath of PROGRAM_FILES_AHK_EXECUTABLES) {
     pushUniqueFile(candidates, executablePath);
@@ -351,6 +366,7 @@ function findProjectLikeDirectories(baseDir: string, projectHint: string): strin
 function getPrimaryScriptDirectories(overrideScriptDir?: string): string[] {
   const cfg = loadConfig();
   const envDir = process.env.AHK_MCP_SCRIPT_DIR;
+  const requestRoots = getCurrentRootDirectories();
   const activeFile = getActiveFile();
   const activeDir = activeFile ? path.dirname(activeFile) : undefined;
 
@@ -358,6 +374,7 @@ function getPrimaryScriptDirectories(overrideScriptDir?: string): string[] {
   pushUniqueDirectory(directories, overrideScriptDir);
   pushUniqueDirectory(directories, cfg.scriptDir);
   pushUniqueDirectory(directories, envDir);
+  requestRoots.forEach(dir => pushUniqueDirectory(directories, dir));
   pushUniqueDirectory(directories, activeDir);
 
   if (directories.length === 0) {

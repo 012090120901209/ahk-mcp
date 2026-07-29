@@ -206,16 +206,20 @@ export class AhkEditTool {
     all: boolean
   ): string {
     if (useRegex) {
+      // Fail loudly on no-match instead of silently writing the file unchanged.
+      if (!new RegExp(search).test(content)) {
+        throw new Error(`Pattern not found: /${search}/`);
+      }
       const regex = new RegExp(search, all ? 'g' : '');
       return content.replace(regex, replacement);
     } else {
+      if (!content.includes(search)) {
+        throw new Error(`Text not found: "${search}"`);
+      }
       if (all) {
         return content.split(search).join(replacement);
       } else {
         const index = content.indexOf(search);
-        if (index === -1) {
-          throw new Error(`Text not found: "${search}"`);
-        }
         return content.substring(0, index) + replacement + content.substring(index + search.length);
       }
     }
@@ -666,8 +670,15 @@ export class AhkEditTool {
         logger.info(`Backup created: ${backupPath}`);
       }
 
-      // Write the new content
-      await fs.writeFile(targetFile, newContent, 'utf-8');
+      // Preserve the file's original line endings so a single edit doesn't
+      // rewrite a CRLF (Windows) file as LF.
+      const eol = currentContent.includes('\r\n') ? '\r\n' : '\n';
+      const outContent = newContent.replace(/\r\n/g, '\n').replace(/\n/g, eol);
+
+      // Write atomically (temp + rename) so a crash mid-write can't lose the file.
+      const tmpPath = `${targetFile}.tmp-${process.pid}`;
+      await fs.writeFile(tmpPath, outContent, 'utf-8');
+      await fs.rename(tmpPath, targetFile);
 
       // Update active file to ensure it's current
       activeFile.setActiveFile(targetFile);

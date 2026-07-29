@@ -114,13 +114,14 @@ export class AhkSettingsTool {
             'AHK_File_View',
             'AHK_File_Detect',
             'AHK_File_Active',
-            'AHK_Active_File',
             'AHK_Process_Request',
           ];
           for (const t of fileTools) {
             const status = currentSettings.enabledTools[t] ? '✅' : '❌';
             response += `  ${status} ${t}\n`;
           }
+          response +=
+            '\n  ℹ️ Legacy alias `AHK_Active_File` remains callable but is hidden from tool discovery.\n';
 
           response += '\n**🔧 Core Tools:** (always enabled)\n';
           const coreTools = ['AHK_Diagnostics', 'AHK_Analyze', 'AHK_Run', 'AHK_Summary'];
@@ -204,7 +205,7 @@ export class AhkSettingsTool {
             content: [
               {
                 type: 'text',
-                text: '✅ File editing tools have been enabled:\n• AHK_File_Edit\n• AHK_File_Edit_Diff\n• AHK_File_Edit_Advanced\n• AHK_File_Edit_Small\n• AHK_File_Create\n• AHK_File_View\n• AHK_File_Detect\n• AHK_File_Active\n• AHK_Active_File\n• AHK_Process_Request',
+                text: '✅ File editing tools have been enabled:\n• AHK_File_Edit\n• AHK_File_Edit_Diff\n• AHK_File_Edit_Advanced\n• AHK_File_Edit_Small\n• AHK_File_Create\n• AHK_File_View\n• AHK_File_Detect\n• AHK_File_Active\n• AHK_Process_Request\n\nLegacy alias `AHK_Active_File` remains supported for backward compatibility.',
               },
             ],
           };
@@ -216,7 +217,7 @@ export class AhkSettingsTool {
             content: [
               {
                 type: 'text',
-                text: '❌ File editing tools have been disabled:\n• AHK_File_Edit\n• AHK_File_Edit_Diff\n• AHK_File_Edit_Advanced\n• AHK_File_Edit_Small\n• AHK_File_Create\n• AHK_File_View\n• AHK_File_Detect\n• AHK_File_Active\n• AHK_Active_File\n• AHK_Process_Request\n\nCore analysis and diagnostic tools remain enabled.',
+                text: '❌ File editing tools have been disabled:\n• AHK_File_Edit\n• AHK_File_Edit_Diff\n• AHK_File_Edit_Advanced\n• AHK_File_Edit_Small\n• AHK_File_Create\n• AHK_File_View\n• AHK_File_Detect\n• AHK_File_Active\n• AHK_Process_Request\n\nCore analysis and diagnostic tools remain enabled. Legacy alias `AHK_Active_File` is also effectively disabled because it resolves to the same active-file workflow.',
               },
             ],
           };
