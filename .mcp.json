@@ -2,7 +2,7 @@
   "globalShortcut": "Alt+Ctrl+Space",
   "mcpServers": {
     "ahk": {
-      "command": "node",
+      "command": "/home/db/.nvm/versions/node/v22.22.2/bin/node",
       "args": [
         "/mnt/c/Users/uphol/Documents/Design/Coding/ahk-mcp/dist/index.js"
       ],

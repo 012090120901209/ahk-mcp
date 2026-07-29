@@ -1,8 +1,18 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import type { Server } from '@modelcontextprotocol/server';
+import {
+  PROTOCOL_VERSION_META_KEY,
+  type Server,
+  type ServerContext,
+} from '@modelcontextprotocol/server';
 import logger from '../logger.js';
+
+/** Modern (2026-07-28) requests declare their revision per-request in `_meta`. */
+function isModernRequest(ctx: ServerContext): boolean {
+  const version = ctx.mcpReq._meta?.[PROTOCOL_VERSION_META_KEY];
+  return typeof version === 'string' && version >= '2026-07-28';
+}
 
 interface ClientRootEntry {
   uri: string;
@@ -38,10 +48,19 @@ class ClientRootsManager {
       .filter((rootPath): rootPath is string => Boolean(rootPath));
   }
 
-  async resolveForRequest(server: Server): Promise<string[]> {
+  async resolveForRequest(server: Server, ctx?: ServerContext): Promise<string[]> {
     const cached = this.rootsByServer.get(server);
     if (cached) {
       return this.getDirectories(server);
+    }
+
+    // Roots is deprecated as of protocol revision 2026-07-28 (SEP-2577) and the
+    // push-style `roots/list` request is absent from that revision — the SDK throws
+    // before the transport. Skip the call rather than let it fail on every tool call;
+    // modern clients pass directories via tool parameters or server configuration.
+    if (ctx && isModernRequest(ctx)) {
+      this.rootsByServer.set(server, []);
+      return [];
     }
 
     const clientCapabilities = server.getClientCapabilities();

@@ -23,11 +23,14 @@ const SERVER_INFO_KEY = 'io.modelcontextprotocol/serverInfo';
 const TASKS_EXTENSION_ID = 'io.modelcontextprotocol/tasks';
 const VERSION = '2026-07-28';
 
-const envelope = (version = VERSION) => ({
+const envelope = (version = VERSION, capabilities = {}) => ({
   [PROTOCOL_VERSION_KEY]: version,
-  [CLIENT_CAPABILITIES_KEY]: {},
+  [CLIENT_CAPABILITIES_KEY]: capabilities,
   [CLIENT_INFO_KEY]: { name: 'smoke-mcp-2026', version: '1.0.0' },
 });
+
+/** A client that can satisfy embedded elicitation requests (needed for MRTR). */
+const elicitCapable = () => envelope(VERSION, { elicitation: { form: {} } });
 
 const child = spawn(process.execPath, ['dist/index.js'], {
   cwd: repoRoot,
@@ -60,9 +63,11 @@ let stderr = '';
 child.stderr.on('data', chunk => (stderr += chunk.toString()));
 
 let nextId = 1;
-function send(method, meta = envelope()) {
+function send(method, meta = envelope(), params = {}) {
   const id = nextId++;
-  child.stdin.write(JSON.stringify({ jsonrpc: '2.0', id, method, params: { _meta: meta } }) + '\n');
+  child.stdin.write(
+    JSON.stringify({ jsonrpc: '2.0', id, method, params: { ...params, _meta: meta } }) + '\n'
+  );
   return new Promise((resolve, reject) => {
     const timer = setTimeout(() => reject(new Error(`timeout waiting for ${method}`)), 45000);
     pending.set(id, message => {
@@ -181,6 +186,43 @@ try {
     Boolean(list.result?._meta?.[SERVER_INFO_KEY]),
     JSON.stringify(list.result?._meta?.[SERVER_INFO_KEY] || {}).slice(0, 90)
   );
+
+  // Multi Round-Trip Requests (SEP-2322). Server-initiated elicitation is gone in the
+  // modern era, so AHK_Run without a filePath must answer with an InputRequiredResult
+  // and accept the answer on a retry carrying `inputResponses`.
+  //
+  // Precondition: prepareToolArguments() only elicits when there is no filePath AND no
+  // active file. An active file persists across runs, so when one is set the tool
+  // legitimately proceeds instead and the round trip is not exercised — reported as
+  // SKIP rather than asserted, so this stays deterministic.
+  const round1 = await send('tools/call', elicitCapable(), {
+    name: 'AHK_Run',
+    arguments: {},
+  });
+  const inputKey = Object.keys(round1.result?.inputRequests || {})[0];
+  const elicited = round1.result?.resultType === 'input_required' && Boolean(inputKey);
+
+  if (!elicited) {
+    console.log(
+      'SKIP  MRTR round trip — an active file is set, so AHK_Run resolved it without ' +
+        'eliciting. Clear the active file to exercise this path.'
+    );
+  } else {
+    check('MRTR: AHK_Run without filePath -> input_required', true, `key=${inputKey}`);
+
+    const round2 = await send('tools/call', elicitCapable(), {
+      name: 'AHK_Run',
+      arguments: {},
+      inputResponses: {
+        [inputKey]: { action: 'accept', content: { filePath: 'C:\\does-not-exist.ahk' } },
+      },
+    });
+    check(
+      'MRTR: retry with inputResponses is accepted',
+      round2.result?.resultType === 'complete',
+      `resultType=${round2.result?.resultType}`
+    );
+  }
 
   // An unsupported revision MUST yield UnsupportedProtocolVersionError (-32022).
   //

@@ -6,6 +6,13 @@ import {
   METHOD_NOT_FOUND,
   SUPPORTED_PROTOCOL_VERSIONS,
   RELATED_TASK_META_KEY,
+  PROTOCOL_VERSION_META_KEY,
+  CLIENT_CAPABILITIES_META_KEY,
+  inputRequired,
+  acceptedContent,
+  isInputRequiredResult,
+  type InputRequiredResult,
+  type ClientCapabilities,
   type ServerContext,
   type ListToolsResult,
   type CallToolResult,
@@ -20,6 +27,12 @@ import { serveStdio } from '@modelcontextprotocol/server/stdio';
  * list stops there. The modern list is not exported from the package root, so the
  * 2026-07-28 revision is named explicitly here.
  */
+/** Key for the AHK_Run script-path elicitation embedded in an InputRequiredResult. */
+const AHK_RUN_FILE_PATH_INPUT = 'ahkRunFilePath';
+
+/** Validates the client-supplied path on the retry leg; the value is untrusted. */
+const AhkRunFilePathSchema = z.object({ filePath: z.string().min(1) });
+
 const MODERN_PROTOCOL_VERSIONS = ['2026-07-28'] as const;
 const ALL_PROTOCOL_VERSIONS: readonly string[] = [
   ...MODERN_PROTOCOL_VERSIONS,
@@ -329,8 +342,30 @@ export class AutoHotkeyMcpServer {
     };
   }
 
-  private clientSupportsFormElicitation(server: Server): boolean {
-    const elicitation = server.getClientCapabilities()?.elicitation;
+  /**
+   * Whether this request is being served under the modern (2026-07-28) era.
+   *
+   * Modern requests carry their revision in `_meta`; legacy requests negotiated it once
+   * via `initialize` and carry nothing per-request. The distinction is load-bearing: the
+   * SDK's push-style server-to-client calls (`elicitInput`, `requestSampling`,
+   * `listRoots`) throw on a modern request, which must use Multi Round-Trip Requests
+   * (SEP-2322) instead.
+   */
+  private isModernRequest(ctx: ServerContext): boolean {
+    const version = ctx.mcpReq._meta?.[PROTOCOL_VERSION_META_KEY];
+    return typeof version === 'string' && version >= '2026-07-28';
+  }
+
+  private clientSupportsFormElicitation(server: Server, ctx?: ServerContext): boolean {
+    // `getClientCapabilities()` is handshake-era state and is empty on a modern request,
+    // where capabilities travel per-request in `_meta` instead. Read the envelope first
+    // and fall back to the stored capabilities for legacy connections.
+    // The SDK decodes the modern envelope into `ctx.mcpReq.envelope`; the raw `_meta`
+    // key is checked too so a hand-built request still resolves.
+    const envelopeBag = ctx?.mcpReq.envelope as Record<string, unknown> | undefined;
+    const fromEnvelope = (envelopeBag?.clientCapabilities ??
+      ctx?.mcpReq._meta?.[CLIENT_CAPABILITIES_META_KEY]) as ClientCapabilities | undefined;
+    const elicitation = (fromEnvelope ?? server.getClientCapabilities())?.elicitation;
     if (!elicitation) {
       return false;
     }
@@ -341,12 +376,20 @@ export class AutoHotkeyMcpServer {
     return hasFormCapability || (!hasFormCapability && !hasUrlCapability);
   }
 
+  /**
+   * Resolves any missing arguments a tool needs before execution.
+   *
+   * Returns the prepared arguments, or an {@link InputRequiredResult} that the
+   * `tools/call` handler must return verbatim so a modern client can supply the missing
+   * input and retry (SEP-2322).
+   */
   private async prepareToolArguments(
     server: Server,
     toolName: string,
     args: unknown,
-    signal?: AbortSignal
-  ): Promise<unknown> {
+    signal?: AbortSignal,
+    ctx?: ServerContext
+  ): Promise<unknown | InputRequiredResult> {
     if (toolName !== 'AHK_Run') {
       return args;
     }
@@ -356,31 +399,53 @@ export class AutoHotkeyMcpServer {
     }
 
     const typedArgs = args as Record<string, unknown>;
+
+    // Retry leg of the multi-round-trip: the client re-issued this call carrying the
+    // path it collected. Values come from the client, so validate before use.
+    const supplied = acceptedContent(
+      ctx?.mcpReq.inputResponses,
+      AHK_RUN_FILE_PATH_INPUT,
+      AhkRunFilePathSchema
+    );
+    if (supplied?.filePath) {
+      return { ...typedArgs, filePath: supplied.filePath.trim() };
+    }
     if (typedArgs.filePath || getActiveFilePath()) {
       return args;
     }
 
-    if (!this.clientSupportsFormElicitation(server)) {
+    if (!this.clientSupportsFormElicitation(server, ctx)) {
       return args;
     }
 
-    const result = await server.elicitInput(
-      {
-        mode: 'form',
-        message: 'AHK_Run needs a script path before it can launch AutoHotkey.',
-        requestedSchema: {
-          type: 'object',
-          properties: {
-            filePath: {
-              type: 'string',
-              title: 'Script Path',
-              description: 'Absolute path to the .ahk script you want to run',
-              minLength: 1,
-            },
-          },
-          required: ['filePath'],
+    const message = 'AHK_Run needs a script path before it can launch AutoHotkey.';
+    const requestedSchema = {
+      type: 'object' as const,
+      properties: {
+        filePath: {
+          type: 'string' as const,
+          title: 'Script Path',
+          description: 'Absolute path to the .ahk script you want to run',
+          minLength: 1,
         },
       },
+      required: ['filePath'],
+    };
+
+    // Modern era: server-initiated requests are gone. Return an InputRequiredResult and
+    // let the client re-issue the original tools/call carrying `inputResponses`
+    // (SEP-2322). The retry is handled at the top of this method.
+    if (ctx && this.isModernRequest(ctx)) {
+      return inputRequired({
+        inputRequests: {
+          [AHK_RUN_FILE_PATH_INPUT]: inputRequired.elicit({ message, requestedSchema }),
+        },
+      });
+    }
+
+    // Legacy era: the push-style elicitation round trip still works.
+    const result = await server.elicitInput(
+      { mode: 'form', message, requestedSchema },
       signal ? { signal } : undefined
     );
 
@@ -570,7 +635,12 @@ export class AutoHotkeyMcpServer {
             },
           ]
         : [];
-      const tools = [...standardTools, ...chatGPTTools];
+      // 2026-07-28 says servers SHOULD return tools in a deterministic order: it lets
+      // clients cache the listing and keeps LLM prompt-cache hit rates up, since an
+      // unstable order invalidates the cached prefix on every call.
+      const tools = [...standardTools, ...chatGPTTools].sort((a, b) =>
+        a.name.localeCompare(b.name)
+      );
       logDebugEvent('tools.list', {
         status: 'success',
         message: `Returned ${tools.length} tools`,
@@ -631,8 +701,21 @@ export class AutoHotkeyMcpServer {
           );
         }
 
-        const preparedArgs = await this.prepareToolArguments(server, name, args, ctx.mcpReq.signal);
-        const requestRootDirectories = await clientRoots.resolveForRequest(server);
+        const preparedArgs = await this.prepareToolArguments(
+          server,
+          name,
+          args,
+          ctx.mcpReq.signal,
+          ctx
+        );
+
+        // A multi-round-trip handler returns its interim result verbatim; the client
+        // supplies the missing input and re-issues this call (SEP-2322).
+        if (isInputRequiredResult(preparedArgs)) {
+          return preparedArgs as unknown as CallToolResult;
+        }
+
+        const requestRootDirectories = await clientRoots.resolveForRequest(server, ctx);
         const argsWithContext = this.injectRequestContext(preparedArgs, progressToken);
 
         if (taskRequest) {
