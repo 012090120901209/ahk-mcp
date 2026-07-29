@@ -3,7 +3,7 @@
  * @see https://spec.modelcontextprotocol.io/2024-11-05/server/utilities/progress/
  */
 
-import type { Server } from '@modelcontextprotocol/sdk/server/index.js';
+import type { Server } from '@modelcontextprotocol/server';
 import logger from '../logger.js';
 
 export interface ProgressInfo {
@@ -41,7 +41,11 @@ export function extractProgressToken(request: unknown): string | number | undefi
  * Progress notification helper for long-running operations
  */
 export class ProgressNotifier {
-  private server: Server | null = null;
+  private server: Server | null;
+
+  constructor(server: Server | null = null) {
+    this.server = server;
+  }
 
   /**
    * Initialize with MCP server instance
