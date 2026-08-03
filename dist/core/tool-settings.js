@@ -76,6 +76,8 @@ class ToolSettingsManager {
             // External tooling
             thqbyLspServerPath: '',
             thqbyLspNodePath: '',
+            uiaSelectorValidation: 'warn',
+            uiaDaemonMode: false,
         };
     }
     loadSettings() {

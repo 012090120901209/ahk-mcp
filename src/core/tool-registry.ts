@@ -111,6 +111,31 @@ export class ToolRegistry {
       const { handleAhkParseAst } = await import('../tools/ahk-parse-ast.js');
       return handleAhkParseAst(args);
     });
+
+    this.registerUiaTools();
+  }
+
+  /**
+   * Register the read-only UI Automation inspection family. These spawn the headless
+   * inspector rather than holding server state, so they need no instance on IToolServer.
+   */
+  private registerUiaTools(): void {
+    const uiaTools: Array<[string, keyof typeof import('../tools/uia-tools.js')]> = [
+      ['uia_windows', 'handleUiaWindows'],
+      ['uia_tree', 'handleUiaTree'],
+      ['uia_find', 'handleUiaFind'],
+      ['uia_element', 'handleUiaElement'],
+      ['uia_under_cursor', 'handleUiaUnderCursor'],
+      ['uia_highlight', 'handleUiaHighlight'],
+    ];
+
+    uiaTools.forEach(([name, handlerName]) => {
+      this.toolHandlers.set(name, async args => {
+        const module = await import('../tools/uia-tools.js');
+        const handler = module[handlerName] as (a: unknown) => Promise<unknown>;
+        return handler(args);
+      });
+    });
   }
 
   /**

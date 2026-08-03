@@ -127,6 +127,23 @@ type SessionEntry = {
   lastActivity: number;
 };
 
+/**
+ * The server's own icon, per protocol revision 2026-07-28. Inline SVG as a data URI so
+ * rendering it never requires a network round-trip.
+ */
+function buildServerIcon(): { src: string; mimeType: string; sizes: string[] } {
+  const svg =
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" ' +
+    'stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">' +
+    '<rect x="3" y="4" width="18" height="16" rx="2"/>' +
+    '<path d="m7 10 2.5 2L7 14M12.5 14H17"/></svg>';
+  return {
+    src: `data:image/svg+xml;base64,${Buffer.from(svg, 'utf8').toString('base64')}`,
+    mimeType: 'image/svg+xml',
+    sizes: ['any'],
+  };
+}
+
 export class AutoHotkeyMcpServer {
   private server: Server;
   /** Handle for the dual-era stdio listener (`serveStdio`); undefined in HTTP mode. */
@@ -238,9 +255,14 @@ export class AutoHotkeyMcpServer {
     const server = new Server(
       {
         name: 'ahk-mcp-server',
+        title: 'AutoHotkey v2 MCP Server',
         version: '2.0.0',
         description:
           'AutoHotkey v2 development server for file operations, diagnostics, documentation, execution, and debugging.',
+        websiteUrl: 'https://github.com/TrueCrimeDev/ahk-mcp',
+        // Server icon, per protocol revision 2026-07-28. Inline data URI so a client never
+        // has to reach the network to render it.
+        icons: [buildServerIcon()],
       },
       {
         enforceStrictCapabilities: true,
@@ -1097,7 +1119,7 @@ export class AutoHotkeyMcpServer {
       },
       description:
         'AutoHotkey v2 development tools for analysis, file workflows, documentation, execution, and debugging.',
-      documentationUrl: 'https://github.com/TrueCrimeAudit/ahk-mcp',
+      documentationUrl: 'https://github.com/TrueCrimeDev/ahk-mcp',
       transport: {
         type: 'streamable-http',
         endpoint: '/mcp',

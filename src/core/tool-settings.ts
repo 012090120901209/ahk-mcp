@@ -45,6 +45,19 @@ export interface ToolSettings {
   // External tooling
   thqbyLspServerPath?: string;
   thqbyLspNodePath?: string;
+
+  /**
+   * How the PostToolUse hook reacts when a UIA selector written into a .ahk file does not
+   * resolve against the live window. 'warn' is deliberately the default: a selector that
+   * cannot be checked because the target app is closed is not the same as a broken one.
+   */
+  uiaSelectorValidation: 'off' | 'warn' | 'fail';
+
+  /**
+   * Mode B: route UIA requests to the resident daemon on \\.\pipe\ahk-mcp-uia instead of
+   * spawning a process per call. Scaffolded but not finished — leave off.
+   */
+  uiaDaemonMode: boolean;
 }
 
 class ToolSettingsManager {
@@ -135,6 +148,9 @@ class ToolSettingsManager {
       // External tooling
       thqbyLspServerPath: '',
       thqbyLspNodePath: '',
+
+      uiaSelectorValidation: 'warn',
+      uiaDaemonMode: false,
     };
   }
 

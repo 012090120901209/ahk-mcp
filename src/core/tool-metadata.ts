@@ -35,6 +35,14 @@ import { AHK_Library_Import_Definition } from '../tools/ahk-library-import.js';
 import { AHK_Library_Search_Definition } from '../tools/ahk-library-search.js';
 import { ahkCloudValidateToolDefinition } from '../tools/ahk-cloud-validate.js';
 import { ahkDebugDBGpToolDefinition } from '../tools/ahk-debug-dbgp.js';
+import {
+  uiaWindowsToolDefinition,
+  uiaTreeToolDefinition,
+  uiaFindToolDefinition,
+  uiaElementToolDefinition,
+  uiaUnderCursorToolDefinition,
+  uiaHighlightToolDefinition,
+} from '../tools/uia-tools.js';
 
 export type ToolCategory =
   | 'analysis'
@@ -47,6 +55,7 @@ export type ToolCategory =
   | 'lsp'
   | 'observability'
   | 'system'
+  | 'uia'
   | 'workflow';
 
 export interface ToolMetadataEntry {
@@ -108,6 +117,49 @@ const OPEN_WORLD_TOOLS = new Set([
   'AHK_Debug_DBGp',
 ]);
 
+/**
+ * Tool icons, added in protocol revision 2026-07-28.
+ *
+ * Derived from the tool's category rather than hand-written per tool, so a new tool picks
+ * one up for free and the set cannot drift out of sync with the categories.
+ *
+ * Encoded as self-contained `data:` URIs: a client that renders these makes no network
+ * request, which keeps an offline or air-gapped install working and avoids leaking tool
+ * usage to a third-party host. `currentColor` lets one glyph serve light and dark themes.
+ */
+const CATEGORY_GLYPHS: Record<ToolCategory, string> = {
+  analysis: '<path d="M4 19h16M7 16V9m5 7V5m5 11v-5"/>',
+  debug: '<circle cx="12" cy="13" r="5"/><path d="M12 8V5M7 18l-3 2m16-2 3 2M5 13H2m20 0h-3"/>',
+  docs: '<path d="M6 3h9l4 4v14H6z"/><path d="M14 3v5h5M9 13h7M9 17h7"/>',
+  discovery: '<circle cx="11" cy="11" r="6"/><path d="m20 20-4.5-4.5"/>',
+  execution: '<path d="M7 4v16l13-8z"/>',
+  file: '<path d="M6 3h8l5 5v13H6z"/><path d="M14 3v5h5"/>',
+  library: '<path d="M4 5h5v14H4zM11 5h4v14h-4z"/><path d="m17 6 3 13"/>',
+  lsp: '<path d="m9 8-5 4 5 4m6-8 5 4-5 4"/>',
+  observability: '<path d="M3 12h4l3 7 4-14 3 7h4"/>',
+  system:
+    '<circle cx="12" cy="12" r="3"/><path d="M12 3v3m0 12v3M3 12h3m12 0h3M6 6l2 2m8 8 2 2M18 6l-2 2M8 16l-2 2"/>',
+  uia: '<rect x="3" y="4" width="18" height="14" rx="2"/><path d="M7 8h4M7 12h2"/><path d="m14 12 6 6-2.5.5L16 21z"/>',
+  workflow:
+    '<circle cx="6" cy="6" r="2.5"/><circle cx="18" cy="18" r="2.5"/><path d="M6 8.5V15a3 3 0 0 0 3 3h6.5"/>',
+};
+
+type ToolIcon = NonNullable<Tool['icons']>[number];
+
+function categoryIcon(category: ToolCategory): ToolIcon[] {
+  const svg =
+    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" ` +
+    `stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">` +
+    `${CATEGORY_GLYPHS[category]}</svg>`;
+  return [
+    {
+      src: `data:image/svg+xml;base64,${Buffer.from(svg, 'utf8').toString('base64')}`,
+      mimeType: 'image/svg+xml',
+      sizes: ['any'],
+    },
+  ];
+}
+
 function createToolTitle(name: string): string {
   const acronyms = new Set(['AHK', 'DBGp', 'LSP', 'THQBY', 'VSCode']);
   return name
@@ -117,11 +169,12 @@ function createToolTitle(name: string): string {
     .join(' ');
 }
 
-function applySpecMetadata(definition: Tool): Tool {
+function applySpecMetadata(definition: Tool, category: ToolCategory): Tool {
   const readOnly = !MUTATING_TOOLS.has(definition.name);
   return {
     ...definition,
     title: definition.title ?? createToolTitle(definition.name),
+    icons: definition.icons ?? categoryIcon(category),
     annotations: {
       ...definition.annotations,
       title: definition.annotations?.title ?? createToolTitle(definition.name),
@@ -140,7 +193,7 @@ function applySpecMetadata(definition: Tool): Tool {
 
 function entry(definition: unknown, slug: string, category: ToolCategory): ToolMetadataEntry {
   return {
-    definition: applySpecMetadata(definition as Tool),
+    definition: applySpecMetadata(definition as Tool, category),
     slug,
     category,
   };
@@ -188,6 +241,15 @@ const TOOL_METADATA: ToolMetadataEntry[] = [
   entry(AHK_Library_Search_Definition, 'library-search', 'library'),
   entry(ahkCloudValidateToolDefinition, 'cloud-validate', 'execution'),
   entry(ahkDebugDBGpToolDefinition, 'debug-dbgp', 'debug'),
+  // Read-only UI Automation inspection. None of these appear in MUTATING_TOOLS,
+  // DESTRUCTIVE_TOOLS or OPEN_WORLD_TOOLS, so applySpecMetadata derives
+  // readOnlyHint/idempotentHint true and openWorldHint false for all six.
+  entry(uiaWindowsToolDefinition, 'uia-windows', 'uia'),
+  entry(uiaTreeToolDefinition, 'uia-tree', 'uia'),
+  entry(uiaFindToolDefinition, 'uia-find', 'uia'),
+  entry(uiaElementToolDefinition, 'uia-element', 'uia'),
+  entry(uiaUnderCursorToolDefinition, 'uia-under-cursor', 'uia'),
+  entry(uiaHighlightToolDefinition, 'uia-highlight', 'uia'),
 ];
 
 export function getToolMetadata(): ToolMetadataEntry[] {

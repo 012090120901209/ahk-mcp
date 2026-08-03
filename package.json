@@ -35,6 +35,7 @@
     "test:coverage:report": "npm run test:coverage && open coverage/index.html",
     "test:all": "npm run test:unit && npm run test:integration",
     "test:mcp": "node scripts/test-mcp-run.js",
+    "test:uia": "node Tests/uia/golden.mjs",
     "smoke:mcp": "node scripts/smoke-mcp.js",
     "smoke:http": "node scripts/smoke-http-mcp.js",
     "debug:scan": "node scripts/scan-debug.js",
@@ -45,7 +46,9 @@
     "spec:plan": "node -e \"console.log('Create implementation plan from .specify/templates/plan-template.md')\"",
     "spec:tasks": "node -e \"console.log('Create task breakdown from .specify/templates/tasks-template.md')\"",
     "spec:review": "node -e \"console.log('Review .specify/memory/constitution.md for compliance')\"",
-    "smoke:mcp:2026": "node scripts/smoke-mcp-2026.js"
+    "smoke:mcp:2026": "node scripts/smoke-mcp-2026.js",
+    "test:uia:e2e": "node Tests/uia/e2e-mcp.mjs",
+    "test:uia:lib": "\"$AHK_PATH\" /ErrorStdOut Tests/uia/lib-paths.ahk"
   },
   "dependencies": {
     "@modelcontextprotocol/node": "^2.0.0",

@@ -11,12 +11,37 @@ MCP clients such as Claude Desktop.
 ## Highlights
 
 - 25+ `AHK_*` tools for AutoHotkey workflows
+- Six read-only `uia_*` tools that feed live UI Automation ground truth to the
+  model, so it writes correct selectors instead of guessing them
 - Focused file discovery and active-file aware operations
 - Script execution with process tracking and window detection
 - Local AutoHotkey validation and diagnostics tools
 - Built-in AutoHotkey docs and prompt/context helpers
 - Stdio and Streamable HTTP transport support, with opt-in legacy SSE
   compatibility
+
+## UIA inspection
+
+Writing UIA automation without inspecting the live tree means guessing
+selectors. These tools remove the guesswork:
+
+```
+uia_windows  ->  uia_tree  ->  uia_find / uia_element  ->  paste snippet  ->  uia_highlight
+   which          what's         the exact control        into your .ahk      confirm it is
+   window         in it          + verified selector      script              the right one
+```
+
+Every element result carries a paste-ready AHK v2 snippet that has been executed
+against the live tree and confirmed to resolve back to that exact element. Paths
+are property chains, not RuntimeIds, so they still work after the target app
+restarts.
+
+All six tools are strictly read-only — they read properties and pattern
+availability but never invoke a control pattern, so none of them can press,
+toggle, select, or delete anything in the target app.
+
+Full reference, including the selector-validation hook and Electron/WebView2
+guidance: [`docs/UIA_INSPECTION.md`](docs/UIA_INSPECTION.md).
 
 ## Requirements
 
