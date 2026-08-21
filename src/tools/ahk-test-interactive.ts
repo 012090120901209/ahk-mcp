@@ -4,7 +4,7 @@ import * as fs from 'fs/promises';
 import * as path from 'path';
 import * as os from 'os';
 import logger from '../logger.js';
-import { McpToolResponse, createTextResponse, createErrorResponse } from '../types/mcp-types.js';
+import { McpToolResponse } from '../types/mcp-types.js';
 import { getAhkPath } from '../core/config.js';
 
 export const TestInteractiveArgsSchema = z.object({

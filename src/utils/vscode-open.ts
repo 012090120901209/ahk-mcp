@@ -1,4 +1,5 @@
 import fs from 'node:fs/promises';
+import { accessSync } from 'node:fs';
 import path from 'node:path';
 import { spawn, execSync } from 'node:child_process';
 import logger from '../logger.js';
@@ -32,7 +33,7 @@ function isWsl(): boolean {
   } catch {
     // Fallback: check if /mnt/c exists (common WSL mount)
     try {
-      require('fs').accessSync('/mnt/c');
+      accessSync('/mnt/c');
       return true;
     } catch {
       return false;
@@ -54,20 +55,6 @@ function wslToWindowsPath(wslPath: string): string {
     return `${drive}:\\${rest}`;
   }
   return wslPath;
-}
-
-/**
- * Convert Windows path to WSL path (for validation)
- * C:\Users\... -> /mnt/c/Users/...
- */
-function windowsToWslPath(winPath: string): string {
-  const match = winPath.match(/^([a-zA-Z]):\\(.*)$/);
-  if (match) {
-    const drive = match[1].toLowerCase();
-    const rest = match[2].replace(/\\/g, '/');
-    return `/mnt/${drive}/${rest}`;
-  }
-  return winPath;
 }
 
 export async function openFileInVSCode(

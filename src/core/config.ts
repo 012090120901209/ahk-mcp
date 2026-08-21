@@ -11,6 +11,8 @@ export interface AhkMcpConfig {
   autoDetectedPaths?: string[];
   lastEditedFile?: string;
   lastEditedAt?: string;
+  ahkPath?: string;
+  vscodeWorkspace?: string;
 }
 
 export interface PrioritizedFileSearchOptions {
@@ -271,9 +273,7 @@ function getPrimaryScriptDirectories(overrideScriptDir?: string): string[] {
   return directories;
 }
 
-export function getPrioritizedFileSearchDirs(
-  options: PrioritizedFileSearchOptions = {}
-): string[] {
+export function getPrioritizedFileSearchDirs(options: PrioritizedFileSearchOptions = {}): string[] {
   const cfg = loadConfig();
   const prioritized: string[] = [];
   const primaryDirs = getPrimaryScriptDirectories(options.scriptDir);
@@ -369,6 +369,20 @@ export function clearActiveFile(): void {
 export function getActiveFile(): string | undefined {
   const cfg = loadConfig();
   return cfg.activeFile;
+}
+
+/**
+ * Get the configured AutoHotkey executable path, if set
+ */
+export function getAhkPath(): string | undefined {
+  return loadConfig().ahkPath;
+}
+
+/**
+ * Get the configured VS Code workspace folder, if set
+ */
+export function getVscodeWorkspace(): string | undefined {
+  return loadConfig().vscodeWorkspace;
 }
 
 /**
