@@ -2,7 +2,7 @@ import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { SSEServerTransport } from '@modelcontextprotocol/sdk/server/sse.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
-import { randomUUID } from 'node:crypto';
+import { randomUUID, timingSafeEqual } from 'node:crypto';
 import type { Express, NextFunction, Request, Response } from 'express';
 import { z } from 'zod';
 import {
@@ -72,7 +72,7 @@ import { pathInterceptor } from './core/path-interceptor.js';
 import { observabilityServer } from './core/observability-server.js';
 import './core/opentelemetry.js'; // Initialize OpenTelemetry (if enabled)
 import { tracer } from './core/tracing.js';
-import { getStandardToolDefinitions, getToolMetadata } from './core/tool-metadata.js';
+import { getToolDefinitionsWithAnnotations, getToolMetadata } from './core/tool-metadata.js';
 import { InMemoryEventStore } from './core/in-memory-event-store.js';
 
 type StreamableSessionEntry = {
@@ -264,7 +264,7 @@ export class AutoHotkeyMcpServer {
         message: useSSE ? 'Including SSE-specific tools' : 'Standard tool listing',
       });
 
-      const standardTools = getStandardToolDefinitions();
+      const standardTools = getToolDefinitionsWithAnnotations();
       const metadataIndex = new Map(getToolMetadata().map(entry => [entry.definition.name, entry]));
       const activeFileAwareNames = new Set(
         getToolMetadata()
@@ -1301,7 +1301,9 @@ F12::hkManager.ToggleHotkey("F1", (*) => MsgBox("F1 pressed!"), "Example hotkey"
 
   private rankCompletionCandidates(candidates: string[], prefix: string): string[] {
     const normalizedPrefix = prefix.trim().toLowerCase();
-    const uniqueCandidates = Array.from(new Set(candidates.map(value => value.trim()).filter(Boolean)));
+    const uniqueCandidates = Array.from(
+      new Set(candidates.map(value => value.trim()).filter(Boolean))
+    );
 
     if (!normalizedPrefix) {
       return uniqueCandidates.sort((a, b) => a.localeCompare(b));
@@ -1868,13 +1870,15 @@ F12::hkManager.ToggleHotkey("F1", (*) => MsgBox("F1 pressed!"), "Example hotkey"
     app.use(express.default.json({ limit: '10mb' }));
     app.use(express.default.urlencoded({ extended: true }));
     this.configureOriginValidation(app);
+    this.configureAuthentication(app);
+
+    if (envConfig.isStatelessHttp()) {
+      logger.info('Streamable HTTP running in stateless mode (no sessions, POST /mcp only)');
+    }
 
     const activeSessions = new Map<string, SessionEntry>();
     const maxSessions = this.getPositiveIntEnv('AHK_MCP_MAX_SESSIONS', 100);
-    const sessionTimeoutMs = this.getPositiveIntEnv(
-      'AHK_MCP_SESSION_TIMEOUT_MS',
-      30 * 60 * 1000
-    );
+    const sessionTimeoutMs = this.getPositiveIntEnv('AHK_MCP_SESSION_TIMEOUT_MS', 30 * 60 * 1000);
     const cleanupIntervalMs = this.getPositiveIntEnv(
       'AHK_MCP_SESSION_CLEANUP_INTERVAL_MS',
       5 * 60 * 1000
@@ -1966,6 +1970,11 @@ F12::hkManager.ToggleHotkey("F1", (*) => MsgBox("F1 pressed!"), "Example hotkey"
     activeSessions: Map<string, SessionEntry>,
     maxSessions: number
   ): Promise<void> {
+    if (envConfig.isStatelessHttp()) {
+      await this.handleStatelessStreamableRequest(req, res);
+      return;
+    }
+
     try {
       const sessionId = this.getHeaderValue(req.headers['mcp-session-id']);
       const session = sessionId ? activeSessions.get(sessionId) : undefined;
@@ -2016,6 +2025,7 @@ F12::hkManager.ToggleHotkey("F1", (*) => MsgBox("F1 pressed!"), "Example hotkey"
           sessionIdGenerator: () => randomUUID(),
           enableJsonResponse: true,
           eventStore: new InMemoryEventStore(),
+          ...this.getDnsRebindingOptions(),
           onsessioninitialized: initializedSessionId => {
             const now = Date.now();
             activeSessions.set(initializedSessionId, {
@@ -2034,7 +2044,11 @@ F12::hkManager.ToggleHotkey("F1", (*) => MsgBox("F1 pressed!"), "Example hotkey"
             });
           },
           onsessionclosed: async closedSessionId => {
-            await this.closeSessionById(activeSessions, closedSessionId, 'session closed by client');
+            await this.closeSessionById(
+              activeSessions,
+              closedSessionId,
+              'session closed by client'
+            );
           },
         });
 
@@ -2082,6 +2096,93 @@ F12::hkManager.ToggleHotkey("F1", (*) => MsgBox("F1 pressed!"), "Example hotkey"
         error: message,
       });
     }
+  }
+
+  /**
+   * Stateless Streamable HTTP (AHK_MCP_STATELESS=true): a fresh server and
+   * transport per request, no Mcp-Session-Id and no resumability, so any
+   * instance behind a load balancer can serve any request.
+   */
+  private async handleStatelessStreamableRequest(req: Request, res: Response): Promise<void> {
+    if (req.method !== 'POST') {
+      this.sendTransportError(res, 405, -32000, 'Method not allowed in stateless mode', {
+        phase: 'streamable-stateless',
+        method: req.method,
+        hint: 'Stateless mode has no server-to-client streams; send JSON-RPC via POST /mcp',
+      });
+      return;
+    }
+
+    try {
+      const server = this.createServer();
+      const transport = new StreamableHTTPServerTransport({
+        sessionIdGenerator: undefined,
+        enableJsonResponse: true,
+        ...this.getDnsRebindingOptions(),
+      });
+
+      res.on('close', () => {
+        void transport.close();
+        void server.close();
+      });
+
+      await server.connect(transport);
+      await transport.handleRequest(req, res, req.body);
+    } catch (error) {
+      logDebugError('transport.streamable', error, {
+        details: {
+          phase: 'stateless-request-handler',
+          method: req.method,
+          path: req.path,
+        },
+      });
+
+      const message = error instanceof Error ? error.message : String(error);
+      this.sendTransportError(res, 500, -32603, 'Failed to handle Streamable HTTP request', {
+        phase: 'streamable-stateless',
+        error: message,
+      });
+    }
+  }
+
+  private getDnsRebindingOptions(): {
+    enableDnsRebindingProtection?: boolean;
+    allowedHosts?: string[];
+  } {
+    const allowedHosts = envConfig.getAllowedHosts();
+    if (allowedHosts.length === 0) {
+      return {};
+    }
+
+    return { enableDnsRebindingProtection: true, allowedHosts };
+  }
+
+  private configureAuthentication(app: Express): void {
+    const token = envConfig.getHttpAuthToken();
+    if (!token) {
+      logger.warn(
+        'HTTP transport is running without authentication. Set AHK_MCP_AUTH_TOKEN to require a bearer token.'
+      );
+      return;
+    }
+
+    const expected = Buffer.from(token);
+    app.use((req: Request, res: Response, next: NextFunction) => {
+      const header = this.getHeaderValue(req.headers.authorization);
+      const provided = header?.startsWith('Bearer ') ? Buffer.from(header.slice(7)) : undefined;
+
+      if (provided && provided.length === expected.length && timingSafeEqual(provided, expected)) {
+        next();
+        return;
+      }
+
+      res.setHeader('WWW-Authenticate', 'Bearer');
+      this.sendTransportError(res, 401, -32098, 'Missing or invalid bearer token', {
+        phase: 'authentication',
+        method: req.method,
+        path: req.path,
+      });
+    });
   }
 
   private async handleLegacySseConnect(
@@ -2191,10 +2292,16 @@ F12::hkManager.ToggleHotkey("F1", (*) => MsgBox("F1 pressed!"), "Example hotkey"
         }
       }
 
-      this.sendTransportError(res, 400, -32000, 'No matching legacy SSE session for POST /message', {
-        phase: 'legacy-sse-post',
-        hint: 'Use /message?sessionId=<id> after opening /sse',
-      });
+      this.sendTransportError(
+        res,
+        400,
+        -32000,
+        'No matching legacy SSE session for POST /message',
+        {
+          phase: 'legacy-sse-post',
+          hint: 'Use /message?sessionId=<id> after opening /sse',
+        }
+      );
     } catch (error) {
       logDebugError('transport.sse', error, { details: { phase: 'post' } });
       const message = error instanceof Error ? error.message : String(error);

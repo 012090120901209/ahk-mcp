@@ -1,5 +1,6 @@
 import { randomUUID } from 'crypto';
 import logger from '../logger.js';
+import { envConfig } from './env-config.js';
 import type { ToolResponse } from './server-interface.js';
 import { ErrorCode, ErrorCategory, ErrorSeverity } from './error-types.js';
 
@@ -48,6 +49,11 @@ export interface TaskCreateOptions {
 
 export class TaskManager {
   private tasks = new Map<string, TaskRecord>();
+  private readonly finishedRetentionMs: number;
+
+  constructor(finishedRetentionMs: number = envConfig.getTaskRetentionMs()) {
+    this.finishedRetentionMs = finishedRetentionMs;
+  }
 
   createTask(options: TaskCreateOptions): TaskInfo {
     this.pruneExpired();
@@ -188,18 +194,29 @@ export class TaskManager {
   private pruneExpired(): void {
     const now = Date.now();
     for (const [taskId, record] of this.tasks) {
-      if (!record.expiresAt || now <= record.expiresAt) continue;
+      if (record.expiresAt && now > record.expiresAt) {
+        if (record.status === 'working') {
+          record.status = 'failed';
+          record.statusMessage = 'Task expired';
+          record.result = this.createErrorResult('Task expired');
+          record.lastUpdatedAt = new Date().toISOString();
+          logger.warn(`Task expired: ${taskId}`);
+          continue;
+        }
 
-      if (record.status === 'working') {
-        record.status = 'failed';
-        record.statusMessage = 'Task expired';
-        record.result = this.createErrorResult('Task expired');
-        record.lastUpdatedAt = new Date().toISOString();
-        logger.warn(`Task expired: ${taskId}`);
+        this.tasks.delete(taskId);
         continue;
       }
 
-      this.tasks.delete(taskId);
+      // Without a client-supplied ttl, finished tasks (and their result
+      // payloads) would otherwise be retained for the life of the process.
+      if (
+        this.finishedRetentionMs > 0 &&
+        record.status !== 'working' &&
+        now - Date.parse(record.lastUpdatedAt) > this.finishedRetentionMs
+      ) {
+        this.tasks.delete(taskId);
+      }
     }
   }
 

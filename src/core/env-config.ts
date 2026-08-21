@@ -58,6 +58,48 @@ class EnvironmentConfig {
   }
 
   /**
+   * Check if the Streamable HTTP endpoint should run in stateless mode
+   * (no Mcp-Session-Id, fresh transport per request; safe behind load balancers)
+   */
+  isStatelessHttp(): boolean {
+    const raw = (process.env.AHK_MCP_STATELESS || '').toLowerCase();
+    return raw === '1' || raw === 'true' || raw === 'yes';
+  }
+
+  /**
+   * Get the bearer token required on HTTP transport endpoints
+   * Unset disables authentication (local development only)
+   */
+  getHttpAuthToken(): string | undefined {
+    const token = process.env.AHK_MCP_AUTH_TOKEN;
+    return token && token.length > 0 ? token : undefined;
+  }
+
+  /**
+   * Get the Host header allowlist for DNS-rebinding protection
+   * Comma-separated AHK_MCP_ALLOWED_HOSTS; empty disables the check
+   */
+  getAllowedHosts(): string[] {
+    return (process.env.AHK_MCP_ALLOWED_HOSTS || '')
+      .split(',')
+      .map(host => host.trim())
+      .filter(Boolean);
+  }
+
+  /**
+   * Get retention for finished task records in milliseconds
+   * Defaults to 30 minutes; 0 keeps finished tasks until process exit
+   */
+  getTaskRetentionMs(): number {
+    const defaultRetention = 30 * 60 * 1000;
+    const raw = process.env.AHK_MCP_TASK_RETENTION_MS;
+    if (!raw) return defaultRetention;
+    const parsed = parseInt(raw, 10);
+    if (Number.isNaN(parsed) || parsed < 0) return defaultRetention;
+    return parsed;
+  }
+
+  /**
    * Get the tool execution timeout in milliseconds
    * Defaults to 45000ms; set to 0 to disable timeouts
    */
@@ -233,6 +275,10 @@ class EnvironmentConfig {
       logLevel: this.getLogLevel(),
       port: this.getPort(),
       useSSEMode: this.useSSEMode(),
+      statelessHttp: this.isStatelessHttp(),
+      httpAuthConfigured: Boolean(this.getHttpAuthToken()),
+      allowedHosts: this.getAllowedHosts(),
+      taskRetentionMs: this.getTaskRetentionMs(),
       toolTimeoutMs: this.getToolTimeoutMs(),
       taskPollIntervalMs: this.getTaskPollIntervalMs(),
       taskTimeoutMs: this.getTaskTimeoutMs(),
