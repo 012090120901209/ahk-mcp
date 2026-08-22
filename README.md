@@ -2,8 +2,9 @@
 
 # AutoHotkey v2 MCP Server
 
-A TypeScript MCP server for AutoHotkey v2 development.
-It provides script analysis, file operations, documentation search, and script execution tools for MCP clients such as Claude Desktop.
+A TypeScript MCP server for AutoHotkey v2 development. It provides script
+analysis, file operations, documentation search, and script execution tools for
+MCP clients such as Claude Desktop.
 
 [![Features](https://img.shields.io/badge/Features-blue?style=for-the-badge)](#highlights)
 [![Install](https://img.shields.io/badge/Install-green?style=for-the-badge)](#installation)
@@ -23,7 +24,9 @@ It provides script analysis, file operations, documentation search, and script e
 - Script execution with process tracking and window detection
 - Local AutoHotkey validation and diagnostics tools
 - Built-in AutoHotkey docs and prompt/context helpers
-- Stdio and SSE transport support
+- Stdio and Streamable HTTP transports (stateful or stateless), plus legacy SSE
+  endpoints
+- Opt-in bearer-token auth and DNS-rebinding protection for HTTP mode
 
 ## Requirements
 
@@ -57,6 +60,35 @@ Smoke test:
 ```bash
 npm run smoke:mcp
 ```
+
+## HTTP Mode and Environment Variables
+
+`npm start` speaks stdio (Claude Desktop). To expose Streamable HTTP on `/mcp`
+(plus legacy SSE endpoints), set `PORT` or pass `--sse`:
+
+```bash
+npm run start:sse
+```
+
+Behavior is controlled with environment variables:
+
+| Variable                    | Default   | Purpose                                                                                                                            |
+| --------------------------- | --------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| `PORT`                      | `3000`    | HTTP port; setting it enables HTTP mode                                                                                            |
+| `AHK_MCP_STATELESS`         | off       | `true` runs `/mcp` in the MCP spec's stateless mode: no `mcp-session-id`, a fresh transport per `POST`, safe behind load balancers |
+| `AHK_MCP_AUTH_TOKEN`        | unset     | When set, every HTTP request must send `Authorization: Bearer <token>`; unset means **no authentication**                          |
+| `AHK_MCP_ALLOWED_HOSTS`     | unset     | Comma-separated `Host` allowlist; enables DNS-rebinding protection (e.g. `localhost:3000,127.0.0.1:3000`)                          |
+| `AHK_MCP_ALLOWED_ORIGINS`   | unset     | Comma-separated `Origin` allowlist for browser clients                                                                             |
+| `AHK_MCP_TASK_RETENTION_MS` | `1800000` | How long finished task records are kept (30 min); `0` keeps them until process exit                                                |
+| `AHK_MCP_LOG_LEVEL`         | `warn`    | `error`, `warn`, `info`, or `debug`                                                                                                |
+
+Security note: the tool surface includes file writes and process execution. If
+the HTTP port is reachable by anything other than your own machine, set
+`AHK_MCP_AUTH_TOKEN` (e.g. `openssl rand -hex 32`) and the two allowlists — by
+default the endpoints accept every request.
+
+See `docs/MCP_TRANSPORT_COMPATIBILITY.md` for the session flow, stateless mode
+details, and cURL examples.
 
 ## Claude Desktop Configuration
 
@@ -131,5 +163,3 @@ See `CONTRIBUTING.md` and `AGENTS.md`.
 ## License
 
 MIT. See `LICENSE`.
-
-
