@@ -33,7 +33,10 @@ export function generateInputSchema(schema: ZodTypeAny, name?: string): Record<s
   }
 
   // Remove metadata properties that MCP doesn't need
-  const { $schema, definitions: _definitions, $ref: _ref, ...cleanSchema } = schemaRecord;
+  const cleanSchema = { ...schemaRecord };
+  delete cleanSchema.$schema;
+  delete cleanSchema.definitions;
+  delete cleanSchema.$ref;
 
   return cleanSchema;
 }
@@ -48,15 +51,18 @@ export function generateInputSchema(schema: ZodTypeAny, name?: string): Record<s
 export function createToolDefinition(
   name: string,
   description: string,
-  schema: ZodTypeAny
+  schema: ZodTypeAny,
+  options: { outputSchema?: Record<string, unknown> } = {}
 ): {
   name: string;
   description: string;
   inputSchema: Record<string, unknown>;
+  outputSchema?: Record<string, unknown>;
 } {
   return {
     name,
     description,
     inputSchema: generateInputSchema(schema, name),
+    ...(options.outputSchema ? { outputSchema: options.outputSchema } : {}),
   };
 }

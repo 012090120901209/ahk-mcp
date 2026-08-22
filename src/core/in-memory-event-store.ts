@@ -48,7 +48,9 @@ export class InMemoryEventStore implements EventStore {
     }
 
     const replayCandidates = [...this.events.entries()]
-      .filter(([, event]) => event.streamId === lastEvent.streamId && event.sequence > lastEvent.sequence)
+      .filter(
+        ([, event]) => event.streamId === lastEvent.streamId && event.sequence > lastEvent.sequence
+      )
       .sort((a, b) => a[1].sequence - b[1].sequence);
 
     for (const [eventId, event] of replayCandidates) {

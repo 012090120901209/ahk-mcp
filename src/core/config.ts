@@ -11,6 +11,8 @@ export interface AhkMcpConfig {
   autoDetectedPaths?: string[];
   lastEditedFile?: string;
   lastEditedAt?: string;
+  ahkPath?: string;
+  vscodeWorkspace?: string;
 }
 
 export interface PrioritizedFileSearchOptions {
@@ -271,9 +273,7 @@ function getPrimaryScriptDirectories(overrideScriptDir?: string): string[] {
   return directories;
 }
 
-export function getPrioritizedFileSearchDirs(
-  options: PrioritizedFileSearchOptions = {}
-): string[] {
+export function getPrioritizedFileSearchDirs(options: PrioritizedFileSearchOptions = {}): string[] {
   const cfg = loadConfig();
   const prioritized: string[] = [];
   const primaryDirs = getPrimaryScriptDirectories(options.scriptDir);
@@ -372,6 +372,20 @@ export function getActiveFile(): string | undefined {
 }
 
 /**
+ * Get the configured AutoHotkey executable path, if set
+ */
+export function getAhkPath(): string | undefined {
+  return loadConfig().ahkPath;
+}
+
+/**
+ * Get the configured VS Code workspace folder, if set
+ */
+export function getVscodeWorkspace(): string | undefined {
+  return loadConfig().vscodeWorkspace;
+}
+
+/**
  * Persist the most recently edited file path
  */
 export function setLastEditedFile(filePath: string): void {
@@ -418,8 +432,10 @@ export function detectFilePaths(text: string): string[] {
     paths.push(...drivePaths);
   }
 
-  // Pattern 3: Relative paths
-  const relativePaths = text.match(/(?:^|\s)(?:\.\/|\.\.\/|[^\s"']+\/)*[^\s"']+\.ahk/gi);
+  // Pattern 3: Relative paths. Each segment excludes '/' and is terminated by
+  // a literal '/', so the repetition is unambiguous and backtracking stays
+  // linear ('.' and '..' are ordinary segments, covering ./ and ../ prefixes).
+  const relativePaths = text.match(/(?:^|\s)(?:[^\s"'/]+\/)*[^\s"'/]+\.ahk/gi);
   if (relativePaths) {
     paths.push(...relativePaths.map(p => p.trim()));
   }
