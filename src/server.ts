@@ -73,7 +73,15 @@ import { observabilityServer } from './core/observability-server.js';
 import './core/opentelemetry.js'; // Initialize OpenTelemetry (if enabled)
 import { tracer } from './core/tracing.js';
 import { getToolDefinitionsWithAnnotations, getToolMetadata } from './core/tool-metadata.js';
+import { extractProgressToken, progressNotifier } from './core/progress-notifier.js';
 import { InMemoryEventStore } from './core/in-memory-event-store.js';
+
+type ClientLogNotifier = {
+  server: Server;
+  setLevel(level: string): void;
+  error(data: Record<string, unknown>): void;
+  warning(data: Record<string, unknown>): void;
+};
 
 type StreamableSessionEntry = {
   protocol: 'streamable';
@@ -96,7 +104,6 @@ type SessionEntry = StreamableSessionEntry | SseSessionEntry;
 export class AutoHotkeyMcpServer {
   private server: Server;
   private toolRegistry: ToolRegistry;
-  private taskManager: TaskManager;
   public ahkDiagnosticsToolInstance: AhkDiagnosticsTool;
   public ahkSummaryToolInstance: AhkSummaryTool;
   public ahkPromptsToolInstance: AhkPromptsTool;
@@ -174,7 +181,6 @@ export class AutoHotkeyMcpServer {
     this.ahkDebugDBGpToolInstance = new AhkDebugDBGpTool();
 
     this.toolRegistry = new ToolRegistry(this);
-    this.taskManager = new TaskManager();
 
     // Initialize workflow tool with dependencies (must be after other tools are initialized)
     this.ahkWorkflowAnalyzeFixRunToolInstance = new AhkWorkflowAnalyzeFixRunTool(
@@ -220,25 +226,79 @@ export class AutoHotkeyMcpServer {
       }
     );
 
-    this.setupToolHandlers(server);
-    this.setupTaskHandlers(server);
+    // Task records and client-facing log state are scoped to this server
+    // instance, i.e. per session in HTTP mode.
+    const taskManager = new TaskManager();
+    const clientLog = this.createClientLogNotifier(server);
+
+    this.setupToolHandlers(server, taskManager, clientLog);
+    this.setupTaskHandlers(server, taskManager);
     this.setupPromptHandlers(server);
     this.setupResourceHandlers(server);
     this.setupCompletionHandlers(server);
-    this.setupLoggingHandlers(server);
+    this.setupLoggingHandlers(clientLog);
 
     return server;
   }
 
   /**
-   * Setup logging handlers to prevent "Method not found" errors
+   * Client-facing logging via notifications/message, honoring the minimum
+   * level the client requested through logging/setLevel.
    */
-  private setupLoggingHandlers(server: Server): void {
-    // Handle logging/setLevel requests (sent by some clients during initialization)
-    // We acknowledge the request but use our own server-side logging
+  private createClientLogNotifier(server: Server): ClientLogNotifier {
+    const levels = [
+      'debug',
+      'info',
+      'notice',
+      'warning',
+      'error',
+      'critical',
+      'alert',
+      'emergency',
+    ];
+    let minLevel = 'info';
+
+    const send = (level: string, data: Record<string, unknown>): void => {
+      if (levels.indexOf(level) < levels.indexOf(minLevel)) {
+        return;
+      }
+
+      try {
+        void server
+          .sendLoggingMessage({
+            level: level as Parameters<Server['sendLoggingMessage']>[0]['level'],
+            logger: 'ahk-mcp',
+            data,
+          })
+          .catch(error => {
+            logger.debug(`Client log notification failed: ${error}`);
+          });
+      } catch (error) {
+        logger.debug(`Client log notification failed: ${error}`);
+      }
+    };
+
+    return {
+      server,
+      setLevel: level => {
+        if (levels.includes(level)) {
+          minLevel = level;
+        }
+      },
+      error: data => send('error', data),
+      warning: data => send('warning', data),
+    };
+  }
+
+  /**
+   * Setup logging handlers
+   */
+  private setupLoggingHandlers(clientLog: ClientLogNotifier): void {
+    const server = clientLog.server;
     server.setRequestHandler(SetLevelRequestSchema, async request => {
       const level = request.params.level;
-      logger.debug(`Client requested log level: ${level} (using server-side logging)`);
+      clientLog.setLevel(level);
+      logger.debug(`Client requested log level: ${level}`);
       return {};
     });
 
@@ -252,7 +312,11 @@ export class AutoHotkeyMcpServer {
   /**
    * Setup MCP tool handlers
    */
-  private setupToolHandlers(server: Server): void {
+  private setupToolHandlers(
+    server: Server,
+    taskManager: TaskManager,
+    clientLog: ClientLogNotifier
+  ): void {
     // List tools handler
     server.setRequestHandler(ListToolsRequestSchema, async () => {
       logger.debug('Listing available AutoHotkey tools');
@@ -334,12 +398,25 @@ export class AutoHotkeyMcpServer {
     });
 
     // Call tool handler
-    server.setRequestHandler(CallToolRequestSchema, async request => {
+    server.setRequestHandler(CallToolRequestSchema, async (request, extra) => {
       const params = request.params as typeof request.params & { task?: { ttl?: number } };
       const { name, arguments: args } = params;
       const taskRequest = params.task;
       const startTime = Date.now();
       const toolTimeoutMs = envConfig.getToolTimeoutMs();
+
+      // Route notifications/progress to this request's session for the
+      // duration of the call; tools read the token via _progressToken.
+      const progressToken = extractProgressToken(params);
+      const toolArgs =
+        progressToken !== undefined && args && typeof args === 'object'
+          ? { ...(args as Record<string, unknown>), _progressToken: progressToken }
+          : args;
+      if (progressToken !== undefined) {
+        progressNotifier.register(progressToken, notification =>
+          extra.sendNotification(notification)
+        );
+      }
 
       // Unified logging: generate call ID and log start
       const callId = `${name}-${startTime}-${Math.random().toString(36).slice(2, 8)}`;
@@ -367,11 +444,19 @@ export class AutoHotkeyMcpServer {
           const pollInterval = envConfig.getTaskPollIntervalMs();
           const taskTimeoutMs = ttl ?? envConfig.getTaskTimeoutMs();
 
-          const task = this.taskManager.createTask({
+          const task = taskManager.createTask({
             toolName: name,
             ttl,
             pollInterval,
-            execute: () => this.executeToolWithTimeout(name, args, taskTimeoutMs),
+            execute: async () => {
+              try {
+                return await this.executeToolWithTimeout(name, toolArgs, taskTimeoutMs);
+              } finally {
+                if (progressToken !== undefined) {
+                  progressNotifier.unregister(progressToken);
+                }
+              }
+            },
           });
 
           // Unified logging: task queued (execution is async)
@@ -394,7 +479,7 @@ export class AutoHotkeyMcpServer {
                 : 0;
 
             // Execute the tool
-            const toolResult = await this.executeToolWithTimeout(name, args, toolTimeoutMs);
+            const toolResult = await this.executeToolWithTimeout(name, toolArgs, toolTimeoutMs);
 
             // Add result metadata to span
             if (toolResult && toolResult.content) {
@@ -414,6 +499,11 @@ export class AutoHotkeyMcpServer {
         // Unified logging: log error
         unifiedLog.toolError(callId, error instanceof Error ? error : new Error(String(error)));
 
+        clientLog.error({
+          tool: name,
+          message: error instanceof Error ? error.message : String(error),
+        });
+
         // Build rich error response with metadata
         return ErrorResponseBuilder.fromError(error, ErrorCode.TOOL_EXECUTION_FAILED)
           .tool(request.params.name)
@@ -423,6 +513,11 @@ export class AutoHotkeyMcpServer {
             arguments: request.params.arguments,
           })
           .build();
+      } finally {
+        // Task-based calls unregister when the task finishes instead.
+        if (!taskRequest && progressToken !== undefined) {
+          progressNotifier.unregister(progressToken);
+        }
       }
     });
   }
@@ -430,7 +525,7 @@ export class AutoHotkeyMcpServer {
   /**
    * Setup MCP task handlers
    */
-  private setupTaskHandlers(server: Server): void {
+  private setupTaskHandlers(server: Server, taskManager: TaskManager): void {
     const taskStatusValues = ['working', 'completed', 'failed', 'canceled'] as const;
     const TaskStatusSchema = z.enum(taskStatusValues);
 
@@ -466,13 +561,13 @@ export class AutoHotkeyMcpServer {
 
     server.setRequestHandler(TaskListRequestSchema, async request => {
       const status = request.params?.status;
-      const tasks = this.taskManager.listTasks(status);
+      const tasks = taskManager.listTasks(status);
       return { tasks };
     });
 
     server.setRequestHandler(TaskGetRequestSchema, async request => {
       const { taskId } = request.params;
-      const task = this.taskManager.getTask(taskId);
+      const task = taskManager.getTask(taskId);
       if (!task) {
         throw new Error(`Task not found: ${taskId}`);
       }
@@ -481,7 +576,7 @@ export class AutoHotkeyMcpServer {
 
     server.setRequestHandler(TaskCancelRequestSchema, async request => {
       const { taskId } = request.params;
-      const task = this.taskManager.cancelTask(taskId);
+      const task = taskManager.cancelTask(taskId);
       if (!task) {
         throw new Error(`Task not found: ${taskId}`);
       }
@@ -490,7 +585,7 @@ export class AutoHotkeyMcpServer {
 
     server.setRequestHandler(TaskResultRequestSchema, async request => {
       const { taskId } = request.params;
-      const outcome = this.taskManager.getTaskResult(taskId);
+      const outcome = taskManager.getTaskResult(taskId);
       if (!outcome) {
         throw new Error(`Task not found: ${taskId}`);
       }

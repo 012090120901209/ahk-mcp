@@ -144,7 +144,9 @@ const TOOL_METADATA: ToolMetadataEntry[] = [
   entry(ahkVSCodeProblemsToolDefinition, 'vscode-problems', 'analysis'),
   entry(ahkLintToolDefinition, 'lint', 'analysis'),
   entry(ahkThqbyDocumentSymbolsToolDefinition, 'thqby-document-symbols', 'analysis'),
-  // entry(ahkDiagnosticsToolDefinition, 'diagnostics', 'analysis'), // Hidden: use lint instead
+  // Listed because the README documents it as a core tool; AHK_Lint remains the
+  // preferred entry point for pure linting.
+  entry(ahkDiagnosticsToolDefinition, 'diagnostics', 'analysis'),
 
   // Docs (readOnly, idempotent)
   entry(ahkPromptsToolDefinition, 'prompts', 'docs'),
@@ -155,7 +157,9 @@ const TOOL_METADATA: ToolMetadataEntry[] = [
   // Execution (destructive, openWorld)
   entry(ahkDebugAgentToolDefinition, 'run-debug', 'execution'),
   entry(ahkCloudValidateToolDefinition, 'cloud-validate', 'execution'),
-  // entry(ahkRunToolDefinition, 'run-script', 'execution'), // Hidden: use run-debug instead
+  // Listed because the README documents it as a core tool; AHK_Debug_Agent
+  // remains the richer debug-oriented runner.
+  entry(ahkRunToolDefinition, 'run-script', 'execution'),
   // entry(ahkTestInteractiveToolDefinition, 'test-interactive', 'execution'), // Hidden: dev-only
 
   // Debug (destructive, openWorld)
